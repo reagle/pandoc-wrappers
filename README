@@ -1,0 +1,1 @@
+These are wrappers for the wonderful pandoc tool that I use for creating web pages, presentations, papers, and even my book. I don't imagine they will be useful to other off-the-shelf but there might be handing techniques, particular the super simple, limited, but fast bibtex parser in mdn2bib.
