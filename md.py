@@ -115,11 +115,11 @@ if __name__ == "__main__":
     arg_parser.add_argument("-p", "--presentation",
                     action="store_true", default=False,
                     help="create presentation with dzsslides")
-    arg_parser.add_argument("-S", "--style-csl", nargs = 1,
-                    help="specify file as CSL bibliography style")
     arg_parser.add_argument("-s", "--style-chicago",
                     action="store_true", default=False,
-                    help="use 'chicago-author-date' as CSL bibliography style")
+                    help="use CSL bibliography style, default chicago")
+    arg_parser.add_argument("-S", "--style-csl", nargs = 1,
+                    help="specify CSL style")
     arg_parser.add_argument("-t", "--toc",
                     action="store_true", default=False,
                     help="create table of contents")
