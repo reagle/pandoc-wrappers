@@ -18,7 +18,7 @@ A wrapper script for pandoc that handles my own issues:
 
 Build a PDF (article or book) based on markdown source using pandoc.
 
-# bdh.py
+## bdh.py
 
 Like `bd`, but will build HTML using [htlatex](http://www.tug.org/applications/tex4ht/mn-commands.html).
 
