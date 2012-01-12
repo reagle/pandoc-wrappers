@@ -7,6 +7,10 @@
     1. associates the result with a particular style sheet.
     2. can replace [@key] with hypertext'd refs from bibtex database.
     3. makes use of DZSlides for presentations.
+    
+TODO:
+    1. reduce redundant references: page only, if key already cited
+    2. replace square brackets with round when no URL.
 '''
 
 import codecs
@@ -56,7 +60,7 @@ def process(files):
                     url = None
                     citation = cite_match.group(0)
                     key = citation.split('@',1)[1]
-                    #print "**   processing key", key
+                    #print("**   processing key: %s" % key)
                     reference = bibtex.get(key)
                     if reference == None:
                         print("WARNING: key %s not found" % key)
@@ -68,17 +72,17 @@ def process(files):
                     else:
                         key_text = key
                     
-                    #print "**   url", url
+                    #print("**   url = %s" % url)
                     if url:
                         cite_replacement.append('[%s](%s)' %(key_text,url))
                     else:
                         cite_replacement.append('%s' %key_text)
-                    #print "**   using cite_replacement", cite_replacement
+                    #print("**   using cite_replacement = %s" % cite_replacement)
                     return ''.join(cite_replacement)
 
                 p_cite = re.compile(r'(-?@[\w|-]+)')
                 line = p_cite.sub(hyperize, line) # hyperize every non-overlapping occurrence
-                #print "\n** line is now", line
+                #print("\n** line is now %s" % line)
             f2.write(line)
         f1.close()
         f2.close()
