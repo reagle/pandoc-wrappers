@@ -16,7 +16,7 @@ TODO:
 import codecs
 from dateutil.parser import parse
 from datetime import date, datetime
-from mdn2bib import parseBibTex
+from mkd2bib import parseBibTex
 import getopt
 import os
 import re

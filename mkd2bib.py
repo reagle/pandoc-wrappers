@@ -75,7 +75,7 @@ def subsetBibliography(entries, keys):
             pass
     return subset
         
-def getKeysFromMDN(filename):
+def getKeysFrommkd(filename):
     """Return a list of keys used in a markdown document"""
 
     text = open(filename, 'r').read()
@@ -106,12 +106,12 @@ if '__main__' == __name__:
     elif args.verbose == 2: log_level = logging.INFO
     elif args.verbose >= 3: log_level = logging.DEBUG
     if args.log_to_file: # nothing is done with log_dest presently
-        log_dest = codecs.open('mdn2bib.log', 'w', 'UTF-8', 'replace')
+        log_dest = codecs.open('mkd2bib.log', 'w', 'UTF-8', 'replace')
     else:
         log_dest = sys.stderr
     
     if args.get_keys:
-        keys = getKeysFromMDN(args.get_keys[0])
+        keys = getKeysFrommkd(args.get_keys[0])
         info("keys = %s" % keys)
         sys.exit()
     
