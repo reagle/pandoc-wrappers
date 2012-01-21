@@ -11,7 +11,7 @@ import codecs
 from glob import glob
 import locale
 import logging
-import mdn2bib
+import mkd2bib
 import os
 from os import chdir, path
 import re
@@ -68,7 +68,7 @@ mr = MultiReplace(SUB_MAP)
 
 ##################################################
 
-def pre_pandoc(fn, src_file, mdn_tmp_file):
+def pre_pandoc(fn, src_file, mkd_tmp_file):
     """ 
     Tweak the markdown source
     """
@@ -100,11 +100,11 @@ def pre_pandoc(fn, src_file, mdn_tmp_file):
 
         new_lines.append(line)
 
-    mdn_tmp_fd = codecs.open(mdn_tmp_file, "w", file_enc, "replace")
-    mdn_tmp_fd.write('\n'.join(new_lines))
-    mdn_tmp_fd.close()
+    mkd_tmp_fd = codecs.open(mkd_tmp_file, "w", file_enc, "replace")
+    mkd_tmp_fd.write('\n'.join(new_lines))
+    mkd_tmp_fd.close()
 
-def pandoc_call(mdn_tmp_file, tex_tmp_file, build_file_base):
+def pandoc_call(mkd_tmp_file, tex_tmp_file, build_file_base):
     """
     Call pandoc on tweaked markdown files.
     """
@@ -118,13 +118,13 @@ def pandoc_call(mdn_tmp_file, tex_tmp_file, build_file_base):
         info("fe_opts %s" % fe_opts)
         call(['fe', fe_opts], stdout=open(BIB_FILE, 'w'))
         # generate a subset bibtex
-        keys = mdn2bib.getKeysFromMDN(mdn_tmp_file)
-        entries = mdn2bib.parseBibTex(open(BIB_FILE, 'r'))
-        subset = mdn2bib.subsetBibliography(entries, keys)
-        mdn2bib.emitBibliography(subset, open(build_file_base + '.bib', 'w'))
+        keys = mkd2bib.getKeysFrommkd(mkd_tmp_file)
+        entries = mkd2bib.parseBibTex(open(BIB_FILE, 'r'))
+        subset = mkd2bib.subsetBibliography(entries, keys)
+        mkd2bib.emitBibliography(subset, open(build_file_base + '.bib', 'w'))
                 
     pandoc_opts = ['-t', 'latex', '--biblatex', '--bibliography=%s' %bib_file, '--no-wrap', '--tab-stop', '8']
-    pandoc_cmd = ['pandoc', mdn_tmp_file]
+    pandoc_cmd = ['pandoc', mkd_tmp_file]
     pandoc_cmd.extend(pandoc_opts)
     info("pandoc cmd = '%s'" % ' '.join(pandoc_cmd))
     call(pandoc_cmd, stdout=codecs.open(tex_tmp_file, 'w', 'utf-8'))
@@ -206,7 +206,7 @@ def main(args, files):
             info("%s is a directory" %fn)
             full_dir = path.realpath(fn) + '/'
             project = path.split(full_dir[:-1])[1]
-            files = [path.basename(file) for file in glob(full_dir +'[!~]*.mdn')]
+            files = [path.basename(file) for file in glob(full_dir +'[!~]*.mkd')]
             src_dir = full_dir
             dst_dir = src_dir + 'latex-' + project[:3] + '/'
             build_file_name = '0-book'
@@ -218,7 +218,7 @@ def main(args, files):
             files.append(fn)
             ori_file = files[0]
 
-            # interactions-wp-contingency.mdn
+            # interactions-wp-contingency.mkd
             src_file = path.basename(ori_file)  # delete?
             files = []
             files.append(src_file)
@@ -243,20 +243,20 @@ def main(args, files):
     files.sort()
     for ifile in files:
         src_file = src_dir + ifile    # original markdown
-        mdn_tmp_file = dst_dir + path.splitext(ifile)[0] + '.mdn.tmp' # tweaked markdown
+        mkd_tmp_file = dst_dir + path.splitext(ifile)[0] + '.mkd.tmp' # tweaked markdown
         tex_tmp_file = dst_dir + path.splitext(ifile)[0] + '.tex.tmp' # pandoc latex
         tex_file = dst_dir + path.splitext(ifile)[0] + '.tex' # tweaked latex
 
         info("ifile %s" % ifile)
         #info("src_file %s" % src_file)
-        #info("mdn_tmp_file %s" % mdn_tmp_file)
+        #info("mkd_tmp_file %s" % mkd_tmp_file)
         #info("tex_tmp_file %s" %tex_tmp_file)
         #sys.exit()
 
         file_name, extension = path.splitext(ifile)
 
-        pre_pandoc(fn, src_file, mdn_tmp_file)
-        pandoc_call(mdn_tmp_file, tex_tmp_file, build_file_base)
+        pre_pandoc(fn, src_file, mkd_tmp_file)
+        pandoc_call(mkd_tmp_file, tex_tmp_file, build_file_base)
         post_pandoc(fn, tex_tmp_file, tex_file)
     latex_build(dst_dir, src_dir, build_file, build_file_base, build_file_name)
     
