@@ -83,6 +83,7 @@ def pre_pandoc(fn, src_file, mkd_tmp_file):
         line = line.rstrip() # codecs opens in binary mode with EOLs
         
         if line_no == 1:
+            line = line.replace('\ufeff', '') # remove BOM if present
             if line.startswith('%'):
                 title = line.split(' ', 1)[1]
                 title = re.sub('\*(.*)\*', r'\em{\1}', title) 
@@ -172,7 +173,7 @@ def post_pandoc(fn, tex_tmp_file, tex_file):
         new_lines.append(line)
 
     tex_fd = codecs.open(tex_file, "w", file_enc, "replace")
-    tex_fd.write('\n'.join(new_lines))
+    tex_fd.write(''.join(new_lines))
     tex_fd.close()
 
 
@@ -189,7 +190,7 @@ def latex_build(dst_dir, src_dir, build_file, build_file_base, build_file_name):
         call(['bibtex8', '-W', '--mentstrs', '30000', '-c', '88591lat.csf', build_file_name])
         call(['pdflatex', '--src-specials', '-interaction=nonstopmode', build_file_name])
         call(['pdflatex', '--src-specials', '-interaction=nonstopmode', build_file_name])
-    [os.remove(file_name) for file_name in glob('*.tmp')] 
+    #[os.remove(file_name) for file_name in glob('*.tmp')] 
 
 
 def main(args, files):
