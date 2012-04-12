@@ -51,7 +51,8 @@ def process(files):
                 line = line.lstrip(str(codecs.BOM_UTF8, "utf8"))
                 if line.startswith('%'):
                     title = line [1:]
-
+            # fix relative network-path references so works with 'file:///'
+            line = line.replace('src="//', 'src="http://')
             if args.bibliography: # create hypertext refs from bibtex db
             
                 # [-@Clark-Flory2010fpo]
