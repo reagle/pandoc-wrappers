@@ -95,7 +95,7 @@ else:
     src_dir = path.realpath(file) + '/'
     project = path.split(src_dir[:-1])[1]
     files = [path.basename(file) for file in
-        sorted(glob(src_dir +'[!~]*.doc') + glob(src_dir +'[!~]*.mkd'))]
+        sorted(glob(src_dir +'[!~]*.doc') + glob(src_dir +'[!~]*.md'))]
     dst_dir = src_dir + 'latex-' + project[:3] + '/'
     base_file_name = '0-book'
     build_file_base = dst_dir + base_file_name
