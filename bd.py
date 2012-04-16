@@ -207,7 +207,7 @@ def main(args, files):
             info("%s is a directory" %fn)
             full_dir = path.realpath(fn) + '/'
             project = path.split(full_dir[:-1])[1]
-            files = [path.basename(file) for file in glob(full_dir +'[!~]*.mkd')]
+            files = [path.basename(file) for file in glob(full_dir +'[!~]*.md')]
             src_dir = full_dir
             dst_dir = src_dir + 'latex-' + project[:3] + '/'
             build_file_name = '0-book'
@@ -219,7 +219,7 @@ def main(args, files):
             files.append(fn)
             ori_file = files[0]
 
-            # interactions-wp-contingency.mkd
+            # interactions-wp-contingency.md
             src_file = path.basename(ori_file)  # delete?
             files = []
             files.append(src_file)
@@ -244,7 +244,7 @@ def main(args, files):
     files.sort()
     for ifile in files:
         src_file = src_dir + ifile    # original markdown
-        mkd_tmp_file = dst_dir + path.splitext(ifile)[0] + '.mkd.tmp' # tweaked markdown
+        mkd_tmp_file = dst_dir + path.splitext(ifile)[0] + '.md.tmp' # tweaked markdown
         tex_tmp_file = dst_dir + path.splitext(ifile)[0] + '.tex.tmp' # pandoc latex
         tex_file = dst_dir + path.splitext(ifile)[0] + '.tex' # tweaked latex
 

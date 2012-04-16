@@ -3,7 +3,7 @@
 """
 Build the static portions of my website by looking for source files newer than existing HTML files.
 *.mm (freemind)-> html
-*.mkd (pandoc)-> html
+*.md (pandoc)-> html
 zim/* (zim-wiki) -> html
 
 """
@@ -98,7 +98,7 @@ def update_markdown(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
     # Could call md.py instead of pandoc directly
 
-    files = locate('*.mkd', HOMEDIR)
+    files = locate('*.md', HOMEDIR)
     for mkd_filename in files:
         filename = mkd_filename.rsplit('.',1)[0]
         html_filename = filename + '.html'
