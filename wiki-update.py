@@ -189,8 +189,9 @@ def retire_tasks(directory):
     Removes completed '[x]' zim tasks form zim
     '''
     if 'zim' in check_output(["ps", "axw"]):
-        print("Zim is presently running; tasks not retired.")
-        return
+        print("Zim is presently running; skipping task " +
+            "retirement and export.")
+        return False
     else:
         zim_files = locate('*.txt', directory)
         for zim_filename in zim_files:
@@ -213,6 +214,7 @@ def retire_tasks(directory):
                 new_wiki_page_fd.writelines("%s" % line for line in new_wiki_page)
                 new_wiki_page_fd.close()
                 log2work(done_tasks)
+        return True
                          
 if '__main__' == __name__:
     sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
@@ -246,8 +248,8 @@ if '__main__' == __name__:
     # Private planning zim
     HOMEDIR = '/home/reagle/joseph/plan/'
     if has_dir_changed(HOMEDIR + 'zim/') or opts.force_update:
-        retire_tasks(HOMEDIR + 'zim/')
-        export_zim(HOMEDIR)
+        if retire_tasks(HOMEDIR + 'zim/'):
+            export_zim(HOMEDIR)
         
         HOME_FN = HOMEDIR + 'zwiki/Home.html'
         todos = grab_todos(HOME_FN)
