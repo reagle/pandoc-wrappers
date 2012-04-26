@@ -69,10 +69,13 @@ def has_dir_changed(directory):
 ##################################
                 
 def export_zim(zim):
+    info('zim --export --output=%szwiki --format=html '
+        '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
+        '--index-page index ' %(zim, zim))
     print Popen('zim --export --output=%szwiki --format=html '
-    '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
-    '--index-page index '
-    %(zim, zim), stdout=PIPE, shell=True).communicate()[0]
+        '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
+        '--index-page index ' %(zim, zim), 
+        stdout=PIPE, shell=True).communicate()[0]
 
 def grab_todos(filename):
     
@@ -226,7 +229,7 @@ if '__main__' == __name__:
                     help="Increase verbosity (specify multiple times for more)")
     opt_parser.add_option("-f", "--force-update",
                     action="store_true", default=False,
-                    help="boolean value")
+                    help="Force retire/update of Zim")
     opt_parser.add_option('-l', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
@@ -265,6 +268,7 @@ if '__main__' == __name__:
         #retire_tasks(HOMEDIR + 'zim/')
         export_zim(HOMEDIR)
 
+    sys.exit()
     # Markdown files
     update_markdown(HOMEDIR)
     
