@@ -135,7 +135,7 @@ if __name__ == "__main__":
     pandoc_opts = ['-s', '--smart', '--tab-stop', '4', '--email-obfuscation=references'] 
     if args.presentation:
         args.validate = False
-        args.css = "../dzslides/class-slides.css"
+        args.css = "../dzslides/2011/class-slides.css"
         pandoc_opts.extend(['-t', 'dzslides'])
     if args.css:
         pandoc_opts.extend(['-c', args.css])
