@@ -41,18 +41,26 @@ def process(files):
         shutil.copyfile(in_file, tmpName1)
 
         f1 = codecs.open(tmpName1, 'r', "UTF-8", "replace")
+        lines = f1.read()
         f2 = codecs.open(tmpName2, 'w', "UTF-8", "replace")
 
         print(os.path.split(abs_fn))
 
+        # remove writemonkey repository and bookmarks
+        lines = lines.split('***END OF FILE***')[0]
+        lines = lines.replace('@@', '')
+        
+        lines = lines.split('\n')
         # figure out the title
-        for lineNo, line in enumerate(f1):
+        for lineNo, line in enumerate(lines):
             if lineNo == 0:
                 line = line.lstrip(str(codecs.BOM_UTF8, "utf8"))
                 if line.startswith('%'):
                     title = line [1:]
-            # fix relative network-path references so works with 'file:///'
+            # fix Wikicommons relative network-path references 
+            # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
+            
             if args.bibliography: # create hypertext refs from bibtex db
             
                 # [-@Clark-Flory2010fpo]
@@ -67,6 +75,7 @@ def process(files):
                         print("WARNING: key %s not found" % key)
                         return key
                     url = reference.get('url')
+
                     
                     if citation.startswith('-'):
                         key_text = re.findall(r'\d\d\d\d.*', key)[0] # year
@@ -84,6 +93,7 @@ def process(files):
                 p_cite = re.compile(r'(-?@[\w|-]+)')
                 line = p_cite.sub(hyperize, line) # hyperize every non-overlapping occurrence
                 #print("\n** line is now %s" % line)
+
             f2.write(line)
         f1.close()
         f2.close()
