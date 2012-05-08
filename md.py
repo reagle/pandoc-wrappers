@@ -51,8 +51,10 @@ def process(files):
         lines = lines.replace('@@', '')
         
         lines = lines.split('\n')
+        
         # figure out the title
         for lineNo, line in enumerate(lines):
+            #print("START line: '%s'" % line)
             if lineNo == 0:
                 line = line.lstrip(str(codecs.BOM_UTF8, "utf8"))
                 if line.startswith('%'):
@@ -94,7 +96,8 @@ def process(files):
                 line = p_cite.sub(hyperize, line) # hyperize every non-overlapping occurrence
                 #print("\n** line is now %s" % line)
 
-            f2.write(line)
+            #print("END line: '%s'" % line)
+            f2.write(line + '\n')
         f1.close()
         f2.close()
 
@@ -109,7 +112,7 @@ def process(files):
                     fileName + '.html'])
         if args.launch_browser:
             Popen([BROWSER, fileName + '.html'])
-        [os.remove(file) for file in (tmpName1, tmpName2)]
+        #[os.remove(file) for file in (tmpName1, tmpName2)]
 
 if __name__ == "__main__":
     import argparse # http://docs.python.org/dev/library/argparse.html
