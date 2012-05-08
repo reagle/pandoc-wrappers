@@ -112,7 +112,7 @@ def process(files):
                     fileName + '.html'])
         if args.launch_browser:
             Popen([BROWSER, fileName + '.html'])
-        #[os.remove(file) for file in (tmpName1, tmpName2)]
+        [os.remove(file) for file in (tmpName1, tmpName2)]
 
 if __name__ == "__main__":
     import argparse # http://docs.python.org/dev/library/argparse.html
