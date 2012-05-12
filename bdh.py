@@ -116,10 +116,10 @@ print("build_file_base = %s " %build_file_base)
 os.chdir(dst_dir)
 
 if not args.reuse:
-    print("** calling fe, bibtex8, and htlatex")
+    print("** calling fe, biber, and htlatex")
     call(['fe', fe_opts], stdout=open(HOME+'/joseph/readings.bib', 'w'))
-    print((' '.join(['bibtex8', '-W', '--mentstrs', '30000', '-c', '88591lat.csf', base_file_name])))
-    call(['bibtex8', '-W', '--mentstrs', '30000', '-c', '88591lat.csf', base_file_name])
+    print((' '.join(['biber', base_file_name])))
+    call(['biber', base_file_name])
     print((' '.join(['*** htlatex', build_file_base, htlatex_opts])))
     call(['htlatex', build_file_base, htlatex_opts])
     #args.keep_src_html = True

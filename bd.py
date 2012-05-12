@@ -73,12 +73,17 @@ def pre_pandoc(fn, src_file, mkd_tmp_file):
     Tweak the markdown source
     """
     
+    author = heading = maketitle = ''
+    
     file_enc = "utf-8"
-    lines = codecs.open(src_file, "rb", file_enc).readlines()
     new_lines = []
 
-    author = heading = maketitle = ''
-
+    lines = codecs.open(src_file, "rb", file_enc).read()
+    # remove writemonkey repository and bookmarks
+    lines = lines.split('***END OF FILE***')[0]
+    lines = lines.replace('@@', '')
+    lines = lines.split('\n')
+    
     for line_no, line in enumerate(lines, start = 1):
         line = line.rstrip() # codecs opens in binary mode with EOLs
         
@@ -187,10 +192,10 @@ def latex_build(dst_dir, src_dir, build_file, build_file_base, build_file_name):
     else:
         os.chdir(dst_dir) # bibtex8 only working in cwd
         call(['pdflatex', '--src-specials', '-interaction=nonstopmode', build_file_name])
-        call(['bibtex8', '-W', '--mentstrs', '30000', '-c', '88591lat.csf', build_file_name])
+        call(['biber', build_file_name])
         call(['pdflatex', '--src-specials', '-interaction=nonstopmode', build_file_name])
         call(['pdflatex', '--src-specials', '-interaction=nonstopmode', build_file_name])
-    #[os.remove(file_name) for file_name in glob('*.tmp')] 
+    [os.remove(file_name) for file_name in glob('*.tmp')] 
 
 
 def main(args, files):
