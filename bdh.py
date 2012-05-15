@@ -150,6 +150,8 @@ for html_file in sorted(glob('*.html')):
 
     data = codecs.open(html_file, 'r', 'iso-8859-1').read()
 
+    data = data[data.find('<!DOCTYPE'):] # remove spurious spans at start
+    
     print("** rewriting links to files")
     if FILE_MAPPING:
         for old, new in list(FILE_MAPPING.items()):
