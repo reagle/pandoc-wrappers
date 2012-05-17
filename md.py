@@ -120,7 +120,7 @@ if __name__ == "__main__":
     arg_parser.add_argument('files', nargs='+',  metavar='FILE')
     arg_parser.add_argument("-b", "--bibliography",
                     action="store_true", default=False,
-                    help="turn citations into hypertext")
+                    help="turn citations into hypertext w/out CSL")
     arg_parser.add_argument("-c", "--css", 
                     default='http://reagle.org/joseph/2003/papers.css',
                     help="apply non-default CSS")
