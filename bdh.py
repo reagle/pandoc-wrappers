@@ -19,29 +19,30 @@ from os import environ
 HOME = environ['HOME']
 
 import argparse # http://docs.python.org/dev/library/argparse.html
-arg_parser = argparse.ArgumentParser(description='Build HTML from markdown')
+arg_parser = argparse.ArgumentParser(description=
+    'Build HTML from markdown')
 
 # positional arguments
 arg_parser.add_argument('files', nargs='+', metavar='FILE')
 
 # optional arguments
-arg_parser.add_argument("-k", "--keep-src-html", action="store_true", default=False,
-                help="keep the source HTML file for examination or reuse")
-arg_parser.add_argument("-a", "--auto-notes", action="store_true", default=False,
-                help="create auto-numbered notes for MS Word rather than manual notes")
-arg_parser.add_argument("-n", "--navigation", action="store_true", default=False,
-                help="use navigation elements on header/footer of pages")
-arg_parser.add_argument("-o", "--online-URLs-only", action="store_true", default=False,
-                help="only include URLs that are exclusively online")
+arg_parser.add_argument("-k", "--keep-src-html", action="store_true", 
+    default=False, help="keep the source HTML file for examination or reuse")
+arg_parser.add_argument("-a", "--auto-notes", action="store_true", 
+    default=False, help="create auto-numbered notes for MS Word rather than manual notes")
+arg_parser.add_argument("-n", "--navigation", action="store_true", 
+    default=False, help="use navigation elements on header/footer of pages")
+arg_parser.add_argument("-o", "--online-URLs-only", action="store_true",
+    default=False, help="only include URLs that are exclusively online")
 arg_parser.add_argument("-l", "--long-URL",
-                action="store_true", default=False,
-                help="use long URLs")
-arg_parser.add_argument("-p", "--paragraph-marks", action="store_true", default=False,
-                help="add name/ids for paragraphs")
-arg_parser.add_argument("-r", "--reuse", action="store_true", default=False,
-                help="reuse existing HTML files, rather than a LaTeX rebuild")
-arg_parser.add_argument("-s", "--single-page", action="store_true", default=False,
-                help="create HTML as a single page")
+    action="store_true", default=False,
+    help="use long URLs")
+arg_parser.add_argument("-p", "--paragraph-marks", action="store_true",
+    default=False, help="add name/ids for paragraphs")
+arg_parser.add_argument("-r", "--reuse", action="store_true", 
+    default=False, help="reuse existing HTML files, rather than a LaTeX rebuild")
+arg_parser.add_argument("-s", "--single-page", action="store_true", 
+    default=False, help="create HTML as a single page")
 
 args = arg_parser.parse_args()
 files = args.files
@@ -215,7 +216,7 @@ for html_file in sorted(glob('*.html')):
             crosslink.getparent().remove(crosslink)
 
     print("** convert spans to italics")
-    for span in doc.xpath("//span[@class='ptmri8t-x-x-120']"):
+    for span in doc.xpath("//span[@class='pplri7t-x-x-120']"):
         span.tag = 'em'
         del span.attrib['class']
 
