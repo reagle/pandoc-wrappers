@@ -11,7 +11,7 @@ import codecs
 from glob import glob
 import locale
 import logging
-import mkd2bib
+import md2bib
 import os
 from os import chdir, path
 import re
@@ -124,10 +124,10 @@ def pandoc_call(mkd_tmp_file, tex_tmp_file, build_file_base):
         info("fe_opts %s" % fe_opts)
         call(['fe', fe_opts], stdout=open(BIB_FILE, 'w'))
         # generate a subset bibtex
-        keys = mkd2bib.getKeysFrommkd(mkd_tmp_file)
-        entries = mkd2bib.parseBibTex(open(BIB_FILE, 'r'))
-        subset = mkd2bib.subsetBibliography(entries, keys)
-        mkd2bib.emitBibliography(subset, open(build_file_base + '.bib', 'w'))
+        keys = md2bib.getKeysFromMD(mkd_tmp_file)
+        entries = md2bib.parseBibTex(open(BIB_FILE, 'r'))
+        subset = md2bib.subsetBibliography(entries, keys)
+        md2bib.emitBibliography(subset, open(build_file_base + '.bib', 'w'))
                 
     pandoc_opts = ['-t', 'latex', '--biblatex', '--bibliography=%s' %bib_file, '--no-wrap', '--tab-stop', '8']
     pandoc_cmd = ['pandoc', mkd_tmp_file]
