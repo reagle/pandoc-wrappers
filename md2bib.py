@@ -3,8 +3,9 @@
 # (c) Copyright 2011-2012 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-"""A set of bibtex utilities for parsing and manipulating bibtex files,
-especially in the context of my pandoc wrappers"""
+"""Extract a subset of bibliographic keys from BIBFILE 
+using those keys found in a markdown file or specified
+in argument."""
 
 import codecs
 from collections import OrderedDict
@@ -16,10 +17,9 @@ import re
 import sys
 
 HOME = environ['HOME']
-BIBFILE = [HOME + '/joseph/readings.bib']
+BIBFILE = HOME + '/joseph/readings.bib'
 
 log_level = 100 # default
-logging.basicConfig(level=log_level, format = "%(levelno)s %(funcName).5s: %(message)s")
 critical = logging.critical
 info = logging.info
 dbg = logging.debug
@@ -67,7 +67,7 @@ def subsetBibliography(entries, keys):
     """Emit a susbet of a biblatex file based on bibtex keys."""
 
     subset = OrderedDict()
-    for key in keys:
+    for key in sorted(keys):
         if key in entries:
             subset[key] = entries[key]
         else:
@@ -75,61 +75,62 @@ def subsetBibliography(entries, keys):
             pass
     return subset
         
-def getKeysFrommkd(filename):
+def getKeysFromMD(filename):
     """Return a list of keys used in a markdown document"""
 
     text = open(filename, 'r').read()
+    text = text.split('***END OF FILE***')[0]
     finds = re.findall('@(.*?)[\.,:;\] ]', text)
     return finds
         
 if '__main__' == __name__:
-
     import argparse # http://docs.python.org/dev/library/argparse.html
-    arg_parser = argparse.ArgumentParser(description='Bibtex utility for use with pandoc.')
-    arg_parser.add_argument('files', nargs='?',  metavar='FILE',
-                    default = BIBFILE)
-    arg_parser.add_argument("-g", "--get-keys", nargs=1,
-                    help="get keys from pandoc/markdown file")
+    arg_parser = argparse.ArgumentParser(
+            description='Extract a subset of bibliographic keys '
+            'from BIBFILE using those keys found in a markdown file '
+            'or specified in argument.')
+    arg_parser.add_argument('files', nargs='?',  metavar='BIBFILE',
+            default = BIBFILE)
+    arg_parser.add_argument("-f", "--find-keys", 
+            nargs=1, metavar='FILE',
+            help="find keys in markdown file")
     arg_parser.add_argument("-k", "--keys", nargs=1,
-                    help="return subset of bibtex file using KEYS")
+            help="use specified KEYS")
     arg_parser.add_argument('-l', '--log-to-file',
-                    action="store_true", default=False,
-                    help="log to file %(prog)s.log")
+            action="store_true", default=False,
+            help="log to file %(prog)s.log")
     arg_parser.add_argument("-o", "--out-filename",
-                    help="output results to filename", metavar="FILE")
+            help="output results to filename", metavar="FILE")
     arg_parser.add_argument('-v', '--verbose', action='count', default=0,
-                    help="Increase verbosity (specify multiple times for more)")
+            help="Increase verbosity (specify multiple times for more)")
     arg_parser.add_argument('--version', action='version', version='TBD')
     args = arg_parser.parse_args()
 
-    if args.verbose == 1: log_level = logging.CRITICAL # DEBUG
+    if args.verbose == 1: log_level = logging.CRITICAL
     elif args.verbose == 2: log_level = logging.INFO
     elif args.verbose >= 3: log_level = logging.DEBUG
-    if args.log_to_file: # nothing is done with log_dest presently
-        log_dest = codecs.open('mkd2bib.log', 'w', 'UTF-8', 'replace')
+    LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
+    if args.log_to_file:
+        logging.basicConfig(filename='md2bib.log', filemode='w',
+            level=log_level, format = LOG_FORMAT)
     else:
-        log_dest = sys.stderr
-    
-    if args.get_keys:
-        keys = getKeysFrommkd(args.get_keys[0])
-        info("keys = %s" % keys)
-        sys.exit()
-    
-    if args.files:
-        filename = args.files[0]
-    info("filename = %s" % filename)
-        
+        logging.basicConfig(level=log_level, format = LOG_FORMAT)
+
     if args.out_filename:
         outfd = open(args.out_filename, 'w')
     else:
         outfd = sys.stdout
         
-    entries = parseBibTex(open(filename, 'r').readlines())
-    
+    entries = parseBibTex(open(BIBFILE, 'r').readlines())
     if args.keys:
         keys = args.keys[0].split(',')
-        info("usings keys %s" % keys)
-        subset = subsetBibliography(entries, keys, outfd)
-        emitBibliography(subset, outfd)
-    else:    
-        emitBibliography(entries, outfd)
+        info("arg keys = '%s'" % keys)
+    elif args.find_keys:
+        keys = getKeysFromMD(args.find_keys[0])
+        info("md  keys = '%s'" % keys)
+    else:
+        print("No keys given")
+        sys.exit()
+
+    subset = subsetBibliography(entries, keys)
+    emitBibliography(subset, outfd)
