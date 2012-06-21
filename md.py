@@ -32,11 +32,17 @@ BROWSER = environ['BROWSER']
 def process(files):
     
     for in_file in files:
+        
+        ##############################
+        ##  pre pandoc
+        ##############################
+
         fileName, extension = os.path.splitext(in_file)
         abs_fn = os.path.abspath(in_file)
 
         tmpName1 = "%s-1%s" %(fileName, extension)
         tmpName2 = "%s-2%s" %(fileName, extension)
+        tmpName3 = "%s-3%s" %(fileName, '.html')
 
         shutil.copyfile(in_file, tmpName1)
 
@@ -77,7 +83,7 @@ def process(files):
                         print("WARNING: key %s not found" % key)
                         return key
                     url = reference.get('url')
-
+                    title = reference.get('shorttitle')
                     
                     if citation.startswith('-'):
                         key_text = re.findall(r'\d\d\d\d.*', key)[0] # year
@@ -88,7 +94,11 @@ def process(files):
                     if url:
                         cite_replacement.append('[%s](%s)' %(key_text,url))
                     else:
-                        cite_replacement.append('%s' %key_text)
+                        if title:
+                            title = title.replace('{', '').replace('}', '')
+                            cite_replacement.append('%s, "%s"' %(key_text, title))
+                        else:
+                            cite_replacement.append('%s' %key_text)
                     #print("**   using cite_replacement = %s" % cite_replacement)
                     return ''.join(cite_replacement)
 
@@ -101,18 +111,31 @@ def process(files):
         f1.close()
         f2.close()
 
+        ##############################
+        ##  pandoc
+        ##############################
+
         pandoc_cmd = ['pandoc', '-f', 'markdown']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_cmd.append(tmpName2)
         print("** pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
-        call(pandoc_cmd, stdout=open(fileName + '.html', 'w'))
+        call(pandoc_cmd, stdout=open(tmpName3, 'w'))
 
+        ##############################
+        ##  post pandoc
+        ##############################
+        
+        # fix a pandoc bug that produces empty h1 tags
+        html = open(tmpName3, 'r').read()
+        html = html.replace('<h1></h1>', '')
+        open(fileName + '.html', 'w').write(html)
+        
         if args.validate:
             call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
                     fileName + '.html'])
         if args.launch_browser:
             Popen([BROWSER, fileName + '.html'])
-        [os.remove(file) for file in (tmpName1, tmpName2)]
+        [os.remove(file) for file in (tmpName1, tmpName2, tmpName3)]
 
 if __name__ == "__main__":
     import argparse # http://docs.python.org/dev/library/argparse.html
