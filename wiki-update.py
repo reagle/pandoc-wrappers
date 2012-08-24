@@ -90,6 +90,7 @@ def grab_todos(filename):
 
 def insert_todos(plan_fn, todos):
     
+    info("insert_todos")
     html_parser = etree.HTMLParser(remove_comments = True, remove_blank_text = True)
     doc = etree.parse(open(plan_fn, 'rb'), html_parser)
     div = doc.xpath('//div[@id="Ongoing-todos"]')[0]
@@ -105,10 +106,10 @@ def update_markdown(HOMEDIR):
     for mkd_filename in files:
         filename = mkd_filename.rsplit('.',1)[0]
         html_filename = filename + '.html'
-        info("html_filename = %s" % html_filename)
+        dbg("html_filename = %s" % html_filename)
         if exists(html_filename):
             if getmtime(mkd_filename) > getmtime(html_filename):
-                info('updating_mkd %s' %filename)
+                dbg('updating_mkd %s' %filename)
                 content = open(mkd_filename,"r").read()
                 md_cmd = ['md']
                 md_opts = []
@@ -125,7 +126,7 @@ def update_markdown(HOMEDIR):
                         md_opts.extend(['-s'])
                 md_cmd.extend(md_opts)
                 md_cmd.extend([mkd_filename])
-                info("md_cmd = %s" % ' '.join(md_cmd))
+                dbg("md_cmd = %s" % ' '.join(md_cmd))
                 call(md_cmd)
                         
     
@@ -248,7 +249,14 @@ if '__main__' == __name__:
     info = logging.info
     dbg = logging.debug
 
-    # Private planning zim
+    ## Private files
+    
+    # Joseph and Nora planning
+    HOMEDIR = '/home/reagle/joseph/plan/joseph-nora/'
+    if has_dir_changed(HOMEDIR + 'zim/') or opts.force_update:
+        export_zim(HOMEDIR)
+
+    # Work planning
     HOMEDIR = '/home/reagle/joseph/plan/'
     if has_dir_changed(HOMEDIR + 'zim/') or opts.force_update:
         if retire_tasks(HOMEDIR + 'zim/'):
@@ -265,10 +273,8 @@ if '__main__' == __name__:
     # Public zim
     HOMEDIR = '/home/reagle/joseph/'
     if has_dir_changed(HOMEDIR + 'zim/') or opts.force_update:
-        #retire_tasks(HOMEDIR + 'zim/')
         export_zim(HOMEDIR)
 
-    sys.exit()
     # Markdown files
     update_markdown(HOMEDIR)
     
