@@ -27,5 +27,5 @@ Like `bd`, but will build HTML using [htlatex](http://www.tug.org/applications/t
 Build the static portions of my website by looking for source files newer than existing HTML files.
 
     *.mm (freemind)-> html
-    *.mdn (pandoc)-> html
+    *.md (pandoc)-> html
     zim/* (zim-wiki) -> html
