@@ -168,11 +168,13 @@ if __name__ == "__main__":
                     action="store_true", default=False,
                     help="validate and tidy HTML")
     args = arg_parser.parse_args()
-    pandoc_opts = ['-s', '--smart', '--tab-stop', '4', '--email-obfuscation=references'] 
+    pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
+        '--email-obfuscation=references'] 
     if args.presentation:
         args.validate = False
         args.css = False
-        pandoc_opts.extend(['--template=class.dzslides', '-t', 'dzslides'])
+        pandoc_opts.extend(['--template=class.dzslides', 
+            '-t', 'dzslides', '--slide-level=1'])
     if args.css:
         pandoc_opts.extend(['-c', args.css])
     if args.toc:
