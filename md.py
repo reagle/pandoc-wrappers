@@ -127,7 +127,7 @@ def process(files):
         
         # fix a pandoc bug that produces empty h1 tags
         html = open(tmpName3, 'r').read()
-        html = html.replace('<h1></h1>', '')
+        #html = html.replace('<h1></h1>', '') # fixed (#484)
         open(fileName + '.html', 'w').write(html)
         
         if args.validate:
