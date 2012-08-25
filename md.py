@@ -180,7 +180,7 @@ if __name__ == "__main__":
     if args.toc:
         pandoc_opts.extend(['--toc'])
     if args.offline:
-        pandoc_opts.extend(['--offline'])
+        pandoc_opts.extend(['--self-contained'])
     if args.bibliography:
         bibtex = parseBibTex(open(HOME+'/joseph/readings.bib', 'r').readlines())
     if args.style_chicago:
