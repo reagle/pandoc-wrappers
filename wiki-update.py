@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python3.2
 # -*- coding: utf-8 -*-
 """
 Build the static portions of my website by looking for source files newer than existing HTML files.
@@ -18,12 +18,20 @@ from os import chdir, environ, mkdir, path, rename, walk
 from os.path import abspath, exists, getmtime, join, splitext
 import re
 from subprocess import call, check_output, Popen, PIPE
-from StringIO import StringIO
 import sys
 import time
 #import webbrowser
 
 HOME = environ['HOME']
+
+log_level = 100 # default
+critical = logging.critical
+info = logging.info
+dbg = logging.debug
+warn = logging.warn
+error = logging.error
+excpt = logging.exception
+
 
 #################################
 # Utility functions
@@ -50,8 +58,9 @@ def has_dir_changed(directory):
     
         info('dir   = %s' %directory)
         checksum_file = directory + '.dirs.md5sum'
-        checksum = Popen(["ls -l -R %s | md5sum" %directory], 
-            shell=True, stdout=PIPE).communicate()[0].split()[0]
+        checksum = Popen(["ls -l -R %s | md5sum" % directory], 
+                shell=True, stdout=PIPE).communicate()[0]
+        checksum = checksum.split()[0].decode("utf-8")
         if not exists(checksum_file):
             open(checksum_file, 'w').write(checksum)
             info('checksum created %s' %checksum)
@@ -113,23 +122,23 @@ def update_markdown(HOMEDIR):
                 dbg('updating_mkd %s' %filename)
                 content = open(mkd_filename,"r").read()
                 md_cmd = ['md']
-                md_opts = []
+                md_args = []
                 if 'talks' in mkd_filename:
-                    md_opts.extend(['-p',
+                    md_args.extend(['-p',
                         '-c', 'http://reagle.org/joseph/talks/'
                         '/dzslides/class-slides.css'])
                     if '[@' in content:
-                        md_opts.extend(['-b'])
+                        md_args.extend(['-b'])
                 else:
-                    md_opts.extend(['-c', 
+                    md_args.extend(['-c', 
                         'http://reagle.org/joseph/2003/papers.css'])
                     if '[@' in content:
-                        md_opts.extend(['-s'])
-                md_cmd.extend(md_opts)
+                        md_args.extend(['-s'])
+                md_cmd.extend(md_args)
                 md_cmd.extend([mkd_filename])
                 dbg("md_cmd = %s" % ' '.join(md_cmd))
                 call(md_cmd)
-                if opts.browse:
+                if args.browse:
                     #webbrowser.open(html_filename)
                     call(["google-chrome", html_filename])
                         
@@ -225,47 +234,42 @@ def retire_tasks(directory):
         return True
                          
 if '__main__' == __name__:
-    sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
-    sys.stdin = codecs.getreader(locale.getpreferredencoding())(sys.stdin)
-
-    import optparse # Late import, in case this project becomes a library
-    opt_parser = optparse.OptionParser(usage="usage: %prog [options] FILE")
-    opt_parser.add_option("-b", "--browse",
+    import argparse # http://docs.python.org/dev/library/argparse.html
+    arg_parser = argparse.ArgumentParser(description="Build static HTML versions of various files")
+    arg_parser.add_argument("-b", "--browse",
                     action="store_true", default=False,
                     help="Open all update_markdown results in browser")
-    opt_parser.add_option("-f", "--force-update",
+    arg_parser.add_argument("-f", "--force-update",
                     action="store_true", default=False,
                     help="Force retire/update of Zim")
-    opt_parser.add_option('-l', '--log-to-file',
+    arg_parser.add_argument('-l', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
-    opt_parser.add_option('-v', '--verbose', dest='verbose', action='count',
-                    help="Increase verbosity (specify multiple times for more)")
-    opts, args = opt_parser.parse_args()
+    arg_parser.add_argument('-v', '--verbose', action='count', default=0,
+        help="Increase verbosity (specify multiple times for more)")
+    arg_parser.add_argument('--version', action='version', version='TBD')
+    args = arg_parser.parse_args()
 
-    log_level = 100 # default
-    if opts.verbose == 1: log_level = logging.CRITICAL # DEBUG
-    elif opts.verbose == 2: log_level = logging.INFO
-    elif opts.verbose >= 3: log_level = logging.DEBUG
-    if opts.log_to_file:
-        log_dest = codecs.open('PROG-TEMPLATE.log', 'w', 'UTF-8', 'replace')
+    if args.verbose == 1: log_level = logging.CRITICAL
+    elif args.verbose == 2: log_level = logging.INFO
+    elif args.verbose >= 3: log_level = logging.DEBUG
+    LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
+    if args.log_to_file:
+        logging.basicConfig(filename='PROG-TEMPLATE.log', filemode='w',
+            level=log_level, format = LOG_FORMAT)
     else:
-        log_dest = sys.stderr
-    logging.basicConfig(level=log_level, format = "%(levelno)s %(funcName).5s: %(message)s")
-    critical = logging.critical
-    info = logging.info
-    dbg = logging.debug
+        logging.basicConfig(level=log_level, format = LOG_FORMAT)
 
     ## Private files
     
     # Joseph and Nora planning
     HOMEDIR = '/home/reagle/joseph/plan/joseph-nora/'
-    if has_dir_changed(HOMEDIR + 'zim/') or opts.force_update:
+    if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
 
     # Work planning
     HOMEDIR = '/home/reagle/joseph/plan/'
-    if has_dir_changed(HOMEDIR + 'zim/') or opts.force_update:
+    if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         if retire_tasks(HOMEDIR + 'zim/'):
             export_zim(HOMEDIR)
         
@@ -279,7 +283,7 @@ if '__main__' == __name__:
     
     # Public zim
     HOMEDIR = '/home/reagle/joseph/'
-    if has_dir_changed(HOMEDIR + 'zim/') or opts.force_update:
+    if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
 
     # Markdown files
