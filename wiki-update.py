@@ -20,7 +20,7 @@ import re
 from subprocess import call, check_output, Popen, PIPE
 import sys
 import time
-import webbrowser
+#import webbrowser
 
 HOME = environ['HOME']
 
@@ -139,7 +139,8 @@ def update_markdown(HOMEDIR):
                 dbg("md_cmd = %s" % ' '.join(md_cmd))
                 call(md_cmd)
                 if args.browse:
-                    webbrowser.open(html_filename)
+                    #webbrowser.open(html_filename)
+                    call(["google-chrome", html_filename])
                         
     
 def update_mm(HOMEDIR):
