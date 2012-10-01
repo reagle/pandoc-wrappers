@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
 """
 Build the static portions of my website by looking for source files newer than existing HTML files.
@@ -21,6 +21,7 @@ from subprocess import call, check_output, Popen, PIPE
 from StringIO import StringIO
 import sys
 import time
+#import webbrowser
 
 HOME = environ['HOME']
 
@@ -72,10 +73,10 @@ def export_zim(zim):
     info('zim --export --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
         '--index-page index ' %(zim, zim))
-    print Popen('zim --export --output=%szwiki --format=html '
+    print(Popen('zim --export --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
         '--index-page index ' %(zim, zim), 
-        stdout=PIPE, shell=True).communicate()[0]
+        stdout=PIPE, shell=True).communicate()[0])
 
 def grab_todos(filename):
     
@@ -128,6 +129,9 @@ def update_markdown(HOMEDIR):
                 md_cmd.extend([mkd_filename])
                 dbg("md_cmd = %s" % ' '.join(md_cmd))
                 call(md_cmd)
+                if opts.browse:
+                    #webbrowser.open(html_filename)
+                    call(["google-chrome", html_filename])
                         
     
 def update_mm(HOMEDIR):
@@ -161,8 +165,8 @@ def log2work(done_tasks):
     log_items = []
     for activity, task in done_tasks:
         # zim syntax for href/em to HTML
-        task = re.sub('\[\[(.*?)\|(.*)\]\]', ur'<a href="\1">\2</a>', task)
-        task = re.sub('\/\/(.*?)\/\/', ur'<em>\1</em>', task)
+        task = re.sub('\[\[(.*?)\|(.*)\]\]', r'<a href="\1">\2</a>', task)
+        task = re.sub('\/\/(.*?)\/\/', r'<em>\1</em>', task)
 
         date_token = get_Now_YMD()
         digest = hashlib.md5(task.encode('utf-8', 'replace')).hexdigest()
@@ -178,7 +182,7 @@ def log2work(done_tasks):
 
     insertion_regexp = re.compile('(<h2>Done Work</h2>\s*<ol>)')
 
-    newcontent = insertion_regexp.sub(u'\\1 \n  %s' %
+    newcontent = insertion_regexp.sub('\\1 \n  %s' %
         ''.join(log_items), content, re.DOTALL|re.IGNORECASE)
     if newcontent:
         fd = codecs.open(OUT_FILE, 'w', 'utf-8', 'replace')
@@ -226,14 +230,17 @@ if '__main__' == __name__:
 
     import optparse # Late import, in case this project becomes a library
     opt_parser = optparse.OptionParser(usage="usage: %prog [options] FILE")
-    opt_parser.add_option('-v', '--verbose', dest='verbose', action='count',
-                    help="Increase verbosity (specify multiple times for more)")
+    opt_parser.add_option("-b", "--browse",
+                    action="store_true", default=False,
+                    help="Open all update_markdown results in browser")
     opt_parser.add_option("-f", "--force-update",
                     action="store_true", default=False,
                     help="Force retire/update of Zim")
     opt_parser.add_option('-l', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
+    opt_parser.add_option('-v', '--verbose', dest='verbose', action='count',
+                    help="Increase verbosity (specify multiple times for more)")
     opts, args = opt_parser.parse_args()
 
     log_level = 100 # default
