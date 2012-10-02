@@ -82,18 +82,20 @@ def export_zim(zim):
     info('zim --export --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
         '--index-page index ' %(zim, zim))
-    print(Popen('zim --export --output=%szwiki --format=html '
+    results = (Popen('zim --export --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
         '--index-page index ' %(zim, zim), 
-        stdout=PIPE, shell=True).communicate()[0])
+        stdout=PIPE, shell=True).communicate()[0].decode('utf8'))
+    if results: print(results)
 
 def grab_todos(filename):
-    
+
+    info("grab_todos")   
     html_parser = etree.HTMLParser(remove_comments = True, remove_blank_text = True)
     doc = etree.parse(open(filename, 'rb'), html_parser)
     div = doc.xpath('//div[@id="zim-content-body"]')[0]
     div.set('id', 'Ongoing-todos')
-    div_txt = etree.tostring(div)
+    div_txt = etree.tostring(div).decode("utf-8")
     div_txt = div_txt.replace('href="./', 'href="../zwiki/')
     new_div = html.fragment_fromstring(div_txt)
     return new_div
@@ -205,7 +207,7 @@ def retire_tasks(directory):
     '''
     Removes completed '[x]' zim tasks form zim
     '''
-    if 'zim' in check_output(["ps", "axw"]):
+    if 'zim' in check_output(["ps", "axw"]).decode("utf-8"):
         print("Zim is presently running; skipping task " +
             "retirement and export.")
         return False
