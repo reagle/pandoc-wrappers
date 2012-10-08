@@ -112,35 +112,35 @@ def insert_todos(plan_fn, todos):
 
 def update_markdown(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
-    # Could call md.py instead of pandoc directly
 
     files = locate('*.md', HOMEDIR)
-    for mkd_filename in files:
-        filename = mkd_filename.rsplit('.',1)[0]
+    for md_filename in files:
+        filename = md_filename.rsplit('.',1)[0]
         html_filename = filename + '.html'
         dbg("html_filename = %s" % html_filename)
         if exists(html_filename):
-            if getmtime(mkd_filename) > getmtime(html_filename):
-                dbg('updating_mkd %s' %filename)
-                content = open(mkd_filename,"r").read()
+            if getmtime(md_filename) > getmtime(html_filename):
+                dbg('updating_md %s' %filename)
+                content = open(md_filename,"r").read()
                 md_cmd = ['md']
                 md_args = []
-                if 'talks' in mkd_filename:
+                if 'talks' in md_filename:
+                    # now done in pandoc template
                     md_args.extend(['-p',
-                        '-c', 'http://reagle.org/joseph/talks/'
-                        '/dzslides/class-slides.css'])
+                        '-c', 'http://reagle.org/joseph/talks'
+                        '/_dzslides/2012/06-class-slides.css'])
                     if '[@' in content:
-                        md_args.extend(['-b'])
+                        md_args.extend(['-l'])
                 else:
                     md_args.extend(['-c', 
                         'http://reagle.org/joseph/2003/papers.css'])
                     if '[@' in content:
                         md_args.extend(['-s'])
                 md_cmd.extend(md_args)
-                md_cmd.extend([mkd_filename])
+                md_cmd.extend([md_filename])
                 dbg("md_cmd = %s" % ' '.join(md_cmd))
                 call(md_cmd)
-                if args.browse:
+                if args.launch:
                     #webbrowser.open(html_filename)
                     call(["google-chrome", html_filename])
                         
@@ -225,6 +225,7 @@ def retire_tasks(directory):
                         activity = label.group(0).strip()[1:]
                     if '[x]' in line:
                         item = line.split(']',1)[1].strip()
+                        info("found item %s" %item)
                         done_tasks.append((activity, item))
                     else:
                         new_wiki_page.append(line)
@@ -238,13 +239,13 @@ def retire_tasks(directory):
 if '__main__' == __name__:
     import argparse # http://docs.python.org/dev/library/argparse.html
     arg_parser = argparse.ArgumentParser(description="Build static HTML versions of various files")
-    arg_parser.add_argument("-b", "--browse",
+    arg_parser.add_argument("-l", "--launch",
                     action="store_true", default=False,
                     help="Open all update_markdown results in browser")
     arg_parser.add_argument("-f", "--force-update",
                     action="store_true", default=False,
-                    help="Force retire/update of Zim")
-    arg_parser.add_argument('-l', '--log-to-file',
+                    help="Force retire/update of Zim despite md5sums")
+    arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
     arg_parser.add_argument('-v', '--verbose', action='count', default=0,
@@ -257,7 +258,7 @@ if '__main__' == __name__:
     elif args.verbose >= 3: log_level = logging.DEBUG
     LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
     if args.log_to_file:
-        logging.basicConfig(filename='PROG-TEMPLATE.log', filemode='w',
+        logging.basicConfig(filename='wiki-update.log', filemode='w',
             level=log_level, format = LOG_FORMAT)
     else:
         logging.basicConfig(level=log_level, format = LOG_FORMAT)
