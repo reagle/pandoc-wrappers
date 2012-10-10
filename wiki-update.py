@@ -134,7 +134,7 @@ def create_talk_handout(HOMEDIR, md_fn):
             if line.startswith('# '):
                 if '*' in line:
                     skip_to_next_header = True
-                if '# rev: ' in line:
+                elif '# rev: ' in line:
                     skip_to_next_header = True
                 else:
                     skip_to_next_header = False
