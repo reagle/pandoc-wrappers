@@ -150,12 +150,12 @@ def create_talk_handout(HOMEDIR, md_fn):
                 else:
                     handout_f.write('\n')
         handout_f.close()
-        md_cmd = ['md', '--divs', '-c', 
+        md_cmd = ['md', '--divs', '--offline', '-c',
         'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
         handout_fn]
         print("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
-        #remove(handout_fn)
+        remove(handout_fn)
 
 def update_markdown(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
