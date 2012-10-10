@@ -14,8 +14,8 @@ import hashlib
 import locale
 from lxml import etree, html
 import logging
-from os import chdir, environ, mkdir, path, rename, walk
-from os.path import abspath, exists, getmtime, join, splitext
+from os import chdir, environ, mkdir, path, rename, remove, walk
+from os.path import abspath, basename, exists, getmtime, join, splitext
 import re
 from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
@@ -111,21 +111,30 @@ def insert_todos(plan_fn, todos):
     parent.replace(div, todos)
     doc.write(plan_fn)
 
-def update_talk_handout(HOMEDIR, md_fn):
+def create_talk_handout(HOMEDIR, md_fn):
     '''If talks and handouts exists, create partial handout'''
         
-    if exists('../handouts/'):
-        emphasized_obj = re.compile(r"""(\*.*?\*)""")
+    # http://www.farside.org.uk/200804/osjam/markdown2.py
+    ast_bullet_re = re.compile(r'^ *(\*)')
+    em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
+    def em_mask(matchobj):
+        return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
+        
+    if basename(md_fn)[0].isdigit() and exists('../handouts/'):
         handout_fn = md_fn.replace('/talks/', '/handouts/')
         skip_to_next_header = False
         handout_f = open(handout_fn, 'w')
         for line in open(md_fn, 'r').readlines():
             if line.startswith('----'):
+                skip_to_next_header = True
                 continue # skip rules
             if line.startswith('## '):
-                line = line[1:] # turn h2 in h1
+                skip_to_next_header = True
+                continue
             if line.startswith('# '):
                 if '*' in line:
+                    skip_to_next_header = True
+                if '# rev: ' in line:
                     skip_to_next_header = True
                 else:
                     skip_to_next_header = False
@@ -135,18 +144,18 @@ def update_talk_handout(HOMEDIR, md_fn):
                     if line.startswith('> *'):
                         handout_f.write('\n')
                         continue
-                    new_line = emphasized_obj.subn('_______', line)[0]
-                    handout_f.write(new_line)
+                    line = ast_bullet_re.subn('-', line)[0]
+                    line = em_re.subn(em_mask, line)[0]
+                    handout_f.write(line)
                 else:
                     handout_f.write('\n')
         handout_f.close()
-        md_cmd = ['md', '-c', 
+        md_cmd = ['md', '--divs', '-c', 
         'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
         handout_fn]
         print("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
-
-
+        #remove(handout_fn)
 
 def update_markdown(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
@@ -169,7 +178,7 @@ def update_markdown(HOMEDIR):
                         '/_dzslides/2012/06-class-slides.css'])
                     if '[@' in content:
                         md_args.extend(['-b'])
-                    update_talk_handout(HOMEDIR, md_fn)
+                    create_talk_handout(HOMEDIR, md_fn)
                 else:
                     md_args.extend(['-c', 
                         'http://reagle.org/joseph/2003/papers.css'])
