@@ -169,7 +169,7 @@ if __name__ == "__main__":
                     help="validate and tidy HTML")
     args = arg_parser.parse_args()
     pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
-        '--email-obfuscation=references'] 
+        '--email-obfuscation=references', '--section-divs'] 
     if args.presentation:
         args.validate = False
         args.css = False

@@ -17,6 +17,7 @@ import logging
 from os import chdir, environ, mkdir, path, rename, walk
 from os.path import abspath, exists, getmtime, join, splitext
 import re
+from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
 import sys
 import time
@@ -110,39 +111,77 @@ def insert_todos(plan_fn, todos):
     parent.replace(div, todos)
     doc.write(plan_fn)
 
+def update_talk_handout(HOMEDIR, md_fn):
+    '''If talks and handouts exists, create partial handout'''
+        
+    if exists('../handouts/'):
+        emphasized_obj = re.compile(r"""(\*.*?\*)""")
+        handout_fn = md_fn.replace('/talks/', '/handouts/')
+        skip_to_next_header = False
+        handout_f = open(handout_fn, 'w')
+        for line in open(md_fn, 'r').readlines():
+            if line.startswith('----'):
+                continue # skip rules
+            if line.startswith('## '):
+                line = line[1:] # turn h2 in h1
+            if line.startswith('# '):
+                if '*' in line:
+                    skip_to_next_header = True
+                else:
+                    skip_to_next_header = False
+                handout_f.write(line)
+            else:
+                if not skip_to_next_header:
+                    if line.startswith('> *'):
+                        handout_f.write('\n')
+                        continue
+                    new_line = emphasized_obj.subn('_______', line)[0]
+                    handout_f.write(new_line)
+                else:
+                    handout_f.write('\n')
+        handout_f.close()
+        md_cmd = ['md', '-c', 
+        'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
+        handout_fn]
+        print("md_cmd = %s" % ' '.join(md_cmd))
+        call(md_cmd)
+
+
+
 def update_markdown(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
 
     files = locate('*.md', HOMEDIR)
-    for md_filename in files:
-        filename = md_filename.rsplit('.',1)[0]
-        html_filename = filename + '.html'
-        dbg("html_filename = %s" % html_filename)
-        if exists(html_filename):
-            if getmtime(md_filename) > getmtime(html_filename):
+    for md_fn in files:
+        filename = md_fn.rsplit('.',1)[0]
+        html_fn = filename + '.html'
+        dbg("html_fn = %s" % html_fn)
+        if exists(html_fn):
+            if getmtime(md_fn) > getmtime(html_fn):
                 dbg('updating_md %s' %filename)
-                content = open(md_filename,"r").read()
+                content = open(md_fn,"r").read()
                 md_cmd = ['md']
                 md_args = []
-                if 'talks' in md_filename:
-                    # now done in pandoc template
+                if 'talks' in md_fn:
+                    # styling now done in pandoc template
                     md_args.extend(['-p',
                         '-c', 'http://reagle.org/joseph/talks'
                         '/_dzslides/2012/06-class-slides.css'])
                     if '[@' in content:
-                        md_args.extend(['-l'])
+                        md_args.extend(['-b'])
+                    update_talk_handout(HOMEDIR, md_fn)
                 else:
                     md_args.extend(['-c', 
                         'http://reagle.org/joseph/2003/papers.css'])
                     if '[@' in content:
                         md_args.extend(['-s'])
                 md_cmd.extend(md_args)
-                md_cmd.extend([md_filename])
+                md_cmd.extend([md_fn])
                 dbg("md_cmd = %s" % ' '.join(md_cmd))
                 call(md_cmd)
                 if args.launch:
-                    #webbrowser.open(html_filename)
-                    call(["google-chrome", html_filename])
+                    #webbrowser.open(html_fn)
+                    call(["google-chrome", html_fn])
                         
     
 def update_mm(HOMEDIR):
@@ -154,16 +193,16 @@ def update_mm(HOMEDIR):
     for mm_filename in files:
         if any([included in mm_filename for included in INCLUDE_PATHS]):
             filename = mm_filename.rsplit('.',1)[0]
-            html_filename = filename + '.html'
-            if exists(html_filename):
-                if getmtime(mm_filename) > getmtime(html_filename):
+            html_fn = filename + '.html'
+            if exists(html_fn):
+                if getmtime(mm_filename) > getmtime(html_fn):
                     info('updating_mm %s' %filename)
-                    call(['xsltproc', '-o', html_filename, 
+                    call(['xsltproc', '-o', html_fn, 
                         '/home/reagle/bin/mmtoxhtml.xsl', mm_filename])
-                    call(['tidy', '-asxhtml', '-utf8', '-w', '0', '-m', html_filename])
-                    p3 = Popen(['tail', '-n', '+2', html_filename], 
+                    call(['tidy', '-asxhtml', '-utf8', '-w', '0', '-m', html_fn])
+                    p3 = Popen(['tail', '-n', '+2', html_fn], 
                         stdout=PIPE)
-                    p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0', '-o', html_filename],
+                    p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0', '-o', html_fn],
                          stdin=p3.stdout)
 
                          
