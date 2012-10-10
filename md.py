@@ -147,6 +147,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("-c", "--css", 
                     default='http://reagle.org/joseph/2003/papers.css',
                     help="apply non-default CSS")
+    arg_parser.add_argument("-d", "--divs", 
+                    action="store_true", default=False,
+                    help="use pandoc's --section-divs")
     arg_parser.add_argument("-l", "--launch-browser",
                     action="store_true", default=False,
                     help="launch browser to see results")
@@ -169,7 +172,7 @@ if __name__ == "__main__":
                     help="validate and tidy HTML")
     args = arg_parser.parse_args()
     pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
-        '--email-obfuscation=references', '--section-divs'] 
+        '--email-obfuscation=references'] 
     if args.presentation:
         args.validate = False
         args.css = False
@@ -181,6 +184,8 @@ if __name__ == "__main__":
         pandoc_opts.extend(['--toc'])
     if args.offline:
         pandoc_opts.extend(['--self-contained'])
+    if args.divs:
+        pandoc_opts.extend(['--section-divs'])
     if args.bibliography:
         bibtex = parseBibTex(open(HOME+'/joseph/readings.bib', 'r').readlines())
     if args.style_chicago:
