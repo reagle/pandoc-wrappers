@@ -15,7 +15,7 @@ import locale
 from lxml import etree, html
 import logging
 from os import chdir, environ, mkdir, path, rename, remove, walk
-from os.path import abspath, basename, exists, getmtime, join, splitext
+from os.path import abspath, basename, dirname, exists, getmtime, join, splitext
 import re
 from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
@@ -115,40 +115,52 @@ def create_talk_handout(HOMEDIR, md_fn):
     '''If talks and handouts exists, create partial handout'''
         
     # http://www.farside.org.uk/200804/osjam/markdown2.py
-    ast_bullet_re = re.compile(r'^ *(\*)')
+    ast_bullet_re = re.compile(r'^ *(\* )')
     em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
     def em_mask(matchobj):
         return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
         
-    if basename(md_fn)[0].isdigit() and exists('../handouts/'):
-        handout_fn = md_fn.replace('/talks/', '/handouts/')
+    handout_fn = md_fn.replace('/talks/', '/handouts/')
+    if exists(dirname(handout_fn)):
         skip_to_next_header = False
+        partial_handout = False
+        if basename(md_fn)[0].isdigit(): # class slides generate partial notes
+            partial_handout = True
         handout_f = open(handout_fn, 'w')
+        info("partial_handout = '%s'" %(partial_handout))
         for line in open(md_fn, 'r').readlines():
-            if line.startswith('----'):
+            if line.startswith('----'): # skip rules
                 skip_to_next_header = True
-                continue # skip rules
-            if line.startswith('## '):
-                skip_to_next_header = True
-                continue
-            if line.startswith('# '):
-                if '*' in line:
+                continue 
+            if partial_handout:
+                # slide to SKIP
+                if line.startswith('## '):
                     skip_to_next_header = True
-                elif '# rev: ' in line:
+                    continue
+                if line.startswith('<details'):
                     skip_to_next_header = True
-                else:
-                    skip_to_next_header = False
-                handout_f.write(line)
-            else:
-                if not skip_to_next_header:
-                    if line.startswith('> *'):
-                        handout_f.write('\n')
-                        continue
-                    line = ast_bullet_re.subn('-', line)[0]
-                    line = em_re.subn(em_mask, line)[0]
+                    continue
+                if line.startswith('# '):
+                    if '*' in line:
+                        skip_to_next_header = True
+                    elif '# rev: ' in line:
+                        skip_to_next_header = True
+                    else:
+                        skip_to_next_header = False
                     handout_f.write(line)
                 else:
-                    handout_f.write('\n')
+                    # content to REDACT
+                    if not skip_to_next_header:
+                        if line.startswith('> *'):
+                            handout_f.write('\n')
+                            continue
+                        line = ast_bullet_re.subn('- ', line)[0]
+                        line = em_re.subn(em_mask, line)[0]
+                        handout_f.write(line)
+                    else:
+                        handout_f.write('\n')
+            else:
+                handout_f.write(line)
         handout_f.close()
         md_cmd = ['md', '--divs', '--offline', '-c',
         'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
@@ -293,9 +305,15 @@ if '__main__' == __name__:
     arg_parser.add_argument("-f", "--force-update",
                     action="store_true", default=False,
                     help="Force retire/update of Zim despite md5sums")
+    arg_parser.add_argument("-n", "--notes-handout",
+                    action="store_true", default=False,
+                    help="Force creation of notes handout even if not class slide")
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
+    #arg_parser.add_argument("-p", "--partial-handout",
+                    #action="store_true", default=False,
+                    #help="Force creation of partial notes")
     arg_parser.add_argument('-v', '--verbose', action='count', default=0,
         help="Increase verbosity (specify multiple times for more)")
     arg_parser.add_argument('--version', action='version', version='TBD')
