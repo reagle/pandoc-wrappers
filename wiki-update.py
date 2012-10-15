@@ -311,9 +311,6 @@ if '__main__' == __name__:
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
-    #arg_parser.add_argument("-p", "--partial-handout",
-                    #action="store_true", default=False,
-                    #help="Force creation of partial notes")
     arg_parser.add_argument('-v', '--verbose', action='count', default=0,
         help="Increase verbosity (specify multiple times for more)")
     arg_parser.add_argument('--version', action='version', version='TBD')
