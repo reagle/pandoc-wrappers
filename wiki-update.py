@@ -67,6 +67,7 @@ def has_dir_changed(directory):
             info('checksum created %s' %checksum)
             return True
         else:
+            info("checksum_file = '%s'" %checksum_file)
             state = open(checksum_file, 'r').read()
             info('state = %s' %state)
             if checksum == state:
@@ -114,6 +115,7 @@ def insert_todos(plan_fn, todos):
 def create_talk_handout(HOMEDIR, md_fn):
     '''If talks and handouts exists, create partial handout'''
         
+    COURSES = ['/mcs/', '/oc/']
     # http://www.farside.org.uk/200804/osjam/markdown2.py
     ast_bullet_re = re.compile(r'^ *(\* )')
     em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
@@ -121,25 +123,27 @@ def create_talk_handout(HOMEDIR, md_fn):
         return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
         
     handout_fn = md_fn.replace('/talks/', '/handouts/')
+    info("dirname(handout_fn) = '%s'" %(dirname(handout_fn)))
     if exists(dirname(handout_fn)):
         skip_to_next_header = False
         partial_handout = False
-        if basename(md_fn)[0].isdigit(): # class slides generate partial notes
-            partial_handout = True
         handout_f = open(handout_fn, 'w')
         info("partial_handout = '%s'" %(partial_handout))
         for line in open(md_fn, 'r').readlines():
             if line.startswith('----'): # skip rules
                 skip_to_next_header = True
                 continue 
+            if line.startswith('## '):
+                #skip_to_next_header = True
+                #continue
+                line = line.replace('## ', '# ')
+            if line.startswith('<details'):
+                skip_to_next_header = True
+                continue
+            # slide to SKIP
+            if any(course in md_fn for course in COURSES):
+                partial_handout = True
             if partial_handout:
-                # slide to SKIP
-                if line.startswith('## '):
-                    skip_to_next_header = True
-                    continue
-                if line.startswith('<details'):
-                    skip_to_next_header = True
-                    continue
                 if line.startswith('# '):
                     if '*' in line:
                         skip_to_next_header = True
