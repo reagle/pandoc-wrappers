@@ -115,11 +115,12 @@ def insert_todos(plan_fn, todos):
 def create_talk_handout(HOMEDIR, md_fn):
     '''If talks and handouts exists, create partial handout'''
         
-    COURSES = ['/mcs/', '/oc/']
+    COURSES = ['/mcs/', '/orgcom/']
     # http://www.farside.org.uk/200804/osjam/markdown2.py
     ast_bullet_re = re.compile(r'^ *(\* )')
     em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
     def em_mask(matchobj):
+        info("return replace function")
         return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
         
     handout_fn = md_fn.replace('/talks/', '/handouts/')
@@ -133,9 +134,11 @@ def create_talk_handout(HOMEDIR, md_fn):
             if line.startswith('----'): # skip rules
                 skip_to_next_header = True
                 continue 
-            if line.startswith('## '):
-                #skip_to_next_header = True
-                #continue
+            # convert pseudo div headings to h1
+            #line = re.sub(r'^#+ (.*)', r'# \1', line) # error: matches '### '
+            if line.startswith('##'):
+                line = line.replace('##### ', '# ')
+                line = line.replace('#### ', '# ')
                 line = line.replace('## ', '# ')
             if line.startswith('<details'):
                 skip_to_next_header = True
@@ -144,6 +147,7 @@ def create_talk_handout(HOMEDIR, md_fn):
             if any(course in md_fn for course in COURSES):
                 partial_handout = True
             if partial_handout:
+                info("partial_handout = '%s'" %(partial_handout))
                 if line.startswith('# '):
                     if '*' in line:
                         skip_to_next_header = True
@@ -158,6 +162,7 @@ def create_talk_handout(HOMEDIR, md_fn):
                         if line.startswith('> *'):
                             handout_f.write('\n')
                             continue
+                        info("entering em redaction")
                         line = ast_bullet_re.subn('- ', line)[0]
                         line = em_re.subn(em_mask, line)[0]
                         handout_f.write(line)
