@@ -131,7 +131,9 @@ def create_talk_handout(HOMEDIR, md_fn):
         handout_f = open(handout_fn, 'w')
         info("partial_handout = '%s'" %(partial_handout))
         for line in open(md_fn, 'r').readlines():
-            if line.startswith('----'): # skip rules
+            if line.startswith('----') or \
+                '<video ' in line or \
+                line.startswith('<details'):  # skip rules
                 skip_to_next_header = True
                 continue 
             # convert pseudo div headings to h1
@@ -140,9 +142,6 @@ def create_talk_handout(HOMEDIR, md_fn):
                 line = line.replace('##### ', '# ')
                 line = line.replace('#### ', '# ')
                 line = line.replace('## ', '# ')
-            if line.startswith('<details'):
-                skip_to_next_header = True
-                continue
             # slide to SKIP
             if any(course in md_fn for course in COURSES):
                 partial_handout = True
