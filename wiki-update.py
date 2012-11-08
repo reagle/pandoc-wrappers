@@ -130,7 +130,10 @@ def create_talk_handout(HOMEDIR, md_fn):
         partial_handout = False
         handout_f = open(handout_fn, 'w')
         info("partial_handout = '%s'" %(partial_handout))
-        for line in open(md_fn, 'r').readlines():
+        content = open(md_fn, 'r').read()
+        content = content.replace('](media/', '](../talks/media/')
+        lines = [line+'\n' for line in content.split('\n')]
+        for line in lines:
             if line.startswith('----') or \
                 '<video ' in line or \
                 line.startswith('<details'):  # skip rules
@@ -175,7 +178,7 @@ def create_talk_handout(HOMEDIR, md_fn):
         handout_fn]
         print("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
-        remove(handout_fn)
+        #remove(handout_fn)
 
 def update_markdown(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
