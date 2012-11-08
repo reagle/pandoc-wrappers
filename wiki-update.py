@@ -176,9 +176,9 @@ def create_talk_handout(HOMEDIR, md_fn):
         md_cmd = ['md', '--divs', '--offline', '-c',
         'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
         handout_fn]
-        print("md_cmd = %s" % ' '.join(md_cmd))
+        info("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
-        #remove(handout_fn)
+        remove(handout_fn)
 
 def update_markdown(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
@@ -196,7 +196,7 @@ def update_markdown(HOMEDIR):
                 md_args = []
                 if 'talks' in md_fn:
                     # styling now done in pandoc template
-                    md_args.extend(['-p',
+                    md_args.extend(['-bp',
                         '-c', 'http://reagle.org/joseph/talks'
                         '/_dzslides/2012/06-class-slides.css'])
                     if '[@' in content:
@@ -209,7 +209,7 @@ def update_markdown(HOMEDIR):
                         md_args.extend(['-s'])
                 md_cmd.extend(md_args)
                 md_cmd.extend([md_fn])
-                dbg("md_cmd = %s" % ' '.join(md_cmd))
+                info("md_cmd = %s" % ' '.join(md_cmd))
                 call(md_cmd)
                 if args.launch:
                     #webbrowser.open(html_fn)
