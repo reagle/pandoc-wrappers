@@ -19,6 +19,7 @@ from os.path import abspath, basename, dirname, exists, getmtime, join, splitext
 import re
 from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
+from sh import chmod
 import sys
 import time
 #import webbrowser
@@ -88,6 +89,7 @@ def export_zim(zim):
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
         '--index-page index ' %(zim, zim), 
         stdout=PIPE, shell=True).communicate()[0].decode('utf8'))
+    chmod('-R', 'u+rwX,go+rX,go-w', '%szwiki' %zim)
     if results: print(results)
 
 def grab_todos(filename):
