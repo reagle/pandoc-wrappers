@@ -15,7 +15,8 @@ import locale
 from lxml import etree, html
 import logging
 from os import chdir, environ, mkdir, path, rename, remove, walk
-from os.path import abspath, basename, dirname, exists, getmtime, join, splitext
+from os.path import abspath, basename, dirname, exists, \
+    getmtime, join, relpath, splitext
 import re
 from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
@@ -125,15 +126,19 @@ def create_talk_handout(HOMEDIR, md_fn):
         info("return replace function")
         return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
         
+    md_dir = dirname(md_fn)
     handout_fn = md_fn.replace('/talks/', '/handouts/')
-    info("dirname(handout_fn) = '%s'" %(dirname(handout_fn)))
+    handout_dir = dirname(handout_fn)
+    info("handout_dir) = '%s'" %(dirname(handout_fn)))
     if exists(dirname(handout_fn)):
         skip_to_next_header = False
         partial_handout = False
         handout_f = open(handout_fn, 'w')
         info("partial_handout = '%s'" %(partial_handout))
         content = open(md_fn, 'r').read()
-        content = content.replace('](media/', '](../talks/media/')
+        media_relpath = relpath(md_dir, handout_dir)
+        info("media_relpath = '%s'" %(media_relpath))
+        content = content.replace('](media/', '](%s/media/' % media_relpath)
         lines = [line+'\n' for line in content.split('\n')]
         for line in lines:
             if line.startswith('----') or \
@@ -221,7 +226,7 @@ def update_markdown(HOMEDIR):
 def update_mm(HOMEDIR):
     '''Convert any Freemind mindmap whose HTML file is older than it.'''
     
-    INCLUDE_PATHS = ['syllabus', 'concepts']
+    INCLUDE_PATHS = ['syllabus', 'readings', 'concepts']
 
     files = locate('*.mm', HOMEDIR)
     for mm_filename in files:
@@ -359,16 +364,14 @@ if '__main__' == __name__:
         insert_todos(PLAN_PAGE, todos)
 
     ## Public files
-    
+
     # Public zim
     HOMEDIR = '/home/reagle/joseph/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
+    
+    # Syllabi - should go first since they might be used by markdown files
+    update_mm(HOMEDIR)
 
     # Markdown files
     update_markdown(HOMEDIR)
-    
-    # Syllabi
-    update_mm(HOMEDIR)
-    
-
