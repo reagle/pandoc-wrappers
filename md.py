@@ -29,8 +29,54 @@ from os import environ
 HOME = environ['HOME']
 BROWSER = environ['BROWSER']
 
+
+def link_citations(line, bibtex_file):
+    """
+    Turn pandoc/markdown citations into links.
+    """
+    
+    P_CITE = re.compile(r'(-?@[\w|-]+)') # [-@Clark-Flory2010fpo]
+    def hyperize(cite_match): 
+        """
+        hyperize every non-overlapping occurrence
+        and return to P_CITE.sub
+        """
+        cite_replacement = []
+        url = None
+        citation = cite_match.group(0)
+        key = citation.split('@',1)[1]
+        #print("**   processing key: %s" % key)
+        reference = bibtex_file.get(key)
+        if reference == None:
+            print("WARNING: key %s not found" % key)
+            return key
+        url = reference.get('url')
+        title = reference.get('shorttitle')
+        
+        if citation.startswith('-'):
+            key_text = re.findall(r'\d\d\d\d.*', key)[0] # year
+        else:
+            key_text = key
+        
+        #print("**   url = %s" % url)
+        if url:
+            cite_replacement.append('[%s](%s)' %(key_text,url))
+        else:
+            if title:
+                title = title.replace('{', '').replace('}', '')
+                cite_replacement.append('%s, "%s"' %(key_text, title))
+            else:
+                cite_replacement.append('%s' %key_text)
+        #print("**   using cite_replacement = %s" % cite_replacement)
+        return ''.join(cite_replacement)
+
+    return P_CITE.sub(hyperize, line)
+
 def process(files):
     
+    if args.bibliography:
+        bibtex_file = parseBibTex(open(HOME+'/joseph/readings.bib', 'r').readlines())
+        
     for in_file in files:
         
         ##############################
@@ -70,40 +116,7 @@ def process(files):
             line = line.replace('src="//', 'src="http://')
             
             if args.bibliography: # create hypertext refs from bibtex db
-            
-                # [-@Clark-Flory2010fpo]
-                def hyperize(cite_match): # passed to p_cite.sub
-                    cite_replacement = []
-                    url = None
-                    citation = cite_match.group(0)
-                    key = citation.split('@',1)[1]
-                    #print("**   processing key: %s" % key)
-                    reference = bibtex.get(key)
-                    if reference == None:
-                        print("WARNING: key %s not found" % key)
-                        return key
-                    url = reference.get('url')
-                    title = reference.get('shorttitle')
-                    
-                    if citation.startswith('-'):
-                        key_text = re.findall(r'\d\d\d\d.*', key)[0] # year
-                    else:
-                        key_text = key
-                    
-                    #print("**   url = %s" % url)
-                    if url:
-                        cite_replacement.append('[%s](%s)' %(key_text,url))
-                    else:
-                        if title:
-                            title = title.replace('{', '').replace('}', '')
-                            cite_replacement.append('%s, "%s"' %(key_text, title))
-                        else:
-                            cite_replacement.append('%s' %key_text)
-                    #print("**   using cite_replacement = %s" % cite_replacement)
-                    return ''.join(cite_replacement)
-
-                p_cite = re.compile(r'(-?@[\w|-]+)')
-                line = p_cite.sub(hyperize, line) # hyperize every non-overlapping occurrence
+                line = link_citations(line, bibtex_file)
                 #print("\n** line is now %s" % line)
 
             #print("END line: '%s'" % line)
@@ -186,8 +199,6 @@ if __name__ == "__main__":
         pandoc_opts.extend(['--self-contained'])
     if args.divs:
         pandoc_opts.extend(['--section-divs'])
-    if args.bibliography:
-        bibtex = parseBibTex(open(HOME+'/joseph/readings.bib', 'r').readlines())
     if args.style_chicago:
         args.style_csl = ['chicago-author-date']
     if args.style_csl:
