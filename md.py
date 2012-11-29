@@ -189,7 +189,7 @@ if __name__ == "__main__":
     if args.presentation:
         args.validate = False
         args.css = False
-        pandoc_opts.extend(['--template=new-class.dzslides', 
+        pandoc_opts.extend(['--template=class.dzslides', 
             '-t', 'dzslides', '--slide-level=2'])
     if args.css:
         pandoc_opts.extend(['-c', args.css])
