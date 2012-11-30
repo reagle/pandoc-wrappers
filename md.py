@@ -53,7 +53,7 @@ def link_citations(line, bibtex_file):
         url = None
         citation = cite_match.group(0)
         key = citation.split('@',1)[1]
-        #print("**   processing key: %s" % key)
+        info("**   processing key: %s" % key)
         reference = bibtex_file.get(key)
         if reference == None:
             print("WARNING: key %s not found" % key)
@@ -66,7 +66,7 @@ def link_citations(line, bibtex_file):
         else:
             key_text = key
         
-        #print("**   url = %s" % url)
+        #info("**   url = %s" % url)
         if url:
             cite_replacement.append('[%s](%s)' %(key_text,url))
         else:
@@ -75,7 +75,7 @@ def link_citations(line, bibtex_file):
                 cite_replacement.append('%s, "%s"' %(key_text, title))
             else:
                 cite_replacement.append('%s' %key_text)
-        #print("**   using cite_replacement = %s" % cite_replacement)
+        #info("**   using cite_replacement = %s" % cite_replacement)
         return ''.join(cite_replacement)
 
     return P_CITE.sub(hyperize, line)
@@ -114,7 +114,7 @@ def process(args):
         
         # figure out the title
         for lineNo, line in enumerate(lines):
-            #print("START line: '%s'" % line)
+            #info("START line: '%s'" % line)
             if lineNo == 0:
                 line = line.lstrip(str(codecs.BOM_UTF8, "utf8"))
                 if line.startswith('%'):
@@ -125,9 +125,9 @@ def process(args):
             
             if args.bibliography: # create hypertext refs from bibtex db
                 line = link_citations(line, bibtex_file)
-                #print("\n** line is now %s" % line)
+                #info("\n** line is now %s" % line)
 
-            #print("END line: '%s'" % line)
+            #info("END line: '%s'" % line)
             f2.write(line + '\n')
         f1.close()
         f2.close()
@@ -139,9 +139,9 @@ def process(args):
         pandoc_cmd = ['pandoc', '-f', 'markdown']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_cmd.append(tmpName2)
-        print("** pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
+        print("pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
         call(pandoc_cmd, stdout=open(tmpName3, 'w'))
-        print("done pandoc_cmd")
+        info("done pandoc_cmd")
 
         ##############################
         ##  post pandoc
@@ -153,15 +153,13 @@ def process(args):
         open(fileName + '.html', 'w').write(html)
         
         if args.validate:
-            print("args.validate = %s" %args.validate)
             call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
-                    fileName + '.html'], shell=True)
-        print("browser is %s" %BROWSER)
+                    fileName + '.html'])
         if args.launch_browser:
-            print("launching %s" %fileName + '.html')
+            info("launching %s" %fileName + '.html')
             call([BROWSER, fileName + '.html'])
         [os.remove(file) for file in (tmpName1, tmpName2, tmpName3)]
-        print("removing tmp files")
+        info("removing tmp files")
 
 if __name__ == "__main__":
     import argparse # http://docs.python.org/dev/library/argparse.html
@@ -202,7 +200,18 @@ if __name__ == "__main__":
     arg_parser.add_argument('-V', '--verbose', action='count', default=0,
         help="Increase verbosity (specify multiple times for more)")
     arg_parser.add_argument('--version', action='version', version='TBD')
-    args = arg_parser.parse_args()
+    args = arg_parser.parse_args()    
+
+    if args.verbose == 1: log_level = logging.CRITICAL
+    elif args.verbose == 2: log_level = logging.INFO
+    elif args.verbose >= 3: log_level = logging.DEBUG
+    LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
+    if args.log_to_file:
+        logging.basicConfig(filename='wiki-update.log', filemode='w',
+            level=log_level, format = LOG_FORMAT)
+    else:
+        logging.basicConfig(level=log_level, format = LOG_FORMAT)
+
     pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
         '--email-obfuscation=references'] 
     if args.presentation:
@@ -221,7 +230,7 @@ if __name__ == "__main__":
     if args.style_chicago:
         args.style_csl = ['chicago-author-date']
     if args.style_csl:
-        print(("args.style_csl = %s" % args.style_csl))
+        print("args.style_csl = %s" % args.style_csl)
         pandoc_opts.extend(['--bibliography=%s' % HOME+'/joseph/readings.bib',])
         pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
 

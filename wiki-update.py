@@ -184,7 +184,7 @@ def create_talk_handout(HOMEDIR, md_fn):
         'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
         handout_fn]
         info("md_cmd = %s" % ' '.join(md_cmd))
-        call(md_cmd,  shell=True)
+        call(md_cmd)
         remove(handout_fn)
 
 def update_markdown(HOMEDIR):
@@ -237,9 +237,8 @@ def update_mm(HOMEDIR):
                 if getmtime(mm_filename) > getmtime(html_fn):
                     info('updating_mm %s' %filename)
                     call(['xsltproc', '-o', html_fn, 
-                        '/home/reagle/bin/mmtoxhtml.xsl', mm_filename], shell=True)
-                    call(['tidy', '-asxhtml', '-utf8', '-w', '0', '-m', html_fn],
-                        shell=True)
+                        '/home/reagle/bin/mmtoxhtml.xsl', mm_filename])
+                    call(['tidy', '-asxhtml', '-utf8', '-w', '0', '-m', html_fn])
                     p3 = Popen(['tail', '-n', '+2', html_fn], 
                         stdout=PIPE)
                     p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0', '-o', html_fn],
