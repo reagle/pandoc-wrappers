@@ -290,7 +290,7 @@ if '__main__' == __name__:
                     help="using bibtex rather than biblatex")
     arg_parser.add_argument('-f', '--fast', action='count',
                     help="increase speed by decreasing latex invocations")
-    arg_parser.add_argument('-l', '--log-to-file',
+    arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file %(prog)s.log")
     arg_parser.add_argument("-u", "--URL-long", 
@@ -299,7 +299,7 @@ if '__main__' == __name__:
     arg_parser.add_argument("-o", "--online-URLs-only", 
                     action="store_true", default=False,
                     help="Only include URLs that are exclusively online")
-    arg_parser.add_argument('-v', '--verbose', action='count', default=0,
+    arg_parser.add_argument('-V', '--verbose', action='count', default=0,
                     help="Increase verbosity (specify multiple times for more)")
 
     args = arg_parser.parse_args()
