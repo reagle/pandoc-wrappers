@@ -20,7 +20,7 @@ from os.path import abspath, basename, dirname, exists, \
 import re
 from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
-from sh import chmod
+from sh import chmod # http://amoffat.github.com/sh/
 import sys
 import time
 #import webbrowser
@@ -330,7 +330,7 @@ if '__main__' == __name__:
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
-    arg_parser.add_argument('-v', '--verbose', action='count', default=0,
+    arg_parser.add_argument('-V', '--verbose', action='count', default=0,
         help="Increase verbosity (specify multiple times for more)")
     arg_parser.add_argument('--version', action='version', version='TBD')
     args = arg_parser.parse_args()

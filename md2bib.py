@@ -96,12 +96,12 @@ if '__main__' == __name__:
             help="find keys in markdown file")
     arg_parser.add_argument("-k", "--keys", nargs=1,
             help="use specified KEYS")
-    arg_parser.add_argument('-l', '--log-to-file',
+    arg_parser.add_argument('-L', '--log-to-file',
             action="store_true", default=False,
             help="log to file %(prog)s.log")
     arg_parser.add_argument("-o", "--out-filename",
             help="output results to filename", metavar="FILE")
-    arg_parser.add_argument('-v', '--verbose', action='count', default=0,
+    arg_parser.add_argument('-V', '--verbose', action='count', default=0,
             help="Increase verbosity (specify multiple times for more)")
     arg_parser.add_argument('--version', action='version', version='TBD')
     args = arg_parser.parse_args()

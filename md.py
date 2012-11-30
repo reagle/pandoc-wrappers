@@ -16,19 +16,27 @@ TODO:
 import codecs
 from dateutil.parser import parse
 from datetime import date, datetime
+import logging
 from md2bib import parseBibTex
 import getopt
 import os
 import re
 import shutil
 from string import Template
-from subprocess import call, Popen
+from subprocess import call
 import sys
 
 from os import environ
 HOME = environ['HOME']
 BROWSER = environ['BROWSER'] if 'BROWSER' in environ else None
 
+log_level = 100 # default
+critical = logging.critical
+info = logging.info
+dbg = logging.debug
+warn = logging.warn
+error = logging.error
+excpt = logging.exception
 
 def link_citations(line, bibtex_file):
     """
@@ -72,12 +80,12 @@ def link_citations(line, bibtex_file):
 
     return P_CITE.sub(hyperize, line)
 
-def process(files):
+def process(args):
     
     if args.bibliography:
         bibtex_file = parseBibTex(open(HOME+'/joseph/readings.bib', 'r').readlines())
         
-    for in_file in files:
+    for in_file in args.files:
         
         ##############################
         ##  pre pandoc
@@ -132,23 +140,28 @@ def process(files):
         pandoc_cmd.extend(pandoc_opts)
         pandoc_cmd.append(tmpName2)
         print("** pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
-        call(pandoc_cmd, stdout=open(tmpName3, 'w'), shell=True)
+        call(pandoc_cmd, stdout=open(tmpName3, 'w'))
+        print("done pandoc_cmd")
 
         ##############################
         ##  post pandoc
         ##############################
         
-        # fix a pandoc bug that produces empty h1 tags
+        # final tweaks to tmp html file
         html = open(tmpName3, 'r').read()
         #html = html.replace('<h1></h1>', '') # fixed (#484)
         open(fileName + '.html', 'w').write(html)
         
         if args.validate:
+            print("args.validate = %s" %args.validate)
             call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
                     fileName + '.html'], shell=True)
+        print("browser is %s" %BROWSER)
         if args.launch_browser:
-            Popen([BROWSER, fileName + '.html'])
+            print("launching %s" %fileName + '.html')
+            call([BROWSER, fileName + '.html'])
         [os.remove(file) for file in (tmpName1, tmpName2, tmpName3)]
+        print("removing tmp files")
 
 if __name__ == "__main__":
     import argparse # http://docs.python.org/dev/library/argparse.html
@@ -183,6 +196,12 @@ if __name__ == "__main__":
     arg_parser.add_argument("-v", "--validate",
                     action="store_true", default=False,
                     help="validate and tidy HTML")
+    arg_parser.add_argument('-L', '--log-to-file',
+                    action="store_true", default=False,
+                    help="log to file PROGRAM.log")
+    arg_parser.add_argument('-V', '--verbose', action='count', default=0,
+        help="Increase verbosity (specify multiple times for more)")
+    arg_parser.add_argument('--version', action='version', version='TBD')
     args = arg_parser.parse_args()
     pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
         '--email-obfuscation=references'] 
@@ -206,4 +225,4 @@ if __name__ == "__main__":
         pandoc_opts.extend(['--bibliography=%s' % HOME+'/joseph/readings.bib',])
         pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
 
-    process(args.files)
+    process(args)
