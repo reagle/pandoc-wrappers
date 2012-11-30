@@ -27,7 +27,7 @@ import sys
 
 from os import environ
 HOME = environ['HOME']
-BROWSER = environ['BROWSER']
+BROWSER = environ['BROWSER'] if 'BROWSER' in environ else None
 
 
 def link_citations(line, bibtex_file):
@@ -132,7 +132,7 @@ def process(files):
         pandoc_cmd.extend(pandoc_opts)
         pandoc_cmd.append(tmpName2)
         print("** pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
-        call(pandoc_cmd, stdout=open(tmpName3, 'w'))
+        call(pandoc_cmd, stdout=open(tmpName3, 'w'), shell=True)
 
         ##############################
         ##  post pandoc
@@ -145,7 +145,7 @@ def process(files):
         
         if args.validate:
             call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
-                    fileName + '.html'])
+                    fileName + '.html'], shell=True)
         if args.launch_browser:
             Popen([BROWSER, fileName + '.html'])
         [os.remove(file) for file in (tmpName1, tmpName2, tmpName3)]
