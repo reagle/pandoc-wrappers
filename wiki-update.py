@@ -11,7 +11,6 @@ zim/* (zim-wiki) -> html
 import codecs
 import fnmatch
 import hashlib
-import locale
 from lxml import etree, html
 import logging
 from os import chdir, environ, mkdir, path, rename, remove, walk
@@ -249,7 +248,6 @@ def log2work(done_tasks):
     '''
     Log completed zim tasks to work microblog
     '''
-    import hashlib
 
     log_items = []
     for activity, task in done_tasks:
@@ -278,7 +276,7 @@ def log2work(done_tasks):
         fd.write(newcontent)
         fd.close()
     else:
-        print_usage("Sorry, output regexp subsitution failed.")
+        print("Sorry, output regexp subsitution failed.")
                          
                          
 def retire_tasks(directory):
