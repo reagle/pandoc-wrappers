@@ -14,21 +14,16 @@ TODO:
 '''
 
 import codecs
-from dateutil.parser import parse
-from datetime import date, datetime
 import logging
 from md2bib import parseBibTex
-import getopt
 import os
 import re
 import shutil
-from string import Template
+from sh import chmod # http://amoffat.github.com/sh/
 from subprocess import call
-import sys
 
-from os import environ
-HOME = environ['HOME']
-BROWSER = environ['BROWSER'] if 'BROWSER' in environ else None
+HOME = os.environ['HOME']
+BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
 
 log_level = 100 # default
 critical = logging.critical
@@ -52,7 +47,7 @@ def link_citations(line, bibtex_file):
         cite_replacement = []
         url = None
         citation = cite_match.group(0)
-        key = citation.split('@',1)[1]
+        key = citation.split('@', 1)[1]
         info("**   processing key: %s" % key)
         reference = bibtex_file.get(key)
         if reference == None:
@@ -68,7 +63,7 @@ def link_citations(line, bibtex_file):
         
         #info("**   url = %s" % url)
         if url:
-            cite_replacement.append('[%s](%s)' %(key_text,url))
+            cite_replacement.append('[%s](%s)' %(key_text, url))
         else:
             if title:
                 title = title.replace('{', '').replace('}', '')
@@ -112,13 +107,11 @@ def process(args):
         
         lines = lines.split('\n')
         
-        # figure out the title
         for lineNo, line in enumerate(lines):
-            #info("START line: '%s'" % line)
-            if lineNo == 0:
-                line = line.lstrip(str(codecs.BOM_UTF8, "utf8"))
-                if line.startswith('%'):
-                    title = line [1:]
+            #if lineNo == 0:
+                #line = line.lstrip(str(codecs.BOM_UTF8))
+                #if line.startswith('%'):
+                    #title = line [1:]
             # fix Wikicommons relative network-path references 
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
@@ -158,7 +151,7 @@ def process(args):
         if args.launch_browser:
             info("launching %s" %fileName + '.html')
             call([BROWSER, fileName + '.html'])
-        [os.remove(file) for file in (tmpName1, tmpName2, tmpName3)]
+        [os.remove(file_name) for file_name in (tmpName1, tmpName2, tmpName3)]
         info("removing tmp files")
 
 if __name__ == "__main__":

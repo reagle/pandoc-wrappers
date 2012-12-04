@@ -37,7 +37,7 @@ def parseBibTex(text):
         if key_match:
             entry_type = key_match.group(1)
             key = key_match.group(2)
-            entries[key] = OrderedDict({'entry_type': key_match.group(1)})
+            entries[key] = OrderedDict({'entry_type': entry_type})
             continue
         value_match = value_pat.match(line)
         if value_match:
