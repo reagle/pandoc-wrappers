@@ -202,12 +202,20 @@ def update_markdown(HOMEDIR):
                 md_args = []
                 if 'talks' in md_fn:
                     # styling now done in pandoc template
-                    md_args.extend(['-bp',
+                    md_args.extend(['-p',
                         '-c', 'http://reagle.org/joseph/talks'
                         '/_dzslides/2012/06-class-slides.css'])
                     if '[@' in content:
                         md_args.extend(['-b'])
                     create_talk_handout(HOMEDIR, md_fn)
+                #if 'syllabus' in md_fn:
+                    #mm_fn = md_fn.replace('syllabus', 'readings'
+                        #).replace('.md', '.mm')
+                    #info("mm_fn = '%s'" %(mm_fn))
+                    #if exists(mm_fn):
+                        # open mm_fn
+                        # take all content between body tags in tmp file
+                        # md_args.extend(['-A', tmp_fn])
                 else:
                     md_args.extend(['-c', 
                         'http://reagle.org/joseph/2003/papers.css'])

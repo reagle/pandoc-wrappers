@@ -86,12 +86,12 @@ def process(args):
         ##  pre pandoc
         ##############################
 
-        fileName, extension = os.path.splitext(in_file)
+        base_fn, base_ext = os.path.splitext(in_file)
         abs_fn = os.path.abspath(in_file)
 
-        tmpName1 = "%s-1%s" %(fileName, extension)
-        tmpName2 = "%s-2%s" %(fileName, extension)
-        tmpName3 = "%s-3%s" %(fileName, '.html')
+        tmpName1 = "%s-1%s" %(base_fn, base_ext) # pre pandoc
+        tmpName2 = "%s-2%s" %(base_fn, base_ext) # pandoc result
+        tmpName3 = "%s-3%s" %(base_fn, '.html')  # tidied html
 
         shutil.copyfile(in_file, tmpName1)
 
@@ -143,14 +143,17 @@ def process(args):
         # final tweaks to tmp html file
         html = open(tmpName3, 'r').read()
         #html = html.replace('<h1></h1>', '') # fixed (#484)
-        open(fileName + '.html', 'w').write(html)
+        result_fn = base_fn + '.html'
+        if args.output:
+            result_fn = args.output[0]
+        open(result_fn, 'w').write(html)
         
         if args.validate:
             call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
-                    fileName + '.html'])
+                    result_fn])
         if args.launch_browser:
-            info("launching %s" %fileName + '.html')
-            call([BROWSER, fileName + '.html'])
+            info("launching %s" %result_fn)
+            call([BROWSER, result_fn])
         [os.remove(file_name) for file_name in (tmpName1, tmpName2, tmpName3)]
         info("removing tmp files")
 
@@ -170,9 +173,11 @@ if __name__ == "__main__":
     arg_parser.add_argument("-l", "--launch-browser",
                     action="store_true", default=False,
                     help="launch browser to see results")
-    arg_parser.add_argument("-o", "--offline",
+    arg_parser.add_argument("-o", "--output", nargs=1,
+                    help="output file path")
+    arg_parser.add_argument("--offline",
                     action="store_true", default=False,
-                    help="incorporate links: scripts, images, and CSS.")
+                    help="incorporate links: scripts, images, and CSS")
     arg_parser.add_argument("-p", "--presentation",
                     action="store_true", default=False,
                     help="create presentation with dzsslides")
