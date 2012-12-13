@@ -201,21 +201,29 @@ def update_markdown(HOMEDIR):
                 md_cmd = [HOME+'/bin/pandoc-wrappers/md']
                 md_args = []
                 if 'talks' in md_fn:
-                    # styling now done in pandoc template
                     md_args.extend(['-p',
                         '-c', 'http://reagle.org/joseph/talks'
                         '/_dzslides/2012/06-class-slides.css'])
                     if '[@' in content:
                         md_args.extend(['-b'])
                     create_talk_handout(HOMEDIR, md_fn)
-                #if 'syllabus' in md_fn:
-                    #mm_fn = md_fn.replace('syllabus', 'readings'
-                        #).replace('.md', '.mm')
-                    #info("mm_fn = '%s'" %(mm_fn))
-                    #if exists(mm_fn):
-                        # open mm_fn
-                        # take all content between body tags in tmp file
-                        # md_args.extend(['-A', tmp_fn])
+                tmp_body_fn = None # temporary store body of MM HTML
+                if 'syllabus' in md_fn:
+                    info("processing syllabus")
+                    mm_fn_html = md_fn.replace('syllabus', 'readings'
+                        ).replace('.md', '.html')
+                    info("mm_fn_html = '%s'" %(mm_fn_html))
+                    if exists(mm_fn_html):
+                        info("transcluding HTML from mindmap")
+                        html_parser = etree.HTMLParser()
+                        doc = etree.parse(open(mm_fn_html, 'rb'), html_parser)
+                        body_node = doc.xpath('//body')[0]
+                        body_content = etree.tostring(body_node
+                            )[6:-7].decode("utf-8")
+                        tmp_body_fn = filename + '.tmp'
+                        codecs.open(tmp_body_fn, 'w', 'utf-8', 'replace'
+                            ).write(body_content)
+                        md_args.extend(['--include-after-body', tmp_body_fn])
                 else:
                     md_args.extend(['-c', 
                         'http://reagle.org/joseph/2003/papers.css'])
@@ -225,6 +233,7 @@ def update_markdown(HOMEDIR):
                 md_cmd.extend([md_fn])
                 info("md_cmd = %s" % ' '.join(md_cmd))
                 call(md_cmd)
+                if tmp_body_fn: remove(tmp_body_fn)
                 if args.launch:
                     #webbrowser.open(html_fn)
                     call(["google-chrome", html_fn])
@@ -352,12 +361,12 @@ if '__main__' == __name__:
 
     ## Private files
     
-    # Joseph and Nora planning
+    # Zim: Joseph and Nora planning
     HOMEDIR = '/home/reagle/joseph/plan/joseph-nora/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
 
-    # Work planning
+    # Zim: Work planning
     HOMEDIR = '/home/reagle/joseph/plan/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         if retire_tasks(HOMEDIR + 'zim/'):
@@ -371,13 +380,13 @@ if '__main__' == __name__:
 
     ## Public files
 
-    # Public zim
+    # Zim: Public
     HOMEDIR = '/home/reagle/joseph/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
     
-    # Syllabi - should go first since they might be used by markdown files
+    # Mindmaps: syllabi (1st as transcluded in markdown files)
     update_mm(HOMEDIR)
 
-    # Markdown files
+    # Markdown (2nd)
     update_markdown(HOMEDIR)

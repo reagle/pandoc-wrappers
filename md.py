@@ -170,6 +170,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("-d", "--divs", 
                     action="store_true", default=False,
                     help="use pandoc's --section-divs")
+    arg_parser.add_argument("--include-after-body", 
+                    nargs=1,  metavar='FILE',
+                    help="Include at end of body (pandoc pass-through)")
     arg_parser.add_argument("-l", "--launch-browser",
                     action="store_true", default=False,
                     help="launch browser to see results")
@@ -231,5 +234,7 @@ if __name__ == "__main__":
         print("args.style_csl = %s" % args.style_csl)
         pandoc_opts.extend(['--bibliography=%s' % HOME+'/joseph/readings.bib',])
         pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
+    if args.include_after_body:
+        pandoc_opts.extend(['--include-after-body=%s' % args.include_after_body[0]])
 
     process(args)
