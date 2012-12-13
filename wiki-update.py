@@ -13,6 +13,7 @@ import fnmatch
 import hashlib
 from lxml import etree, html
 import logging
+import md
 from os import chdir, environ, mkdir, path, rename, remove, walk
 from os.path import abspath, basename, dirname, exists, \
     getmtime, join, relpath, splitext
@@ -114,78 +115,6 @@ def insert_todos(plan_fn, todos):
     parent.replace(div, todos)
     doc.write(plan_fn)
 
-def create_talk_handout(HOMEDIR, md_fn):
-    '''If talks and handouts exists, create partial handout'''
-        
-    COURSES = ['/mcs/', '/orgcom/']
-    # http://www.farside.org.uk/200804/osjam/markdown2.py
-    ast_bullet_re = re.compile(r'^ *(\* )')
-    em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
-    def em_mask(matchobj):
-        info("return replace function")
-        return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
-        
-    md_dir = dirname(md_fn)
-    handout_fn = md_fn.replace('/talks/', '/handouts/')
-    handout_dir = dirname(handout_fn)
-    info("handout_dir) = '%s'" %(dirname(handout_fn)))
-    if exists(dirname(handout_fn)):
-        skip_to_next_header = False
-        partial_handout = False
-        handout_f = open(handout_fn, 'w')
-        info("partial_handout = '%s'" %(partial_handout))
-        content = open(md_fn, 'r').read()
-        media_relpath = relpath(md_dir, handout_dir)
-        info("media_relpath = '%s'" %(media_relpath))
-        content = content.replace('](media/', '](%s/media/' % media_relpath)
-        lines = [line+'\n' for line in content.split('\n')]
-        for line in lines:
-            if line.startswith('----') or \
-                '<video ' in line or \
-                line.startswith('<details'):  # skip rules
-                skip_to_next_header = True
-                continue 
-            # convert pseudo div headings to h1
-            #line = re.sub(r'^#+ (.*)', r'# \1', line) # error: matches '### '
-            if line.startswith('##'):
-                line = line.replace('##### ', '# ')
-                line = line.replace('#### ', '# ')
-                line = line.replace('## ', '# ')
-            # slide to SKIP
-            if any(course in md_fn for course in COURSES):
-                partial_handout = True
-            if partial_handout:
-                info("partial_handout = '%s'" %(partial_handout))
-                if line.startswith('# '):
-                    if '*' in line:
-                        skip_to_next_header = True
-                    elif '# rev: ' in line:
-                        skip_to_next_header = True
-                    else:
-                        skip_to_next_header = False
-                    handout_f.write(line)
-                else:
-                    # content to REDACT
-                    if not skip_to_next_header:
-                        if line.startswith('> *'):
-                            handout_f.write('\n')
-                            continue
-                        info("entering em redaction")
-                        line = ast_bullet_re.subn('- ', line)[0]
-                        line = em_re.subn(em_mask, line)[0]
-                        handout_f.write(line)
-                    else:
-                        handout_f.write('\n')
-            else:
-                handout_f.write(line)
-        handout_f.close()
-        md_cmd = ['md', '--divs', '--offline', '-c',
-        'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
-        handout_fn]
-        info("md_cmd = %s" % ' '.join(md_cmd))
-        call(md_cmd)
-        remove(handout_fn)
-
 def update_markdown(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
 
@@ -200,15 +129,17 @@ def update_markdown(HOMEDIR):
                 content = open(md_fn,"r").read()
                 md_cmd = [HOME+'/bin/pandoc-wrappers/md']
                 md_args = []
-                if 'talks' in md_fn:
-                    md_args.extend(['-p',
-                        '-c', 'http://reagle.org/joseph/talks'
-                        '/_dzslides/2012/06-class-slides.css'])
-                    if '[@' in content:
-                        md_args.extend(['-b'])
-                    create_talk_handout(HOMEDIR, md_fn)
                 tmp_body_fn = None # temporary store body of MM HTML
-                if 'syllabus' in md_fn:
+
+                if 'talks' in md_fn:
+                    md_args.extend(['--presentation'])
+                    COURSES = ['/mcs/', '/orgcom/']
+                    if any(course in md_fn for course in COURSES):
+                        md_args.extend(['--partial-handout'])
+                    if '[@' in content:
+                        md_args.extend(['--bibliography'])
+                        
+                elif 'syllabus' in md_fn:
                     info("processing syllabus")
                     mm_fn_html = md_fn.replace('syllabus', 'readings'
                         ).replace('.md', '.html')
@@ -237,7 +168,6 @@ def update_markdown(HOMEDIR):
                 if args.launch:
                     #webbrowser.open(html_fn)
                     call(["google-chrome", html_fn])
-                        
     
 def update_mm(HOMEDIR):
     '''Convert any Freemind mindmap whose HTML file is older than it.'''

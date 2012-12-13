@@ -17,6 +17,9 @@ import codecs
 import logging
 from md2bib import parseBibTex
 import os
+from os import chdir, environ, mkdir, path, rename, remove, walk
+from os.path import abspath, basename, dirname, exists, \
+    getmtime, join, relpath, splitext
 import re
 import shutil
 from sh import chmod # http://amoffat.github.com/sh/
@@ -75,6 +78,76 @@ def link_citations(line, bibtex_file):
 
     return P_CITE.sub(hyperize, line)
 
+def create_talk_handout(abs_fn, tmp2_fn):
+    '''If talks and handouts exists, create (partial) handout'''
+        
+    # http://www.farside.org.uk/200804/osjam/markdown2.py
+    ast_bullet_re = re.compile(r'^ *(\* )')
+    em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
+    def em_mask(matchobj):
+        info("return replace function")
+        return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
+        
+    info("abs_fn = '%s'" %(abs_fn))
+    info("tmp2fn = '%s'" %(tmp2_fn))
+    md_dir = dirname(tmp2_fn)
+    handout_fn = abs_fn.replace('/talks/', '/handouts/')
+    handout_dir = dirname(handout_fn)
+    info("handout_dir = '%s'" %(dirname(handout_fn)))
+    if exists(dirname(handout_fn)):
+        skip_to_next_header = False
+        handout_f = open(handout_fn, 'w')
+        content = open(tmp2_fn, 'r').read()
+        media_relpath = relpath(md_dir, handout_dir)
+        info("media_relpath = '%s'" %(media_relpath))
+        content = content.replace('](media/', '](%s/media/' % media_relpath)
+        lines = [line+'\n' for line in content.split('\n')]
+        for line in lines:
+            if line.startswith('----') or \
+                '<video ' in line or \
+                line.startswith('<details'):  # skip rules
+                skip_to_next_header = True
+                continue 
+            # convert pseudo div headings to h1
+            #line = re.sub(r'^#+ (.*)', r'# \1', line) # error: matches '### '
+            if line.startswith('##'):
+                line = line.replace('##### ', '# ')
+                line = line.replace('#### ', '# ')
+                line = line.replace('## ', '# ')
+            # slide to SKIP
+            if args.partial_handout:
+                info("args.partial_handout = '%s'" %(args.partial_handout))
+                if line.startswith('# '):
+                    if '*' in line:
+                        skip_to_next_header = True
+                    elif '# rev: ' in line:
+                        skip_to_next_header = True
+                    else:
+                        skip_to_next_header = False
+                    handout_f.write(line)
+                else:
+                    # content to REDACT
+                    if not skip_to_next_header:
+                        if line.startswith('> *'):
+                            handout_f.write('\n')
+                            continue
+                        info("entering em redaction")
+                        line = ast_bullet_re.subn('- ', line)[0]
+                        line = em_re.subn(em_mask, line)[0]
+                        handout_f.write(line)
+                    else:
+                        handout_f.write('\n')
+            else:
+                handout_f.write(line)
+        handout_f.close()
+        md_cmd = ['md', '--divs', '--offline', '-c',
+        'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
+        handout_fn]
+        info("md_cmd = %s" % ' '.join(md_cmd))
+        call(md_cmd)
+        remove(handout_fn)
+
+
 def process(args):
     
     if args.bibliography:
@@ -86,8 +159,9 @@ def process(args):
         ##  pre pandoc
         ##############################
 
-        base_fn, base_ext = os.path.splitext(in_file)
-        abs_fn = os.path.abspath(in_file)
+        base_fn, base_ext = splitext(in_file)
+        abs_fn = abspath(in_file)
+        fn_path = os.path.split(abs_fn)[0]
 
         tmpName1 = "%s-1%s" %(base_fn, base_ext) # pre pandoc
         tmpName2 = "%s-2%s" %(base_fn, base_ext) # pandoc result
@@ -108,10 +182,6 @@ def process(args):
         lines = lines.split('\n')
         
         for lineNo, line in enumerate(lines):
-            #if lineNo == 0:
-                #line = line.lstrip(str(codecs.BOM_UTF8))
-                #if line.startswith('%'):
-                    #title = line [1:]
             # fix Wikicommons relative network-path references 
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
@@ -135,6 +205,11 @@ def process(args):
         print("pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
         call(pandoc_cmd, stdout=open(tmpName3, 'w'))
         info("done pandoc_cmd")
+
+        if args.presentation:
+            info("starting handout")
+            create_talk_handout(abs_fn, tmpName2)
+            info("done handout")
 
         ##############################
         ##  post pandoc
@@ -172,7 +247,7 @@ if __name__ == "__main__":
                     help="use pandoc's --section-divs")
     arg_parser.add_argument("--include-after-body", 
                     nargs=1,  metavar='FILE',
-                    help="Include at end of body (pandoc pass-through)")
+                    help="include at end of body (pandoc pass-through)")
     arg_parser.add_argument("-l", "--launch-browser",
                     action="store_true", default=False,
                     help="launch browser to see results")
@@ -181,9 +256,6 @@ if __name__ == "__main__":
     arg_parser.add_argument("--offline",
                     action="store_true", default=False,
                     help="incorporate links: scripts, images, and CSS")
-    arg_parser.add_argument("-p", "--presentation",
-                    action="store_true", default=False,
-                    help="create presentation with dzsslides")
     arg_parser.add_argument("-s", "--style-chicago",
                     action="store_true", default=False,
                     help="use CSL bibliography style, default chicago")
@@ -195,6 +267,14 @@ if __name__ == "__main__":
     arg_parser.add_argument("-v", "--validate",
                     action="store_true", default=False,
                     help="validate and tidy HTML")
+
+    arg_parser.add_argument("-p", "--presentation",
+                    action="store_true", default=False,
+                    help="create presentation with dzsslides")
+    arg_parser.add_argument("--partial-handout", 
+                    action="store_true", default=False,
+                    help="presentation handout is partial/redacted")
+                    
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
