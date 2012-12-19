@@ -90,7 +90,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
         
     info("abs_fn = '%s'" %(abs_fn))
     info("tmp2fn = '%s'" %(tmp2_fn))
-    md_dir = dirname(tmp2_fn)
+    md_dir = dirname(abs_fn)
     handout_fn = abs_fn.replace('/talks/', '/handouts/')
     handout_dir = dirname(handout_fn)
     info("handout_dir = '%s'" %(dirname(handout_fn)))
@@ -98,6 +98,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
         skip_to_next_header = False
         handout_f = open(handout_fn, 'w')
         content = open(tmp2_fn, 'r').read()
+        info("md_dir = '%s', handout_dir = '%s'" %(md_dir, handout_dir))
         media_relpath = relpath(md_dir, handout_dir)
         info("media_relpath = '%s'" %(media_relpath))
         content = content.replace('](media/', '](%s/media/' % media_relpath)
