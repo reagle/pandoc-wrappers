@@ -22,7 +22,7 @@ from os.path import abspath, basename, dirname, exists, \
     getmtime, join, relpath, splitext
 import re
 import shutil
-from sh import chmod # http://amoffat.github.com/sh/
+#from sh import chmod # http://amoffat.github.com/sh/
 from subprocess import call
 
 HOME = os.environ['HOME']
