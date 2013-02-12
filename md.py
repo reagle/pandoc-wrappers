@@ -38,14 +38,15 @@ excpt = logging.exception
 
 def link_citations(line, bibtex_file):
     """
-    Turn pandoc/markdown citations into links.
+    Turn pandoc/markdown citations into links within parenthesis.
+    Used only with simply citations in presentations.
     """
     
-    P_CITE = re.compile(r'(-?@[\w|-]+)') # -@Clark-Flory2010fpo
+    P_KEY = re.compile(r'(-?@[\w|-]+)') # -@Clark-Flory2010fpo
     def hyperize(cite_match): 
         """
         hyperize every non-overlapping occurrence
-        and return to P_CITE.sub
+        and return to P_KEY.sub
         """
         cite_replacement = []
         url = None
@@ -76,34 +77,52 @@ def link_citations(line, bibtex_file):
         #info("**   using cite_replacement = %s" % cite_replacement)
         return ''.join(cite_replacement)
 
-    return P_CITE.sub(hyperize, line)
+    P_BRACKET_PAIR = re.compile('\[[-#]?@[^\]]+\]')
+    def make_parens(cite_match): 
+        """
+        Convert to balanced parens
+        """
+        return '(' + cite_match.group(0)[1:-1] + ')'
+
+    line = P_BRACKET_PAIR.sub(make_parens, line)
+    line = P_KEY.sub(hyperize, line)
+    return line
 
 def quash_citations(line):
 
-    P_CITE = re.compile(r'\[[-_]@[^\]]+\]')
+    P_BRACKET_PAIR = re.compile(r'\[[-#]?@[^\]]+\]')
     def quash(cite_match): 
         """
-        quash citations with underscore preceding at sign: [_@Reagle2012foo]
+        If args.quash_citations, 
+            do so for hash sign preceding at sign: [#@Reagle2012foo]
+            otherwise make a normal citation.
         """
         citation = cite_match.group(0)
-        info("citation = '%s'" %(citation))
-        if '_@' in citation:
-            chunks = citation[1:-1].split(';') # remove bracket and chunk
-            info("chunks = %s" %(chunks))
-            citations_keep = []
-            for chunk in chunks:
-                info("  chunk = '%s'" %(  chunk))
-                if '_@' in chunk:
+        #critical("citation = '%s'" %(citation))
+        chunks = citation[1:-1].split(';') # remove bracket and chunk
+        #critical("chunks = %s" %(chunks))
+        citations_keep = []
+        for chunk in chunks:
+            #critical("  chunk = '%s'" %(  chunk))
+            if '#@' in chunk:
+                if args.quash_citations:
                     pass
+                    #critical("  quashed")
                 else:
+                    chunk = chunk.replace('#@', '@')
+                    #critical("  keeping chunk = '%s'" %(chunk))
                     citations_keep.append(chunk)
-            if citations_keep:
-                info("citations_keep = '%s'" %(citations_keep))
-                return '[' + ';'.join(citations_keep) + ']'
             else:
-                return ''
-            
-    return P_CITE.subn(quash, line)[0]
+                citations_keep.append(chunk)
+                
+        if citations_keep:
+            #critical("citations_keep = '%s'" %(citations_keep))
+            return '[' + ';'.join(citations_keep) + ']'
+        else:
+            return ''
+    
+
+    return P_BRACKET_PAIR.subn(quash, line)[0]
 
 def create_talk_handout(abs_fn, tmp2_fn):
     '''If talks and handouts exists, create (partial) handout'''
@@ -213,9 +232,7 @@ def process(args):
             # fix Wikicommons relative network-path references 
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
-            
-            if args.quash_citations:
-                line = quash_citations(line)
+            line = quash_citations(line)
             if args.bibliography: # create hypertext refs from bibtex db
                 line = link_citations(line, bibtex_file)
                 #info("\n** line is now %s" % line)
@@ -271,7 +288,7 @@ if __name__ == "__main__":
                     help="turn citations into hypertext w/out CSL")                    
     arg_parser.add_argument("-q", "--quash-citations",
                     action="store_true", default=False,
-                    help="quash citations that begin with undersore (_@Reagle2012foo)")                    
+                    help="quash citations that begin with hash (#@Reagle2012foo)")                    
     arg_parser.add_argument("-c", "--css", 
                     default='http://reagle.org/joseph/2003/papers.css',
                     help="apply non-default CSS")
