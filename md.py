@@ -23,7 +23,7 @@ from os.path import abspath, basename, dirname, exists, \
 import re
 import shutil
 #from sh import chmod # http://amoffat.github.com/sh/
-from subprocess import call
+from subprocess import call, Popen
 
 HOME = os.environ['HOME']
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
@@ -41,7 +41,7 @@ def link_citations(line, bibtex_file):
     Turn pandoc/markdown citations into links.
     """
     
-    P_CITE = re.compile(r'(-?@[\w|-]+)') # [-@Clark-Flory2010fpo]
+    P_CITE = re.compile(r'(-?@[\w|-]+)') # -@Clark-Flory2010fpo
     def hyperize(cite_match): 
         """
         hyperize every non-overlapping occurrence
@@ -77,6 +77,33 @@ def link_citations(line, bibtex_file):
         return ''.join(cite_replacement)
 
     return P_CITE.sub(hyperize, line)
+
+def quash_citations(line):
+
+    P_CITE = re.compile(r'\[[-_]@[^\]]+\]')
+    def quash(cite_match): 
+        """
+        quash citations with underscore preceding at sign: [_@Reagle2012foo]
+        """
+        citation = cite_match.group(0)
+        info("citation = '%s'" %(citation))
+        if '_@' in citation:
+            chunks = citation[1:-1].split(';') # remove bracket and chunk
+            info("chunks = %s" %(chunks))
+            citations_keep = []
+            for chunk in chunks:
+                info("  chunk = '%s'" %(  chunk))
+                if '_@' in chunk:
+                    pass
+                else:
+                    citations_keep.append(chunk)
+            if citations_keep:
+                info("citations_keep = '%s'" %(citations_keep))
+                return '[' + ';'.join(citations_keep) + ']'
+            else:
+                return ''
+            
+    return P_CITE.subn(quash, line)[0]
 
 def create_talk_handout(abs_fn, tmp2_fn):
     '''If talks and handouts exists, create (partial) handout'''
@@ -187,6 +214,8 @@ def process(args):
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
             
+            if args.quash_citations:
+                line = quash_citations(line)
             if args.bibliography: # create hypertext refs from bibtex db
                 line = link_citations(line, bibtex_file)
                 #info("\n** line is now %s" % line)
@@ -229,7 +258,7 @@ def process(args):
                     result_fn])
         if args.launch_browser:
             info("launching %s" %result_fn)
-            call([BROWSER, result_fn])
+            Popen([BROWSER, result_fn])
         [os.remove(file_name) for file_name in (tmpName1, tmpName2, tmpName3)]
         info("removing tmp files")
 
@@ -239,7 +268,10 @@ if __name__ == "__main__":
     arg_parser.add_argument('files', nargs='+',  metavar='FILE')
     arg_parser.add_argument("-b", "--bibliography",
                     action="store_true", default=False,
-                    help="turn citations into hypertext w/out CSL")
+                    help="turn citations into hypertext w/out CSL")                    
+    arg_parser.add_argument("-q", "--quash-citations",
+                    action="store_true", default=False,
+                    help="quash citations that begin with undersore (_@Reagle2012foo)")                    
     arg_parser.add_argument("-c", "--css", 
                     default='http://reagle.org/joseph/2003/papers.css',
                     help="apply non-default CSS")
