@@ -77,7 +77,7 @@ def link_citations(line, bibtex_file):
         #info("**   using cite_replacement = %s" % cite_replacement)
         return ''.join(cite_replacement)
 
-    P_BRACKET_PAIR = re.compile('\[[-#]?@[^\]]+\]')
+    P_BRACKET_PAIR = re.compile('\[[^\]]*[-#]?@[^\]]+\]')
     def make_parens(cite_match): 
         """
         Convert to balanced parens
