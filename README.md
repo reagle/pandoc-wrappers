@@ -12,7 +12,7 @@ A wrapper script for pandoc that handles my own issues:
 
 1. associates the result with a particular style sheet.
 2. can replace [@key] with hypertext'd refs from bibtex database.
-3. makes use of DZSlides for presentations.
+3. makes use of [my DZSlides template](https://github.com/reagle/dzslides) for presentations.
 
 ## bd.py
 
