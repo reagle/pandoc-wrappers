@@ -78,17 +78,19 @@ def pre_pandoc(fn, src_file, md_tmp_file):
     file_enc = "utf-8"
     new_lines = []
 
-    lines = codecs.open(src_file, "rb", file_enc).read()
+    content = codecs.open(src_file, "rb", file_enc).read()
+    if content[0] == codecs.BOM_UTF8.decode('utf8'):
+        content = content[1:]
+    
     # remove writemonkey repository and bookmarks
-    lines = lines.split('***END OF FILE***')[0]
-    lines = lines.replace('@@', '')
-    lines = lines.split('\n')
+    content = content.split('***END OF FILE***')[0]
+    content = content.replace('@@', '')
+    lines = content.split('\n')
     
     for line_no, line in enumerate(lines, start = 1):
         line = line.rstrip() # codecs opens in binary mode with EOLs
         
         if line_no == 1:
-            line = line.replace('\ufeff', '') # remove BOM if present
             if line.startswith('%'):
                 title = line.split(' ', 1)[1]
                 title = re.sub('\*(.*)\*', r'\em{\1}', title) 

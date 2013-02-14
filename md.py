@@ -217,16 +217,18 @@ def process(args):
         shutil.copyfile(in_file, tmpName1)
 
         f1 = codecs.open(tmpName1, 'r', "UTF-8", "replace")
-        lines = f1.read()
+        content = f1.read()
+        if content[0] == codecs.BOM_UTF8.decode('utf8'):
+            content = content[1:]
         f2 = codecs.open(tmpName2, 'w', "UTF-8", "replace")
 
         print(os.path.split(abs_fn))
-
+            
         # remove writemonkey repository and bookmarks
-        lines = lines.split('***END OF FILE***')[0]
-        lines = lines.replace('@@', '')
+        content = content.split('***END OF FILE***')[0]
+        content = content.replace('@@', '')
         
-        lines = lines.split('\n')
+        lines = content.split('\n')
         
         for lineNo, line in enumerate(lines):
             # fix Wikicommons relative network-path references 
