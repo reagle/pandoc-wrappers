@@ -24,6 +24,7 @@ import re
 import shutil
 #from sh import chmod # http://amoffat.github.com/sh/
 from subprocess import call, Popen
+import sys
 
 HOME = os.environ['HOME']
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
@@ -127,6 +128,7 @@ def quash_citations(line):
 def create_talk_handout(abs_fn, tmp2_fn):
     '''If talks and handouts exists, create (partial) handout'''
         
+    info("starting handout")
     # http://www.farside.org.uk/200804/osjam/markdown2.py
     ast_bullet_re = re.compile(r'^ *(\* )')
     em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
@@ -137,10 +139,13 @@ def create_talk_handout(abs_fn, tmp2_fn):
     info("abs_fn = '%s'" %(abs_fn))
     info("tmp2fn = '%s'" %(tmp2_fn))
     md_dir = dirname(abs_fn)
-    handout_fn = abs_fn.replace('/talks/', '/handouts/')
-    handout_dir = dirname(handout_fn)
-    info("handout_dir = '%s'" %(dirname(handout_fn)))
+    handout_fn = ''
+    if '/talks' in abs_fn:
+        handout_fn = abs_fn.replace('/talks/', '/handouts/')
+        handout_dir = dirname(handout_fn)
+        info("handout_dir = '%s'" %(dirname(handout_fn)))
     if exists(dirname(handout_fn)):
+        info("creating handout")
         skip_to_next_header = False
         handout_f = open(handout_fn, 'w')
         content = open(tmp2_fn, 'r').read()
@@ -193,6 +198,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
         info("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
         remove(handout_fn)
+    info("done handout")
 
 
 def process(args):
@@ -210,17 +216,17 @@ def process(args):
         abs_fn = abspath(in_file)
         fn_path = os.path.split(abs_fn)[0]
 
-        tmpName1 = "%s-1%s" %(base_fn, base_ext) # pre pandoc
-        tmpName2 = "%s-2%s" %(base_fn, base_ext) # pandoc result
-        tmpName3 = "%s-3%s" %(base_fn, '.html')  # tidied html
+        fn_tmp_1 = "%s-1%s" %(base_fn, base_ext) # pre pandoc
+        fn_tmp_2 = "%s-2%s" %(base_fn, base_ext) # post pandoc
+        fn_tmp_3 = "%s-3%s" %(base_fn, '.html')  # tidied html
 
-        shutil.copyfile(in_file, tmpName1)
+        shutil.copyfile(in_file, fn_tmp_1)
 
-        f1 = codecs.open(tmpName1, 'r', "UTF-8", "replace")
+        f1 = codecs.open(fn_tmp_1, 'r', "UTF-8", "replace")
         content = f1.read()
         if content[0] == codecs.BOM_UTF8.decode('utf8'):
             content = content[1:]
-        f2 = codecs.open(tmpName2, 'w', "UTF-8", "replace")
+        f2 = codecs.open(fn_tmp_2, 'w', "UTF-8", "replace")
 
         print(os.path.split(abs_fn))
             
@@ -250,22 +256,20 @@ def process(args):
 
         pandoc_cmd = ['pandoc', '-f', 'markdown']
         pandoc_cmd.extend(pandoc_opts)
-        pandoc_cmd.append(tmpName2)
+        pandoc_cmd.append(fn_tmp_2)
         print("pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
-        call(pandoc_cmd, stdout=open(tmpName3, 'w'))
+        call(pandoc_cmd, stdout=open(fn_tmp_3, 'w'))
         info("done pandoc_cmd")
 
         if args.presentation:
-            info("starting handout")
-            create_talk_handout(abs_fn, tmpName2)
-            info("done handout")
+            create_talk_handout(abs_fn, fn_tmp_2)
 
         ##############################
         ##  post pandoc
         ##############################
         
         # final tweaks to tmp html file
-        html = open(tmpName3, 'r').read()
+        html = open(fn_tmp_3, 'r').read()
         #html = html.replace('<h1></h1>', '') # fixed (#484)
         result_fn = base_fn + '.html'
         if args.output:
@@ -278,8 +282,8 @@ def process(args):
         if args.launch_browser:
             info("launching %s" %result_fn)
             Popen([BROWSER, result_fn])
-        [os.remove(file_name) for file_name in (tmpName1, tmpName2, tmpName3)]
         info("removing tmp files")
+        [remove(file_name) for file_name in (fn_tmp_1, fn_tmp_2, fn_tmp_3)]
 
 if __name__ == "__main__":
     import argparse # http://docs.python.org/dev/library/argparse.html
