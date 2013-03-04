@@ -138,7 +138,9 @@ def update_markdown(HOMEDIR):
                         md_args.extend(['--partial-handout'])
                     if '[@' in content:
                         md_args.extend(['--bibliography'])
-                        
+                elif 'cc/' in md_fn:
+                    md_args.extend(['--quash'])
+                    md_args.extend(['--style-csl', 'chicago-note-bibliography'])
                 elif 'syllabus' in md_fn:
                     info("processing syllabus")
                     mm_fn_html = md_fn.replace('syllabus', 'readings'
