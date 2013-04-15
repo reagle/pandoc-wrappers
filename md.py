@@ -254,7 +254,7 @@ def process(args):
         ##  pandoc
         ##############################
 
-        pandoc_cmd = ['pandoc', '-f', 'markdown']
+        pandoc_cmd = ['pandoc', '-f', 'markdown+mmd_title_block']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_cmd.append(fn_tmp_2)
         print("pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
