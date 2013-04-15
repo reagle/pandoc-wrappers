@@ -115,7 +115,56 @@ def insert_todos(plan_fn, todos):
     parent.replace(div, todos)
     doc.write(plan_fn)
 
-def update_markdown(HOMEDIR):
+def update_markdown(filename, md_fn):
+    '''Convert markdown file'''
+    
+    dbg('updating_md %s' %filename)
+    content = open(md_fn,"r").read()
+    md_cmd = [HOME+'/bin/pandoc-wrappers/md']
+    md_args = []
+    tmp_body_fn = None # temporary store body of MM HTML
+
+    if 'talks' in md_fn:
+        md_args.extend(['--presentation'])
+        COURSES = ['/mcs/', '/orgcom/']
+        if any(course in md_fn for course in COURSES):
+            md_args.extend(['--partial-handout'])
+        if '[@' in content:
+            md_args.extend(['--bibliography'])
+    elif 'cc/' in md_fn:
+        md_args.extend(['--quash'])
+        md_args.extend(['--style-csl', 'chicago-note-bibliography'])
+    elif 'syllabus' in md_fn:
+        info("processing syllabus")
+        mm_fn_html = md_fn.replace('syllabus', 'readings'
+            ).replace('.md', '.html')
+        info("mm_fn_html = '%s'" %(mm_fn_html))
+        if exists(mm_fn_html):
+            info("transcluding HTML from mindmap")
+            html_parser = etree.HTMLParser()
+            doc = etree.parse(open(mm_fn_html, 'rb'), html_parser)
+            body_node = doc.xpath('//body')[0]
+            body_content = etree.tostring(body_node
+                )[6:-7].decode("utf-8")
+            tmp_body_fn = filename + '.tmp'
+            codecs.open(tmp_body_fn, 'w', 'utf-8', 'replace'
+                ).write(body_content)
+            md_args.extend(['--include-after-body', tmp_body_fn])
+    else:
+        md_args.extend(['-c', 
+            'http://reagle.org/joseph/2003/papers.css'])
+        if '[@' in content:
+            md_args.extend(['-s'])
+    md_cmd.extend(md_args)
+    md_cmd.extend([md_fn])
+    info("md_cmd = %s" % ' '.join(md_cmd))
+    call(md_cmd)
+    if tmp_body_fn: remove(tmp_body_fn)
+    if args.launch:
+        #webbrowser.open(html_fn)
+        call(["google-chrome", html_fn])
+
+def check_markdown_files(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
 
     files = locate('*.md', HOMEDIR)
@@ -125,54 +174,11 @@ def update_markdown(HOMEDIR):
         dbg("html_fn = %s" % html_fn)
         if exists(html_fn):
             if getmtime(md_fn) > getmtime(html_fn):
-                dbg('updating_md %s' %filename)
-                content = open(md_fn,"r").read()
-                md_cmd = [HOME+'/bin/pandoc-wrappers/md']
-                md_args = []
-                tmp_body_fn = None # temporary store body of MM HTML
-
-                if 'talks' in md_fn:
-                    md_args.extend(['--presentation'])
-                    COURSES = ['/mcs/', '/orgcom/']
-                    if any(course in md_fn for course in COURSES):
-                        md_args.extend(['--partial-handout'])
-                    if '[@' in content:
-                        md_args.extend(['--bibliography'])
-                elif 'cc/' in md_fn:
-                    md_args.extend(['--quash'])
-                    md_args.extend(['--style-csl', 'chicago-note-bibliography'])
-                elif 'syllabus' in md_fn:
-                    info("processing syllabus")
-                    mm_fn_html = md_fn.replace('syllabus', 'readings'
-                        ).replace('.md', '.html')
-                    info("mm_fn_html = '%s'" %(mm_fn_html))
-                    if exists(mm_fn_html):
-                        info("transcluding HTML from mindmap")
-                        html_parser = etree.HTMLParser()
-                        doc = etree.parse(open(mm_fn_html, 'rb'), html_parser)
-                        body_node = doc.xpath('//body')[0]
-                        body_content = etree.tostring(body_node
-                            )[6:-7].decode("utf-8")
-                        tmp_body_fn = filename + '.tmp'
-                        codecs.open(tmp_body_fn, 'w', 'utf-8', 'replace'
-                            ).write(body_content)
-                        md_args.extend(['--include-after-body', tmp_body_fn])
-                else:
-                    md_args.extend(['-c', 
-                        'http://reagle.org/joseph/2003/papers.css'])
-                    if '[@' in content:
-                        md_args.extend(['-s'])
-                md_cmd.extend(md_args)
-                md_cmd.extend([md_fn])
-                info("md_cmd = %s" % ' '.join(md_cmd))
-                call(md_cmd)
-                if tmp_body_fn: remove(tmp_body_fn)
-                if args.launch:
-                    #webbrowser.open(html_fn)
-                    call(["google-chrome", html_fn])
+                update_markdown(filename, md_fn)
     
-def update_mm(HOMEDIR):
-    '''Convert any Freemind mindmap whose HTML file is older than it.'''
+def check_mm_files(HOMEDIR):
+    '''Convert any Freemind mindmap whose HTML file is older than it.
+    NOTE: If the syllabus.md hasn't been updated it won't reflect the changes'''
     
     INCLUDE_PATHS = ['syllabus', 'readings', 'concepts']
 
@@ -191,8 +197,13 @@ def update_mm(HOMEDIR):
                         stdout=PIPE)
                     p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0', '-o', html_fn],
                          stdin=p3.stdout)
-
-                         
+        # if exists, update the syllabus.md that uses the MM's HTML
+        if 'readings' in mm_filename:
+            md_syllabus_fn = filename.replace('readings', 'syllabus') + '.md'
+            if exists(md_syllabus_fn):
+                update_markdown(filename, md_syllabus_fn)
+            
+         
 def log2work(done_tasks):
     '''
     Log completed zim tasks to work microblog
@@ -266,7 +277,7 @@ if '__main__' == __name__:
     arg_parser = argparse.ArgumentParser(description="Build static HTML versions of various files")
     arg_parser.add_argument("-l", "--launch",
                     action="store_true", default=False,
-                    help="Open all update_markdown results in browser")
+                    help="Open all check_markdown_files results in browser")
     arg_parser.add_argument("-f", "--force-update",
                     action="store_true", default=False,
                     help="Force retire/update of Zim despite md5sums")
@@ -318,7 +329,7 @@ if '__main__' == __name__:
         export_zim(HOMEDIR)
     
     # Mindmaps: syllabi (1st as transcluded in markdown files)
-    update_mm(HOMEDIR)
+    check_mm_files(HOMEDIR)
 
     # Markdown (2nd)
-    update_markdown(HOMEDIR)
+    check_markdown_files(HOMEDIR)
