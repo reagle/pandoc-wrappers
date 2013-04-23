@@ -153,7 +153,13 @@ def update_markdown(filename, md_fn):
     else:
         md_args.extend(['-c', 
             'http://reagle.org/joseph/2003/papers.css'])
-        if '[@' in content:
+        # check for a multimarkdown metadata line with extra build options
+        match_md_opts = re.search('^md_opts: (.*)', content, re.MULTILINE)
+        if match_md_opts:
+            md_opts = match_md_opts.group(1).split(' ')
+            info("md_opts = %s" % md_opts)
+            md_args.extend(md_opts)
+        elif '[@' in content: # if it has refs still use CSL
             md_args.extend(['-s'])
     md_cmd.extend(md_args)
     md_cmd.extend([md_fn])
