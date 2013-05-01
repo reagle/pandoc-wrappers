@@ -197,7 +197,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
         handout_fn]
         info("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
-        #remove(handout_fn)
+        remove(handout_fn)
     info("done handout")
 
 
