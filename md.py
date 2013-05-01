@@ -6,7 +6,7 @@
 '''A wrapper script for pandoc that handles my own issues:
     1. associates the result with a particular style sheet.
     2. can replace [@key] with hypertext'd refs from bibtex database.
-    3. makes use of DZSlides for presentations.
+    3. makes use of reveal.js for presentations.
     
 TODO:
     1. reduce redundant references: page only, if key already cited
@@ -197,7 +197,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
         handout_fn]
         info("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
-        remove(handout_fn)
+        #remove(handout_fn)
     info("done handout")
 
 
@@ -354,8 +354,8 @@ if __name__ == "__main__":
     if args.presentation:
         args.validate = False
         args.css = False
-        pandoc_opts.extend(['--template=class.dzslides', 
-            '-t', 'dzslides', '--slide-level=2'])
+        pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2', 
+                            '-V', 'revealjs-url=../_reveal.js'])
     if args.css:
         pandoc_opts.extend(['-c', args.css])
     if args.toc:
