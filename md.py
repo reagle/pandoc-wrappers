@@ -356,7 +356,8 @@ if __name__ == "__main__":
         args.css = False
         pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
                             '-V', 'revealjs-url=../_reveal.js',
-                            '-V', 'theme=moon'])
+                            '-V', 'theme=moon',
+                            '-c', '../_custom/revealjs.css'])
     if args.css:
         pandoc_opts.extend(['-c', args.css])
     if args.toc:
