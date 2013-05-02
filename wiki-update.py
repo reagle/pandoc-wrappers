@@ -180,6 +180,8 @@ def check_markdown_files(HOMEDIR):
         dbg("html_fn = %s" % html_fn)
         if exists(html_fn):
             if getmtime(md_fn) > getmtime(html_fn):
+                info("%s %s > %s %s" %(md_fn, getmtime(md_fn), 
+                                       html_fn, getmtime(html_fn)))
                 update_markdown(filename, md_fn)
     
 def check_mm_files(HOMEDIR):
@@ -198,16 +200,19 @@ def check_mm_files(HOMEDIR):
                     info('updating_mm %s' %filename)
                     call(['xsltproc', '-o', html_fn, 
                         '/home/reagle/bin/mmtoxhtml.xsl', mm_filename])
-                    call(['tidy', '-asxhtml', '-utf8', '-w', '0', '-m', html_fn])
+                    call(['tidy', '-asxhtml', '-utf8', 
+                          '-w', '0', '-m', html_fn])
                     p3 = Popen(['tail', '-n', '+2', html_fn], 
                         stdout=PIPE)
-                    p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0', '-o', html_fn],
+                    p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0', 
+                                '-o', html_fn],
                          stdin=p3.stdout)
-        # if exists, update the syllabus.md that uses the MM's HTML
-        if 'readings' in mm_filename:
-            md_syllabus_fn = filename.replace('readings', 'syllabus') + '.md'
-            if exists(md_syllabus_fn):
-                update_markdown(filename, md_syllabus_fn)
+                    # if exists, update the syllabus.md that uses the MM's HTML
+                    if 'readings' in mm_filename:
+                        md_syllabus_fn = filename.replace('readings', 
+                            'syllabus') + '.md'
+                        if exists(md_syllabus_fn):
+                            update_markdown(filename, md_syllabus_fn)
             
          
 def log2work(done_tasks):
