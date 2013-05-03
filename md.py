@@ -15,7 +15,7 @@ TODO:
 
 import codecs
 import logging
-from md2bib import parseBibTex
+import md2bib
 import os
 from os import chdir, environ, mkdir, path, rename, remove, walk
 from os.path import abspath, basename, dirname, exists, \
@@ -205,9 +205,35 @@ def process(args):
     
     if args.bibliography:
         bibtex_file = parseBibTex(open(HOME+'/joseph/readings.bib', 'r').readlines())
-        
+
     for in_file in args.files:
-        
+
+        ##############################
+        # initial pandoc configuration based on arguments
+        ##############################
+
+        pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
+            '--email-obfuscation=references'] 
+        if args.presentation:
+            args.validate = False
+            args.css = False
+            pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
+                                '-V', 'revealjs-url=../_reveal.js',
+                                '-V', 'theme=moon',
+                                '-c', '../_custom/revealjs.css'])
+        if args.css:
+            pandoc_opts.extend(['-c', args.css])
+        if args.toc:
+            pandoc_opts.extend(['--toc'])
+        if args.offline:
+            pandoc_opts.extend(['--self-contained'])
+        if args.divs:
+            pandoc_opts.extend(['--section-divs'])
+        if args.include_after_body:
+            pandoc_opts.extend(['--include-after-body=%s' % args.include_after_body[0]])
+        if args.style_chicago:
+            args.style_csl = ['chicago-author-date']
+
         ##############################
         ##  pre pandoc
         ##############################
@@ -219,9 +245,22 @@ def process(args):
         fn_tmp_1 = "%s-1%s" %(base_fn, base_ext) # pre pandoc
         fn_tmp_2 = "%s-2%s" %(base_fn, base_ext) # post pandoc
         fn_tmp_3 = "%s-3%s" %(base_fn, '.html')  # tidied html
+        cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
+
+        if args.style_csl:
+            print("args.style_csl = %s" % args.style_csl)
+            pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
+            info("generate temporary subset bibtex for speed")
+            BIB_FILE = HOME+'/joseph/readings.bib'
+            bib_subset_tmp_fn = base_fn +'.bib'
+            cleanup_tmp_fns.append(bib_subset_tmp_fn)
+            keys = md2bib.getKeysFromMD(in_file)
+            entries = md2bib.parseBibTex(open(BIB_FILE, 'r'))
+            subset = md2bib.subsetBibliography(entries, keys)
+            md2bib.emitBibliography(subset, open(bib_subset_tmp_fn, 'w'))
+            pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
 
         shutil.copyfile(in_file, fn_tmp_1)
-
         f1 = codecs.open(fn_tmp_1, 'r', "UTF-8", "replace")
         content = f1.read()
         if content[0] == codecs.BOM_UTF8.decode('utf8'):
@@ -249,7 +288,7 @@ def process(args):
             f2.write(line + '\n')
         f1.close()
         f2.close()
-
+        
         ##############################
         ##  pandoc
         ##############################
@@ -282,9 +321,13 @@ def process(args):
         if args.launch_browser:
             info("launching %s" %result_fn)
             Popen([BROWSER, result_fn])
+            
         info("removing tmp files")
-        [remove(file_name) for file_name in (fn_tmp_1, fn_tmp_2, fn_tmp_3)]
+        for cleanup_fn in cleanup_tmp_fns:
+            if exists(cleanup_fn):
+                remove(cleanup_fn)
 
+            
 if __name__ == "__main__":
     import argparse # http://docs.python.org/dev/library/argparse.html
     arg_parser = argparse.ArgumentParser(description='Markdown wrapper with slide and bibliographic options')
@@ -348,31 +391,5 @@ if __name__ == "__main__":
             level=log_level, format = LOG_FORMAT)
     else:
         logging.basicConfig(level=log_level, format = LOG_FORMAT)
-
-    pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
-        '--email-obfuscation=references'] 
-    if args.presentation:
-        args.validate = False
-        args.css = False
-        pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
-                            '-V', 'revealjs-url=../_reveal.js',
-                            '-V', 'theme=moon',
-                            '-c', '../_custom/revealjs.css'])
-    if args.css:
-        pandoc_opts.extend(['-c', args.css])
-    if args.toc:
-        pandoc_opts.extend(['--toc'])
-    if args.offline:
-        pandoc_opts.extend(['--self-contained'])
-    if args.divs:
-        pandoc_opts.extend(['--section-divs'])
-    if args.style_chicago:
-        args.style_csl = ['chicago-author-date']
-    if args.style_csl:
-        print("args.style_csl = %s" % args.style_csl)
-        pandoc_opts.extend(['--bibliography=%s' % HOME+'/joseph/readings.bib',])
-        pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
-    if args.include_after_body:
-        pandoc_opts.extend(['--include-after-body=%s' % args.include_after_body[0]])
 
     process(args)
