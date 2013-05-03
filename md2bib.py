@@ -49,6 +49,7 @@ def parseBibTex(text):
 def emitEntry(identifier, values, outfd):
     """Emit a single bibtex entry."""
     
+    info("writing entry")
     outfd.write('@%s{%s,\n' % (values['entry_type'], identifier))
     for field, value in values.items():
         if field != 'entry_type':
