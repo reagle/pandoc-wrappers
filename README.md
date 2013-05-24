@@ -12,11 +12,11 @@ A wrapper script for pandoc that handles my own issues:
 
 1. associates the result with a particular style sheet.
 2. can replace [@key] with hypertext'd refs from bibtex database.
-3. makes use of [my DZSlides template](https://github.com/reagle/dzslides) for presentations.
+3. can create partial handouts for students for slides
 
 ## bd.py
 
-Build a PDF (article or book) based on markdown source using pandoc.
+Build a PDF (article or book) by converting from markdown to LaTeX.
 
 ## bdh.py
 
