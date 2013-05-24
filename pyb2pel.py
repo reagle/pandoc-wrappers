@@ -1,4 +1,4 @@
-#!/usr/bin/python3.2
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import codecs
