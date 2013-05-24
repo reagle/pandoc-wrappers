@@ -1,4 +1,4 @@
-#!/usr/bin/python3.2
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 """
 Build the static portions of my website by looking for source files newer than existing HTML files.
@@ -14,13 +14,12 @@ import hashlib
 from lxml import etree, html
 import logging
 import md
-from os import chdir, environ, mkdir, path, rename, remove, walk
+from os import chdir, chmod, environ, mkdir, path, rename, remove, walk
 from os.path import abspath, basename, dirname, exists, \
     getmtime, join, relpath, splitext
 import re
 from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
-from sh import chmod # http://amoffat.github.com/sh/
 import sys
 import time
 #import webbrowser
@@ -80,17 +79,24 @@ def has_dir_changed(directory):
                 info('checksum updated')
                 return True
 
+def chmod_recursive(path, perms):
+    for root, dirs, files in walk(path):  
+        for d in dirs:  
+            chmod(join(root, d), perms)
+        for f in files:
+            chmod(join(root, f), perms)
+
 ##################################
                 
-def export_zim(zim):
+def export_zim(zim_path):
     info('zim --export --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
-        '--index-page index ' %(zim, zim))
+        '--index-page index ' %(zim_path, zim_path))
     results = (Popen('zim --export --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
-        '--index-page index ' %(zim, zim), 
+        '--index-page index ' %(zim_path, zim_path), 
         stdout=PIPE, shell=True).communicate()[0].decode('utf8'))
-    chmod('-R', 'u+rwX,go+rX,go-w', '%szwiki' %zim)
+    chmod_recursive('%szwiki' %zim_path, 0o744)
     if results: print(results)
 
 def grab_todos(filename):
