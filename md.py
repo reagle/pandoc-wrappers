@@ -310,15 +310,15 @@ def process(args):
         # final tweaks to tmp html file
         html = open(fn_tmp_3, 'r').read()
 
-        if args.british_punctuation: # period outside of quote
-            html = html.replace('“', '&lsquo;').replace(
-                '”', '&rsquo;').replace(
-                '‘', '&ldquo;').replace(
-                '’', '&rdquo;')
-        
+        if args.british_punctuation: # swap double quote for single
+            html = html.replace('“', '&ldquo;').replace('”', '&rdquo;')
+            single_quote_re = re.compile(r"(\W)‘(.{2,40})’(\W)")
+            html = single_quote_re.sub(r'\1“\2”\3', html)
+            html = html.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
+
+        # punctuation outside of quote
         # move citation before period
         # eg  ‘the civil society of teenage culture’ (boyd 2008, p. 121).
-        
         
         result_fn = base_fn + '.html'
         if args.output:
