@@ -309,7 +309,17 @@ def process(args):
         
         # final tweaks to tmp html file
         html = open(fn_tmp_3, 'r').read()
-        #html = html.replace('<h1></h1>', '') # fixed (#484)
+
+        if args.british_punctuation: # period outside of quote
+            html = html.replace('“', '&lsquo;').replace(
+                '”', '&rsquo;').replace(
+                '‘', '&ldquo;').replace(
+                '’', '&rdquo;')
+        
+        # move citation before period
+        # eg  ‘the civil society of teenage culture’ (boyd 2008, p. 121).
+        
+        
         result_fn = base_fn + '.html'
         if args.output:
             result_fn = args.output[0]
@@ -335,6 +345,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("-b", "--bibliography",
                     action="store_true", default=False,
                     help="turn citations into hypertext w/out CSL")                    
+    arg_parser.add_argument("-B", "--british-punctuation", 
+                    action="store_true", default=False,
+                    help="place punctuation outside of quotes")
     arg_parser.add_argument("-q", "--quash-citations",
                     action="store_true", default=False,
                     help="quash citations that begin with hash (#@Reagle2012foo)")                    
