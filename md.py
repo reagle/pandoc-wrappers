@@ -272,6 +272,9 @@ def process(args):
         # remove writemonkey repository and bookmarks
         content = content.split('***END OF FILE***')[0]
         content = content.replace('@@', '')
+
+        if args.british_punctuation: # move quotes and commas outside quotes
+            content = content.replace('."', '".').replace(',"', '",')
         
         lines = content.split('\n')
         
