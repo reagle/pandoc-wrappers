@@ -275,6 +275,9 @@ def process(args):
 
         if args.british_punctuation: # move quotes and commas outside quotes
             content = content.replace('."', '".').replace(',"', '",')
+        else:
+            swap_punct_quote_re = re.compile(r'"( \[[^\[]+\])([,.])')
+            content = swap_punct_quote_re.sub(r'\2"\1', content)
         
         lines = content.split('\n')
         
@@ -313,16 +316,12 @@ def process(args):
         # final tweaks to tmp html file
         html = open(fn_tmp_3, 'r').read()
 
-        if args.british_punctuation: # swap double quote for single
+        if args.british_punctuation: # swap double/single quotes
             html = html.replace('“', '&ldquo;').replace('”', '&rdquo;')
             single_quote_re = re.compile(r"(\W)‘(.{2,40})’(\W)")
             html = single_quote_re.sub(r'\1“\2”\3', html)
             html = html.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
 
-        # punctuation outside of quote
-        # move citation before period
-        # eg  ‘the civil society of teenage culture’ (boyd 2008, p. 121).
-        
         result_fn = base_fn + '.html'
         if args.output:
             result_fn = args.output[0]
