@@ -79,12 +79,13 @@ def has_dir_changed(directory):
                 info('checksum updated')
                 return True
 
-def chmod_recursive(path, perms):
+def chmod_recursive(path, dir_perms, file_perms):
+    info("changings perms to %o;%o on path = '%s'" %(dir_perms, file_perms, path))
     for root, dirs, files in walk(path):  
         for d in dirs:  
-            chmod(join(root, d), perms)
+            chmod(join(root, d), dir_perms)
         for f in files:
-            chmod(join(root, f), perms)
+            chmod(join(root, f), file_perms)
 
 ##################################
                 
@@ -96,7 +97,7 @@ def export_zim(zim_path):
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
         '--index-page index ' %(zim_path, zim_path), 
         stdout=PIPE, shell=True).communicate()[0].decode('utf8'))
-    chmod_recursive('%szwiki' %zim_path, 0o744)
+    chmod_recursive('%szwiki' %zim_path, 0o755, 0o744)
     if results: print(results)
 
 def grab_todos(filename):
