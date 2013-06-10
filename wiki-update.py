@@ -220,7 +220,20 @@ def check_mm_files(HOMEDIR):
                             'syllabus') + '.md'
                         if exists(md_syllabus_fn):
                             update_markdown(filename, md_syllabus_fn)
-            
+
+def check_mm_tmp_html_files():
+    '''Freemind exports HTML to '/tmp/tmm543...72.html; find them and 
+    associate style sheet.'''
+
+    files = locate('tmm*.html', '/tmp/')
+    for html_fn in files:
+        html_fd = open(html_fn,"r")
+        content = html_fd.read()
+        content = content.replace('</title>', '''
+            </title>\n\t\t<link href="/home/reagle/joseph/2005/01/mm-print.css"
+            rel="stylesheet" type="text/css" />''')
+        html_fd = open(html_fn,"w")
+        html_fd.write(content)
          
 def log2work(done_tasks):
     '''
@@ -348,6 +361,9 @@ if '__main__' == __name__:
     
     # Mindmaps: syllabi (1st as transcluded in markdown files)
     check_mm_files(HOMEDIR)
+
+    # Mindmaps HTML exports
+    check_mm_tmp_html_files()
 
     # Markdown (2nd)
     check_markdown_files(HOMEDIR)
