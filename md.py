@@ -28,6 +28,7 @@ import sys
 
 HOME = os.environ['HOME']
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
+BIBTEX_FILE = HOME+'/joseph/readings.bib'
 
 log_level = 100 # default
 critical = logging.critical
@@ -37,10 +38,10 @@ warn = logging.warn
 error = logging.error
 excpt = logging.exception
 
-def link_citations(line, bibtex_file):
+def link_citations(line, bibtex_parsed):
     """
     Turn pandoc/markdown citations into links within parenthesis.
-    Used only with simply citations in presentations.
+    Used only with citations in presentations.
     """
     
     P_KEY = re.compile(r'(-?@[\w|-]+)') # -@Clark-Flory2010fpo
@@ -54,7 +55,7 @@ def link_citations(line, bibtex_file):
         citation = cite_match.group(0)
         key = citation.split('@', 1)[1]
         info("**   processing key: %s" % key)
-        reference = bibtex_file.get(key)
+        reference = bibtex_parsed.get(key)
         if reference == None:
             print("WARNING: key %s not found" % key)
             return key
@@ -193,7 +194,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 handout_f.write(line)
         handout_f.close()
         md_cmd = ['md', '--divs', '-c',
-        'http://reagle.org/joseph/talks/_custom/class-handouts-201306.css', handout_fn]
+            'http://reagle.org/joseph/talks/_custom/class-handouts-201306.css', 
+            handout_fn]
         info("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
         remove(handout_fn)
@@ -203,8 +205,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
 def process(args):
     
     if args.bibliography:
-        bibtex_file = md2bib.parseBibTex(open(
-            HOME+'/joseph/readings.bib', 'r').readlines())
+        bibtex_parsed = md2bib.parseBibTex(open(BIBTEX_FILE, 'r').readlines())
 
     for in_file in args.files:
 
@@ -287,7 +288,7 @@ def process(args):
             line = line.replace('src="//', 'src="http://')
             line = quash_citations(line)
             if args.bibliography: # create hypertext refs from bibtex db
-                line = link_citations(line, bibtex_file)
+                line = link_citations(line, bibtex_parsed)
                 #info("\n** line is now %s" % line)
 
             #info("END line: '%s'" % line)

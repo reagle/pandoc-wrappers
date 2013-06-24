@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """Document transformation wrapper"""
 
+from md import link_citations
+from md2bib import parseBibTex
 import optparse
 import os
 from subprocess import call, Popen, PIPE
@@ -9,6 +11,7 @@ from urllib import urlopen
 
 EDITOR = os.environ['EDITOR']
 DST_FILE = '/tmp/dtt.txt'
+BIBTEX_FILE = '/home/reagle/joseph/readings.bib'
 
 opt_parser = optparse.OptionParser(usage="usage: %prog [options] URL\n\n"
     "Document transformation wrapper")
@@ -35,7 +38,7 @@ opt_parser.add_option("-d", "--pdftohtml",
     help="pdf2html via pdftohtml")
 opt_parser.add_option("-m", "--markdown",
     action="store_true", default=False,
-    help="mkd2mkd  via pandoc (with reference links)")
+    help="md2md  via pandoc (with reference links)")
 opt_parser.add_option("-w", "--wrap",
     action="store_true", default=False,
     help="wrap text")
@@ -70,8 +73,17 @@ else: # fallback to pandoc
     if opts.markdown:
         DST_FILE = url
         command = ['pandoc', '-f', 'markdown', '-t', 'markdown', 
-                    '--reference-links', '-s',
+                    '--reference-links', '-s', '--atx-headers',
                     '-o', DST_FILE]
+        
+        bibtex_parsed = parseBibTex(open(BIBTEX_FILE, 'r').readlines())
+        
+        new_content = []
+        for line in content.split('\n'):
+            new_content.append(link_citations(line, bibtex_parsed))
+        content = '\n'.join(new_content)
+        print("content = '%s'" % content)
+            
     else:
         command = ['pandoc', '-f', 'html', '-t', 'markdown', 
                     '--reference-links', '-o', DST_FILE]
