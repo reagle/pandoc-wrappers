@@ -192,9 +192,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
             else:
                 handout_f.write(line)
         handout_f.close()
-        md_cmd = ['md', '--divs', '--offline', '-c',
-        'http://reagle.org/joseph/talks/_dzslides/2012/10-class-handouts.css',
-        handout_fn]
+        md_cmd = ['md', '--divs', '-c',
+        'http://reagle.org/joseph/talks/_custom/class-handouts-201306.css', handout_fn]
         info("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
         remove(handout_fn)
@@ -204,7 +203,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
 def process(args):
     
     if args.bibliography:
-        bibtex_file = parseBibTex(open(HOME+'/joseph/readings.bib', 'r').readlines())
+        bibtex_file = md2bib.parseBibTex(open(
+            HOME+'/joseph/readings.bib', 'r').readlines())
 
     for in_file in args.files:
 
@@ -318,7 +318,7 @@ def process(args):
 
         if args.british_punctuation: # swap double/single quotes
             html = html.replace('“', '&ldquo;').replace('”', '&rdquo;')
-            single_quote_re = re.compile(r"(\W)‘(.{2,40})’(\W)")
+            single_quote_re = re.compile(r"(\W)‘(.{2,40}?)’(\W)")
             html = single_quote_re.sub(r'\1“\2”\3', html)
             html = html.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
 
