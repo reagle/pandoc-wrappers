@@ -14,6 +14,9 @@ TODO:
 '''
 
 import codecs
+from io import StringIO
+from lxml.etree import *
+from lxml.html import tostring
 import logging
 import md2bib
 import os
@@ -25,6 +28,7 @@ import shutil
 #from sh import chmod # http://amoffat.github.com/sh/
 from subprocess import call, Popen
 import sys
+
 
 HOME = os.environ['HOME']
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
@@ -201,6 +205,46 @@ def create_talk_handout(abs_fn, tmp2_fn):
         remove(handout_fn)
     info("done handout")
 
+def number_elements(content):
+    "add section and paragraph marks to content which is parsed as HTML"
+
+    info("parsing without comments")
+    parser = HTMLParser(remove_comments = True, remove_blank_text = True)
+    doc = parse(StringIO(content), parser)
+    
+    info("add heading marks")
+    headings = doc.xpath("//*[name()='h1' or name()='h2' or name()='h3' or name()='h4']")
+    heading_num = 1
+    for heading in headings:
+        span = Element("span") # prepare span element for section #
+        span.set('class', 'headingnum')
+        h_id = heading.get('id')  # grab id of existing a element
+        span.tail = heading.text
+        a = SubElement(span, 'a', href='#%s' % h_id)
+        heading.text = None # this has become the tail of the span
+        a.text = '§' + str(heading_num) + ' '
+        heading.insert(0, span) # insert span at beginning of parent
+        heading_num += 1
+    
+    info("add paragraph marks")
+    paras = doc.xpath('/html/body/p | /html/body/blockquote')
+    para_num = 1
+    for para in paras:
+        span = Element("span")
+        span.set('class', 'paranum')
+        span.tail = para.text
+        a_id = 'p' + str(para_num)
+        a = SubElement(span, 'a', id=a_id, name=a_id, href='#%s' % a_id)
+        a.text = 'p' + str(para_num) + ' '
+        para.text = None
+        para.insert(0, span) 
+        para_num += 1
+
+    content = tostring(doc, method='xml', encoding='utf-8', pretty_print=True,
+        include_meta_content_type=True).decode('utf-8')
+    
+    return content
+
 
 def process(args):
     
@@ -315,18 +359,23 @@ def process(args):
         ##############################
         
         # final tweaks to tmp html file
-        html = open(fn_tmp_3, 'r').read()
-
+        content = open(fn_tmp_3, 'r').read()
+        
+        # text alternations
         if args.british_punctuation: # swap double/single quotes
-            html = html.replace('“', '&ldquo;').replace('”', '&rdquo;')
+            content = content.replace('“', '&ldquo;').replace('”', '&rdquo;')
             single_quote_re = re.compile(r"(\W)‘(.{2,40}?)’(\W)")
-            html = single_quote_re.sub(r'\1“\2”\3', html)
-            html = html.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
+            content = single_quote_re.sub(r'\1“\2”\3', content)
+            content = content.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
+
+        # HTML alterations
+        if args.number_elements:
+            content = number_elements(content)
 
         result_fn = base_fn + '.html'
         if args.output:
             result_fn = args.output[0]
-        open(result_fn, 'w').write(html)
+        open(result_fn, 'w').write(content)
         
         if args.validate:
             call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
@@ -371,6 +420,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("--offline",
                     action="store_true", default=False,
                     help="incorporate links: scripts, images, and CSS")
+    arg_parser.add_argument("-n", "--number-elements",
+                    action="store_true", default=False,
+                    help="number sections and paragraphs")
     arg_parser.add_argument("-s", "--style-chicago",
                     action="store_true", default=False,
                     help="use CSL bibliography style, default chicago")
