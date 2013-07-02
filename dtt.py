@@ -42,6 +42,9 @@ opt_parser.add_option("-m", "--markdown",
 opt_parser.add_option("-w", "--wrap",
     action="store_true", default=False,
     help="wrap text")
+opt_parser.add_option("-q", "--quote",
+    action="store_true", default=False,
+    help="prepend '>' quote marks to lines")
 opts, args = opt_parser.parse_args()
 
 url = args[0]
@@ -75,15 +78,11 @@ else: # fallback to pandoc
         command = ['pandoc', '-f', 'markdown', '-t', 'markdown', 
                     '--reference-links', '-s', '--atx-headers',
                     '-o', DST_FILE]
-        
         bibtex_parsed = parseBibTex(open(BIBTEX_FILE, 'r').readlines())
-        
         new_content = []
         for line in content.split('\n'):
             new_content.append(link_citations(line, bibtex_parsed))
         content = '\n'.join(new_content)
-        print("content = '%s'" % content)
-            
     else:
         command = ['pandoc', '-f', 'html', '-t', 'markdown', 
                     '--reference-links', '-o', DST_FILE]
@@ -92,6 +91,16 @@ command.extend(wrap.split())
 print "** command = ", command
 process = Popen(command, stdin=PIPE, stdout=open(DST_FILE, 'w'))
 process.communicate(input = content)
+
+if opts.quote:
+    with open(DST_FILE) as f:
+        new_content = []
+        lines = f.readlines()
+        for line in lines:
+            new_content.append('> ' + line)
+        content = ''.join(new_content)
+    with open(DST_FILE, 'w') as f:
+        f.write(content)
 
 os.chmod(DST_FILE, 0600)
 call([EDITOR, DST_FILE])
