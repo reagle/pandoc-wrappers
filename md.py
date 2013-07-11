@@ -283,9 +283,15 @@ def process(args):
         ##  pre pandoc
         ##############################
 
-        base_fn, base_ext = splitext(in_file)
+        info("in_file = '%s'" %(in_file))
         abs_fn = abspath(in_file)
+        info("abs_fn = '%s'" %(abs_fn))
+        
+        base_fn, base_ext = splitext(abs_fn)
+        info("base_fn = '%s'" %(base_fn))
+        
         fn_path = os.path.split(abs_fn)[0]
+        info("fn_path = '%s'" %(fn_path))
 
         fn_tmp_1 = "%s-1%s" %(base_fn, base_ext) # pre pandoc
         fn_tmp_2 = "%s-2%s" %(base_fn, base_ext) # post pandoc
@@ -299,20 +305,20 @@ def process(args):
             BIB_FILE = HOME+'/joseph/readings.bib'
             bib_subset_tmp_fn = base_fn +'.bib'
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
-            keys = md2bib.getKeysFromMD(in_file)
+            keys = md2bib.getKeysFromMD(abs_fn)
             entries = md2bib.parseBibTex(open(BIB_FILE, 'r'))
             subset = md2bib.subsetBibliography(entries, keys)
             md2bib.emitBibliography(subset, open(bib_subset_tmp_fn, 'w'))
             pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
 
-        shutil.copyfile(in_file, fn_tmp_1)
+        shutil.copyfile(abs_fn, fn_tmp_1)
         f1 = codecs.open(fn_tmp_1, 'r', "UTF-8", "replace")
         content = f1.read()
         if content[0] == codecs.BOM_UTF8.decode('utf8'):
             content = content[1:]
         f2 = codecs.open(fn_tmp_2, 'w', "UTF-8", "replace")
 
-        print(os.path.split(abs_fn))
+        print("split(abs_fn) = %s, %s" % (os.path.split(abs_fn)))
             
         # remove writemonkey repository and bookmarks
         content = content.split('***END OF FILE***')[0]
@@ -372,7 +378,8 @@ def process(args):
         if args.number_elements:
             content = number_elements(content)
 
-        result_fn = base_fn + '.html'
+        result_fn = '%s.html' %(base_fn)
+        info("result_fn = '%s'" %(result_fn))
         if args.output:
             result_fn = args.output[0]
         open(result_fn, 'w').write(content)
