@@ -230,12 +230,13 @@ def number_elements(content):
     paras = doc.xpath('/html/body/p | /html/body/blockquote')
     para_num = 1
     for para in paras:
+        para_num_str = '{:0>2}'.format(para_num)
         span = Element("span")
         span.set('class', 'paranum')
         span.tail = para.text
-        a_id = 'p' + str(para_num)
+        a_id = 'p' + str(para_num_str)
         a = SubElement(span, 'a', id=a_id, name=a_id, href='#%s' % a_id)
-        a.text = 'p' + str(para_num) + ' '
+        a.text = 'p' + str(para_num_str) + ' '
         para.text = None
         para.insert(0, span) 
         para_num += 1
