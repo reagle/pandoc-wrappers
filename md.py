@@ -96,16 +96,15 @@ def link_citations(line, bibtex_parsed):
 
 def quash_citations(line):
 
-    P_BRACKET_PAIR = re.compile(r'\[[-#]?@[^\]]+\]')
+    P_BRACKET_PAIR = re.compile(r' \[[-#]?@[^\]]+\]')
     def quash(cite_match): 
         """
-        If args.quash_citations, 
-            do so for hash sign preceding at sign: [#@Reagle2012foo]
-            otherwise make a normal citation.
+        Collect and rewrite citations, dropping those preceded by a pound
+        sign if args.quash_citations [#@Reagle2012foo]
         """
         citation = cite_match.group(0)
         #critical("citation = '%s'" %(citation))
-        chunks = citation[1:-1].split(';') # remove bracket and chunk
+        chunks = citation[2:-1].split(';') # isolate chunks from ' [' + ']'
         #critical("chunks = %s" %(chunks))
         citations_keep = []
         for chunk in chunks:
