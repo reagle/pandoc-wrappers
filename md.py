@@ -444,7 +444,7 @@ if __name__ == "__main__":
 
     arg_parser.add_argument("-p", "--presentation",
                     action="store_true", default=False,
-                    help="create presentation with dzsslides")
+                    help="create presentation with reveal.js")
     arg_parser.add_argument("--partial-handout", 
                     action="store_true", default=False,
                     help="presentation handout is partial/redacted")
