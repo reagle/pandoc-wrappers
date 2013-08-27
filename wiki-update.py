@@ -152,9 +152,10 @@ def update_markdown(filename, md_fn):
             info("transcluding HTML from mindmap")
             html_parser = etree.HTMLParser()
             doc = etree.parse(open(mm_fn_html, 'rb'), html_parser)
-            body_node = doc.xpath('//body')[0]
-            body_content = etree.tostring(body_node
-                )[6:-7].decode("utf-8")
+            body_node = doc.xpath('//body')[0] # must be single element to serialize
+            body_string = etree.tostring(body_node).decode("utf-8") 
+            body_content = re.findall('<body>(.*)</body>', body_string, 
+            	re.DOTALL)[0]
             tmp_body_fn = filename + '.tmp'
             codecs.open(tmp_body_fn, 'w', 'utf-8', 'replace'
                 ).write(body_content)

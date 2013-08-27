@@ -122,7 +122,7 @@ def quash_citations(line):
                 
         if citations_keep:
             #critical("citations_keep = '%s'" %(citations_keep))
-            return '[' + ';'.join(citations_keep) + ']'
+            return ' [' + ';'.join(citations_keep) + ']'
         else:
             return ''
     
@@ -212,7 +212,7 @@ def number_elements(content):
     doc = parse(StringIO(content), parser)
     
     info("add heading marks")
-    headings = doc.xpath("//*[name()='h1' or name()='h2' or name()='h3' or name()='h4']")
+    headings = doc.xpath("//*[name()='h2' or name()='h3' or name()='h4']")
     heading_num = 1
     for heading in headings:
         span = Element("span") # prepare span element for section #
@@ -293,9 +293,9 @@ def process(args):
         fn_path = os.path.split(abs_fn)[0]
         info("fn_path = '%s'" %(fn_path))
 
-        fn_tmp_1 = "%s-1%s" %(base_fn, base_ext) # pre pandoc
-        fn_tmp_2 = "%s-2%s" %(base_fn, base_ext) # post pandoc
-        fn_tmp_3 = "%s-3%s" %(base_fn, '.html')  # tidied html
+        fn_tmp_1 = "%s-1%s" %(base_fn, base_ext) # as read
+        fn_tmp_2 = "%s-2%s" %(base_fn, base_ext) # pre-pandoc
+        fn_tmp_3 = "%s-3%s" %(base_fn, '.html')  # post-pandoc
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
 
         if args.style_csl:
