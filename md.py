@@ -134,7 +134,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
         
     info("starting handout")
     # http://www.farside.org.uk/200804/osjam/markdown2.py
-    ast_bullet_re = re.compile(r'^ *(\* )')
+    ast_bullet_re = re.compile(r'^(\s*)(\* )')
     em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
     def em_mask(matchobj):
         info("return replace function")
@@ -182,14 +182,16 @@ def create_talk_handout(abs_fn, tmp2_fn):
                         skip_to_next_header = False
                     handout_f.write(line)
                 else:
-                    # content to REDACT
+                    # REDACT some content
                     if not skip_to_next_header:
                         if line.startswith('> *'):
                             handout_f.write('\n')
                             continue
                         info("entering em redaction")
-                        line = ast_bullet_re.subn('- ', line)[0]
+                        line = ast_bullet_re.subn(r'\1- ', line)[0]
+                        # info("line_ast = %s" %line)
                         line = em_re.subn(em_mask, line)[0]
+                        # info("line_em = %s" %line)
                         handout_f.write(line)
                     else:
                         handout_f.write('\n')
