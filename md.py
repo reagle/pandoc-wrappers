@@ -263,17 +263,17 @@ def process(args):
             args.validate = False
             args.css = False
             ## pandoc 1.11.1
-            pandoc_opts.extend(['-t', 'html5', '--slide-level=2',
-                                '--section-divs',
-                                '--template', '/home/reagle/.templates/template.revealjs',
-                                '-V', 'revealjs-url=_reveal.js',
-                                '-V', 'theme=moon',
-                                '-c', '_custom/revealjs.css'])
-            ## pandoc dev
-            # pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
+            # pandoc_opts.extend(['-t', 'html5', '--slide-level=2',
+            #                     '--section-divs',
+            #                     '--template', '/home/reagle/.templates/template.revealjs',
             #                     '-V', 'revealjs-url=../_reveal.js',
             #                     '-V', 'theme=moon',
             #                     '-c', '../_custom/revealjs.css'])
+            # pandoc dev
+            pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
+                                '-V', 'revealjs-url=../_reveal.js',
+                                '-V', 'theme=moon',
+                                '-c', '../_custom/revealjs.css'])
         if args.css:
             pandoc_opts.extend(['-c', args.css])
         if args.toc:
