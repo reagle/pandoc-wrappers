@@ -400,10 +400,10 @@ def process(args):
             info("launching %s" %result_fn)
             Popen([BROWSER, result_fn])
             
-        # info("removing tmp files")
-        # for cleanup_fn in cleanup_tmp_fns:
-        #     if exists(cleanup_fn):
-        #         remove(cleanup_fn)
+        info("removing tmp files")
+        for cleanup_fn in cleanup_tmp_fns:
+            if exists(cleanup_fn):
+                remove(cleanup_fn)
 
             
 if __name__ == "__main__":
