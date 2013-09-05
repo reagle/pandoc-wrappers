@@ -262,10 +262,18 @@ def process(args):
         if args.presentation:
             args.validate = False
             args.css = False
-            pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
-                                '-V', 'revealjs-url=../_reveal.js',
+            ## pandoc 1.11.1
+            pandoc_opts.extend(['-t', 'html5', '--slide-level=2',
+                                '--section-divs',
+                                '--template', '/home/reagle/.templates/template.revealjs',
+                                '-V', 'revealjs-url=_reveal.js',
                                 '-V', 'theme=moon',
-                                '-c', '../_custom/revealjs.css'])
+                                '-c', '_custom/revealjs.css'])
+            ## pandoc dev
+            # pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
+            #                     '-V', 'revealjs-url=../_reveal.js',
+            #                     '-V', 'theme=moon',
+            #                     '-c', '../_custom/revealjs.css'])
         if args.css:
             pandoc_opts.extend(['-c', args.css])
         if args.toc:
@@ -306,6 +314,7 @@ def process(args):
             bib_subset_tmp_fn = base_fn +'.bib'
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
             keys = md2bib.getKeysFromMD(abs_fn)
+            info("keys = %s" %keys)
             entries = md2bib.parseBibTex(open(BIB_FILE, 'r'))
             subset = md2bib.subsetBibliography(entries, keys)
             md2bib.emitBibliography(subset, open(bib_subset_tmp_fn, 'w'))
@@ -391,10 +400,10 @@ def process(args):
             info("launching %s" %result_fn)
             Popen([BROWSER, result_fn])
             
-        info("removing tmp files")
-        for cleanup_fn in cleanup_tmp_fns:
-            if exists(cleanup_fn):
-                remove(cleanup_fn)
+        # info("removing tmp files")
+        # for cleanup_fn in cleanup_tmp_fns:
+        #     if exists(cleanup_fn):
+        #         remove(cleanup_fn)
 
             
 if __name__ == "__main__":
