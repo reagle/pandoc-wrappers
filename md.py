@@ -287,7 +287,7 @@ def process(args):
         if args.include_after_body:
             pandoc_opts.extend(['--include-after-body=%s' % args.include_after_body[0]])
         if args.style_chicago:
-            args.style_csl = ['chicago-author-date']
+            args.style_csl = ['chicago-author-date.csl']
 
         ##############################
         ##  pre pandoc
