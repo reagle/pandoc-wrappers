@@ -335,7 +335,7 @@ def process(args):
         content = content.split('***END OF FILE***')[0]
         content = content.replace('@@', '')
 
-        if args.british_punctuation: # move quotes and commas outside quotes
+        if args.punctuation_outside: # move quotes and commas outside quotes
             content = content.replace('."', '".').replace(',"', '",')
         else:
             swap_punct_quote_re = re.compile(r'"( \[[^\[]+\])([,.])')
@@ -417,10 +417,13 @@ if __name__ == "__main__":
                     help="turn citations into hypertext w/out CSL")                    
     arg_parser.add_argument("-B", "--british-punctuation", 
                     action="store_true", default=False,
-                    help="place punctuation outside of quotes")
+                    help="swap single and double quotes")
     arg_parser.add_argument("-q", "--quash-citations",
                     action="store_true", default=False,
                     help="quash citations that begin with hash (#@Reagle2012foo)")                    
+    arg_parser.add_argument("--punctuation-outside", 
+                    action="store_true", default=False,
+                    help="place punctuation outside of quotes")
     arg_parser.add_argument("-c", "--css", 
                     default='http://reagle.org/joseph/2003/papers.css',
                     help="apply non-default CSS")
