@@ -335,10 +335,8 @@ def process(args):
         content = content.split('***END OF FILE***')[0]
         content = content.replace('@@', '')
 
-        if args.punctuation_outside: # move quotes and commas outside quotes
-            content = content.replace('."', '".').replace(',"', '",')
-        else:
-            swap_punct_quote_re = re.compile(r'"( \[[^\[]+\])([,.])')
+        if args.punctuation_inside: # move quotes and commas outside quotes
+            swap_punct_quote_re = re.compile(r'(?<!\.)"( \[[^\[]+\])([,.])')
             content = swap_punct_quote_re.sub(r'\2"\1', content)
         
         lines = content.split('\n')
@@ -421,9 +419,10 @@ if __name__ == "__main__":
     arg_parser.add_argument("-q", "--quash-citations",
                     action="store_true", default=False,
                     help="quash citations that begin with hash (#@Reagle2012foo)")                    
-    arg_parser.add_argument("--punctuation-outside", 
+    arg_parser.add_argument("--punctuation-inside", 
                     action="store_true", default=False,
-                    help="place punctuation outside of quotes")
+                    help="move punctuation inside of quotes, "
+                    "use with note citation styles")
     arg_parser.add_argument("-c", "--css", 
                     default='http://reagle.org/joseph/2003/papers.css',
                     help="apply non-default CSS")
