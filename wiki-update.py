@@ -141,7 +141,7 @@ def update_markdown(filename, md_fn):
     elif 'cc/' in md_fn:
         # md_args.extend(['--quash'])
         md_args.extend(['--number-elements'])
-        #md_args.extend(['--style-csl', 'chicago-fullnote-only.csl'])
+        md_args.extend(['--punctuation-inside'])
         md_args.extend(['--style-csl', 'turabian-reagle.csl'])
     elif 'syllabus' in md_fn:
         info("processing syllabus")
