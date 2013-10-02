@@ -382,6 +382,8 @@ def process(args):
             single_quote_re = re.compile(r"(\W)‘(.{2,40}?)’(\W)")
             content = single_quote_re.sub(r'\1“\2”\3', content)
             content = content.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
+        # correct bibliography
+        content = content.replace(' Vs. ', ' vs. ')
 
         # HTML alterations
         if args.number_elements:
