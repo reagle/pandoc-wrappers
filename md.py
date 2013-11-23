@@ -281,7 +281,7 @@ def process(args):
             pandoc_opts.extend(['-c', args.css])
         if args.toc:
             pandoc_opts.extend(['--toc'])
-        if args.offline:
+        if args.self_contained:
             pandoc_opts.extend(['--self-contained'])
         if args.divs:
             pandoc_opts.extend(['--section-divs'])
@@ -440,7 +440,7 @@ if __name__ == "__main__":
                     help="launch browser to see results")
     arg_parser.add_argument("-o", "--output", nargs=1,
                     help="output file path")
-    arg_parser.add_argument("--offline",
+    arg_parser.add_argument("--self-contained",
                     action="store_true", default=False,
                     help="incorporate links: scripts, images, and CSS")
     arg_parser.add_argument("-n", "--number-elements",
