@@ -159,8 +159,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
         content = content.replace('](media/', '](%s/media/' % media_relpath)
         lines = [line+'\n' for line in content.split('\n')]
         for line in lines:
-            if line.startswith('----') or \
-                '<video ' in line or \
+            if '<video ' in line or \
                 line.startswith('<details'):  # skip rules
                 skip_to_next_header = True
                 continue 
@@ -170,6 +169,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 line = line.replace('##### ', '# ')
                 line = line.replace('#### ', '# ')
                 line = line.replace('## ', '# ')
+            if line.startswith('----'):
+                line = line.replace('----', '# &nbsp;')
             # slide to SKIP
             if args.partial_handout:
                 info("args.partial_handout = '%s'" %(args.partial_handout))
@@ -223,7 +224,7 @@ def number_elements(content):
         span.tail = heading.text
         a = SubElement(span, 'a', href='#%s' % h_id)
         heading.text = None # this has become the tail of the span
-        a.text = '§' + str(heading_num) + ' '
+        a.text = '§' + str(heading_num) + u'\u00A0' #&nbsp;
         heading.insert(0, span) # insert span at beginning of parent
         heading_num += 1
     
@@ -237,7 +238,7 @@ def number_elements(content):
         span.tail = para.text
         a_id = 'p' + str(para_num_str)
         a = SubElement(span, 'a', id=a_id, name=a_id, href='#%s' % a_id)
-        a.text = 'p' + str(para_num_str) + ' '
+        a.text = 'p' + str(para_num_str) + u'\u00A0' #&nbsp;
         para.text = None
         para.insert(0, span) 
         para_num += 1
