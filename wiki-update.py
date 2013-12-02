@@ -140,6 +140,7 @@ def update_markdown(filename, md_fn):
             md_args.extend(['--bibliography'])
     elif 'cc/' in md_fn:
         md_args.extend(['--quash'])
+        #md_args.extend(['--keep-tmp'])
         #md_args.extend(['--self-contained'])
         md_args.extend(['--number-elements'])
         md_args.extend(['--punctuation-inside'])
