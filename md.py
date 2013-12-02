@@ -265,14 +265,6 @@ def process(args):
         if args.presentation:
             args.validate = False
             args.css = False
-            ## pandoc 1.11.1
-            # pandoc_opts.extend(['-t', 'html5', '--slide-level=2',
-            #                     '--section-divs',
-            #                     '--template', '/home/reagle/.templates/template.revealjs',
-            #                     '-V', 'revealjs-url=../_reveal.js',
-            #                     '-V', 'theme=moon',
-            #                     '-c', '../_custom/revealjs.css'])
-            # pandoc dev
             pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
                                 '-V', 'revealjs-url=../_reveal.js',
                                 '-V', 'theme=moon',
@@ -403,10 +395,11 @@ def process(args):
             info("launching %s" %result_fn)
             Popen([BROWSER, result_fn])
             
-        info("removing tmp files")
-        for cleanup_fn in cleanup_tmp_fns:
-            if exists(cleanup_fn):
-                remove(cleanup_fn)
+        if not args.keep_tmp:
+            info("removing tmp files")
+            for cleanup_fn in cleanup_tmp_fns:
+                if exists(cleanup_fn):
+                    remove(cleanup_fn)
 
             
 if __name__ == "__main__":
@@ -435,6 +428,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("--include-after-body", 
                     nargs=1,  metavar='FILE',
                     help="include at end of body (pandoc pass-through)")
+    arg_parser.add_argument("-k", "--keep-tmp",
+                    action="store_true", default=False,
+                    help="keep temporary/intermediary files")
     arg_parser.add_argument("-l", "--launch-browser",
                     action="store_true", default=False,
                     help="launch browser to see results")
