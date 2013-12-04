@@ -163,12 +163,12 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 line.startswith('<details'):  # skip rules
                 skip_to_next_header = True
                 continue 
-            # convert pseudo div headings to h1
-            #line = re.sub(r'^#+ (.*)', r'# \1', line) # error: matches '### '
-            if line.startswith('##'):
-                line = line.replace('##### ', '# ')
-                line = line.replace('#### ', '# ')
-                line = line.replace('## ', '# ')
+            ## convert pseudo div headings to h1
+            ##line = re.sub(r'^#+ (.*)', r'# \1', line) # error: matches '### '
+            #if line.startswith('##'):
+                #line = line.replace('##### ', '# ')
+                #line = line.replace('#### ', '# ')
+                #line = line.replace('## ', '# ')
             if line.startswith('----'):
                 line = line.replace('----', '# &nbsp;')
             # slide to SKIP
