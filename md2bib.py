@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# (c) Copyright 2011-2012 by Joseph Reagle
+# (c) Copyright 2011-2014 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
 """Extract a subset of bibliographic keys from BIBFILE 
@@ -17,14 +17,58 @@ import re
 import sys
 
 HOME = environ['HOME']
-BIBFILE = HOME + '/joseph/readings.bib'
+BIBTEX_FILE = HOME + '/joseph/readings.bib'
+YAML_FILE = HOME + '/joseph/readings-2.yaml'
+BIBFILE = BIBTEX_FILE
 
 log_level = 100 # default
 critical = logging.critical
 info = logging.info
 dbg = logging.debug
 
-def parseBibTex(text):
+
+def chunk_YAML(text):
+    '''Return a dictionary of YAML chunks. This does *not* parse the YAML but
+    chunks syntactically constrained YAML for speed.'''
+
+    entries = OrderedDict()
+    am_chunking = False
+    chunk = []
+    key = None
+
+    for line in text[1:]:           # skip first two lines of YAML
+        if line.strip() == '...' : continue # skip last line
+        if line.startswith('- id: '):
+            if chunk and key:
+                entries[key] = ''.join(chunk) # store previous chunk
+            key = line[6:].strip()
+            chunk = [line]
+        else:
+            chunk.append(line)
+    entries[key] = ''.join(chunk) # final chunk
+    
+    return entries
+
+def emit_yaml_subset(entries, outfd):
+    """Emit a YAML file."""
+
+    for identifier, chunk in entries.items():
+        print(chunk.strip())
+        
+def subset_yaml(entries, keys):
+    """Emit a susbet of a YAML file based on keys."""
+
+    subset = OrderedDict()
+    for key in sorted(keys):
+        if key in entries:
+            subset[key] = entries[key]
+        else:
+            critical("%s not in entries" % key)
+            pass
+    return subset
+
+
+def parse_bibtex(text):
     '''Return a dictionary of entry dictionaries, each with a field/value.
     The parser is simple/fast *and* inflexible, unlike the proper but 
     slow parsers bibstuff and pyparsing-based parsers.'''
@@ -46,7 +90,7 @@ def parseBibTex(text):
     return entries
 
 
-def emitBibtexEntry(identifier, values, outfd):
+def emit_bibtex_entry(identifier, values, outfd):
     """Emit a single bibtex entry."""
     
     info("writing entry")
@@ -57,15 +101,15 @@ def emitBibtexEntry(identifier, values, outfd):
     outfd.write("}\n")
     
 
-def emitBibliography(entries, outfd):
+def emit_bibtex_subset(entries, outfd):
     """Emit a biblatex file."""
 
     for identifier, values in entries.items():
-        emitBibtexEntry(identifier, values, outfd)
+        emit_bibtex_entry(identifier, values, outfd)
 
         
-def subsetBibtex(entries, keys):
-    """Emit a susbet of a biblatex file based on bibtex keys."""
+def subset_bibtex(entries, keys):
+    """Emit a susbet of a biblatex file based on keys."""
 
     subset = OrderedDict()
     for key in sorted(keys):
@@ -76,7 +120,7 @@ def subsetBibtex(entries, keys):
             pass
     return subset
         
-def getKeysFromMD(filename):
+def get_keys_from_md(filename):
     """Return a list of keys used in a markdown document"""
 
     text = open(filename, 'r').read()
@@ -90,8 +134,7 @@ if '__main__' == __name__:
             description='Extract a subset of bibliographic keys '
             'from BIBFILE using those keys found in a markdown file '
             'or specified in argument.')
-    arg_parser.add_argument('files', nargs='?',  metavar='BIBFILE',
-            default = BIBFILE)
+    arg_parser.add_argument('files', nargs='?',  metavar='BIBFILE')
     arg_parser.add_argument("-f", "--find-keys", 
             nargs=1, metavar='FILE',
             help="find keys in markdown file")
@@ -102,6 +145,9 @@ if '__main__' == __name__:
             help="log to file %(prog)s.log")
     arg_parser.add_argument("-o", "--out-filename",
             help="output results to filename", metavar="FILE")
+    arg_parser.add_argument("-y", "--YAML",
+            action="store_true", default=False,
+            help="use YAML instead of bibtex")
     arg_parser.add_argument('-V', '--verbose', action='count', default=0,
             help="Increase verbosity (specify multiple times for more)")
     arg_parser.add_argument('--version', action='version', version='TBD')
@@ -121,17 +167,30 @@ if '__main__' == __name__:
         outfd = open(args.out_filename, 'w')
     else:
         outfd = sys.stdout
+
+    if args.YAML:
+        BIBFILE = YAML_FILE
+    if args.files:
+        BIBFILE = args.files[0]
         
-    entries = parseBibTex(open(BIBFILE, 'r').readlines())
+    if args.YAML:
+        entries = chunk_YAML(open(BIBFILE, 'r').readlines())
+    else:
+        entries = parse_bibtex(open(BIBFILE, 'r').readlines())
+
     if args.keys:
         keys = args.keys[0].split(',')
         info("arg keys = '%s'" % keys)
     elif args.find_keys:
-        keys = getKeysFromMD(args.find_keys[0])
+        keys = get_keys_from_md(args.find_keys[0])
         info("md  keys = '%s'" % keys)
     else:
         print("No keys given")
         sys.exit()
 
-    subset = subsetBibtex(entries, keys)
-    emitBibliography(subset, outfd)
+    if args.YAML:
+        subset = subset_yaml(entries, keys)
+        emit_yaml_subset(subset, outfd)
+    else:
+        subset = subset_bibtex(entries, keys)
+        emit_bibtex_subset(subset, outfd)

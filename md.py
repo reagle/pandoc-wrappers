@@ -308,11 +308,11 @@ def process(args):
             BIB_FILE = HOME+'/joseph/readings.bib'
             bib_subset_tmp_fn = base_fn +'.bib'
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
-            keys = md2bib.getKeysFromMD(abs_fn)
+            keys = md2bib.get_keys_from_md(abs_fn)
             info("keys = %s" %keys)
-            entries = md2bib.parseBibTex(open(BIB_FILE, 'r'))
-            subset = md2bib.subsetBibtex(entries, keys)
-            md2bib.emitBibliography(subset, open(bib_subset_tmp_fn, 'w'))
+            entries = md2bib.parse_bibtex(open(BIB_FILE, 'r'))
+            subset = md2bib.subset_bibtex(entries, keys)
+            md2bib.emit_bibtex_subset(subset, open(bib_subset_tmp_fn, 'w'))
             pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
 
         shutil.copyfile(abs_fn, fn_tmp_1)
