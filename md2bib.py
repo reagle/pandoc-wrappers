@@ -46,7 +46,7 @@ def parseBibTex(text):
     return entries
 
 
-def emitEntry(identifier, values, outfd):
+def emitBibtexEntry(identifier, values, outfd):
     """Emit a single bibtex entry."""
     
     info("writing entry")
@@ -61,10 +61,10 @@ def emitBibliography(entries, outfd):
     """Emit a biblatex file."""
 
     for identifier, values in entries.items():
-        emitEntry(identifier, values, outfd)
+        emitBibtexEntry(identifier, values, outfd)
 
         
-def subsetBibliography(entries, keys):
+def subsetBibtex(entries, keys):
     """Emit a susbet of a biblatex file based on bibtex keys."""
 
     subset = OrderedDict()
@@ -133,5 +133,5 @@ if '__main__' == __name__:
         print("No keys given")
         sys.exit()
 
-    subset = subsetBibliography(entries, keys)
+    subset = subsetBibtex(entries, keys)
     emitBibliography(subset, outfd)

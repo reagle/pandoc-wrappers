@@ -311,7 +311,7 @@ def process(args):
             keys = md2bib.getKeysFromMD(abs_fn)
             info("keys = %s" %keys)
             entries = md2bib.parseBibTex(open(BIB_FILE, 'r'))
-            subset = md2bib.subsetBibliography(entries, keys)
+            subset = md2bib.subsetBibtex(entries, keys)
             md2bib.emitBibliography(subset, open(bib_subset_tmp_fn, 'w'))
             pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
 
