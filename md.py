@@ -252,7 +252,7 @@ def number_elements(content):
 def process(args):
     
     if args.bibliography:
-        bibtex_parsed = md2bib.parseBibTex(open(BIBTEX_FILE, 'r').readlines())
+        bibtex_parsed = md2bib.parse_bibtex(open(BIBTEX_FILE, 'r').readlines())
 
     for in_file in args.files:
 
