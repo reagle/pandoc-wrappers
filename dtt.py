@@ -3,7 +3,7 @@
 """Document transformation wrapper"""
 
 from md import link_citations
-from md2bib import parseBibTex
+from md2bib import parse_bibtex
 import optparse
 import os
 from subprocess import call, Popen, PIPE
@@ -33,6 +33,9 @@ opt_parser.add_option("-a", "--antiword",
 opt_parser.add_option("-c", "--catdoc",
     action="store_true", default=False,
     help="doc2txt  via catdoc")
+opt_parser.add_option("-u", "--unoconv",
+    action="store_true", default=False,
+    help="docx2txt via unoconv")
 opt_parser.add_option("-d", "--pdftohtml",
     action="store_true", default=False,
     help="pdf2html via pdftohtml")
@@ -67,6 +70,9 @@ elif opts.antiword:
 elif opts.catdoc:
     wrap = '' if opts.wrap else '-w'
     command = ['catdoc', url]
+elif opts.unoconv:
+    wrap = '' if opts.wrap else '-w'
+    command = ['unoconv', url]
 elif opts.pdftohtml:
     wrap = ''
     command = ['pdftotext', '-layout', '-nopgbrk', url, '-']
@@ -78,7 +84,7 @@ else: # fallback to pandoc
         command = ['pandoc', '-f', 'markdown', '-t', 'markdown', 
                     '--reference-links', '-s', '--atx-headers',
                     '-o', DST_FILE]
-        bibtex_parsed = parseBibTex(open(BIBTEX_FILE, 'r').readlines())
+        bibtex_parsed = parse_bibtex(open(BIBTEX_FILE, 'r').readlines())
         new_content = []
         for line in content.split('\n'):
             new_content.append(link_citations(line, bibtex_parsed))
