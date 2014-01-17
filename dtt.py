@@ -7,6 +7,7 @@ from md2bib import parse_bibtex
 import optparse
 import os
 from subprocess import call, Popen, PIPE
+import textwrap
 from urllib import urlopen
 
 EDITOR = os.environ['EDITOR']
@@ -33,10 +34,10 @@ opt_parser.add_option("-a", "--antiword",
 opt_parser.add_option("-c", "--catdoc",
     action="store_true", default=False,
     help="doc2txt  via catdoc")
-opt_parser.add_option("-u", "--unoconv",
+opt_parser.add_option("-d", "--docx2txt",
     action="store_true", default=False,
-    help="docx2txt via unoconv")
-opt_parser.add_option("-d", "--pdftohtml",
+    help="docx2txt via docx2txt")
+opt_parser.add_option("-f", "--pdftohtml",
     action="store_true", default=False,
     help="pdf2html via pdftohtml")
 opt_parser.add_option("-m", "--markdown",
@@ -55,6 +56,7 @@ print "** url = ", url
 content = None
 os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
 
+# I prefer to use the programs native wrap if possible
 if opts.lynx:
     wrap = '-width 76' if opts.wrap else '-width 1024'
     command = ['lynx', '-dump', '-nonumbers', url]
@@ -70,9 +72,9 @@ elif opts.antiword:
 elif opts.catdoc:
     wrap = '' if opts.wrap else '-w'
     command = ['catdoc', url]
-elif opts.unoconv:
-    wrap = '' if opts.wrap else '-w'
-    command = ['unoconv', url]
+elif opts.docx2txt:
+    wrap = '' # maybe use fold instead?
+    command = ['docx2txt', url, '-']
 elif opts.pdftohtml:
     wrap = ''
     command = ['pdftotext', '-layout', '-nopgbrk', url, '-']
@@ -98,13 +100,16 @@ print "** command = ", command
 process = Popen(command, stdin=PIPE, stdout=open(DST_FILE, 'w'))
 process.communicate(input = content)
 
-if opts.quote:
+if opts.wrap or opts.quote: 
     with open(DST_FILE) as f:
         new_content = []
-        lines = f.readlines()
-        for line in lines:
-            new_content.append('> ' + line)
-        content = ''.join(new_content)
+        for line in f.readlines():
+            if opts.wrap and wrap == '': # wrap if no native wrap
+                line = textwrap.fill(line, 76)
+            if opts.quote:
+                line = '> ' + line.replace('\n', '\n> ')
+            new_content.append(line)
+        content = '\n'.join(new_content)
     with open(DST_FILE, 'w') as f:
         f.write(content)
 
