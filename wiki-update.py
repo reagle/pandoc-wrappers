@@ -292,11 +292,12 @@ def retire_tasks(directory):
             with open(zim_filename, 'r') as wiki_page:
                 for line in wiki_page:
                     label = re.search('@\w+', line)
-                    if label:
-                        activity = label.group(0).strip()[1:]
+                    if label: # TODO: support multiple labels and remove from activity
+                        activity = '#' + label.group(0).strip()[1:]
                     if '[x]' in line:
-                        item = line.split(']',1)[1].strip()
+                        item = line.split(']',1)[1].strip() # following checkbox
                         info("found item %s" %item)
+                        info("activity = %s" %activity)
                         done_tasks.append((activity, item))
                     else:
                         new_wiki_page.append(line)
