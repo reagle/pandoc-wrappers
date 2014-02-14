@@ -105,11 +105,12 @@ if opts.wrap or opts.quote:
         new_content = []
         for line in f.readlines():
             if opts.wrap and wrap == '': # wrap if no native wrap
-                line = textwrap.fill(line, 76)
+                print("WRAPPING")
+                line = textwrap.fill(line, 76).strip() + '\n'
             if opts.quote:
-                line = '> ' + line.replace('\n', '\n> ')
+                line = '> ' + line # .replace('\n', '\n> ')
             new_content.append(line)
-        content = '\n'.join(new_content)
+        content = ''.join(new_content)
     with open(DST_FILE, 'w') as f:
         f.write(content)
 
