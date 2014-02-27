@@ -32,7 +32,6 @@ import sys
 
 HOME = os.environ['HOME']
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
-BIB_FILE = HOME+'/joseph/readings.bib'
 
 log_level = 100 # default
 critical = logging.critical
@@ -252,6 +251,7 @@ def number_elements(content):
 def process(args):
     
     if args.bibliography:
+        BIB_FILE = HOME+'/joseph/readings.bib'
         bibtex_parsed = md2bib.parse_bibtex(open(BIB_FILE, 'r').readlines())
 
     for in_file in args.files:
@@ -303,17 +303,33 @@ def process(args):
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
 
         if args.style_csl:
-            print("args.style_csl = %s" % args.style_csl)
+            if args.YAML:
+                BIB_FILE = HOME+'/joseph/readings.yaml'
+                bib_ext = '.yaml'
+                parse_func = md2bib.chunk_yaml
+                subset_func = md2bib.subset_yaml
+                emit_subset_func = md2bib.emit_yaml_subset
+            else:
+                BIB_FILE = HOME+'/joseph/readings.bib'
+                bib_ext = '.bib'
+                parse_func = md2bib.parse_bibtex
+                subset_func = md2bib.subset_bibtex
+                emit_subset_func = md2bib.emit_bibtex_subset
+                
             pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
-            info("generate temporary subset bibtex for speed")
-            bib_subset_tmp_fn = base_fn +'.bib'
+            info("generate temporary subset bib for speed")
+            bib_subset_tmp_fn = base_fn + bib_ext
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
             keys = md2bib.get_keys_from_md(abs_fn)
             info("keys = %s" %keys)
-            entries = md2bib.parse_bibtex(open(BIB_FILE, 'r'))
-            subset = md2bib.subset_bibtex(entries, keys)
-            md2bib.emit_bibtex_subset(subset, open(bib_subset_tmp_fn, 'w'))
-            pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
+            entries = parse_func(open(BIB_FILE, 'r').readlines())
+            subset = subset_func(entries, keys)
+            emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
+            if args.YAML:
+                pandoc_opts.extend([bib_subset_tmp_fn, '-F', 'pandoc-citeproc',])
+            else:
+                pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
+                
 
         shutil.copyfile(abs_fn, fn_tmp_1)
         f1 = codecs.open(fn_tmp_1, 'r', "UTF-8", "replace")
@@ -453,6 +469,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("-v", "--validate",
                     action="store_true", default=False,
                     help="validate and tidy HTML")
+    arg_parser.add_argument("-y", "--YAML",
+                    action="store_true", default=False,
+                    help="use YAML bibliography instead of bibtex")
 
     arg_parser.add_argument("-p", "--presentation",
                     action="store_true", default=False,

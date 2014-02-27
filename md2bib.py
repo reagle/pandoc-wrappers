@@ -3,7 +3,7 @@
 # (c) Copyright 2011-2014 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-"""Extract a subset of bibliographic keys from BIBFILE 
+"""Extract a subset of bibliographic keys from BIB_FILE 
 using those keys found in a markdown file or specified
 in argument."""
 
@@ -17,9 +17,6 @@ import re
 import sys
 
 HOME = environ['HOME']
-BIBTEX_FILE = HOME + '/joseph/readings.bib'
-YAML_FILE = HOME + '/joseph/readings.yaml'
-BIBFILE = BIBTEX_FILE
 
 log_level = 100 # default
 critical = logging.critical
@@ -27,7 +24,7 @@ info = logging.info
 dbg = logging.debug
 
 
-def chunk_YAML(text):
+def chunk_yaml(text):
     '''Return a dictionary of YAML chunks. This does *not* parse the YAML but
     chunks syntactically constrained YAML for speed.'''
 
@@ -52,10 +49,11 @@ def chunk_YAML(text):
 def emit_yaml_subset(entries, outfd):
     """Emit a YAML file."""
 
-    print('''---\nreferences:''')
+    outfd.write('''---\nreferences:\n''')
     for identifier, chunk in entries.items():
-        print(chunk.strip())
-    print('''...''')
+        outfd.write(chunk.strip())
+        outfd.write('\n')
+    outfd.write('''\n...\n''')
         
 def subset_yaml(entries, keys):
     """Emit a susbet of a YAML file based on keys."""
@@ -134,9 +132,9 @@ if '__main__' == __name__:
     import argparse # http://docs.python.org/dev/library/argparse.html
     arg_parser = argparse.ArgumentParser(
             description='Extract a subset of bibliographic keys '
-            'from BIBFILE using those keys found in a markdown file '
+            'from BIB_FILE using those keys found in a markdown file '
             'or specified in argument.')
-    arg_parser.add_argument('files', nargs='?',  metavar='BIBFILE')
+    arg_parser.add_argument('files', nargs='?',  metavar='BIB_FILE')
     arg_parser.add_argument("-f", "--find-keys", 
             nargs=1, metavar='FILE',
             help="find keys in markdown file")
@@ -171,14 +169,16 @@ if '__main__' == __name__:
         outfd = sys.stdout
 
     if args.YAML:
-        BIBFILE = YAML_FILE
+        BIB_FILE = YAML_FILE
     if args.files:
-        BIBFILE = args.files[0]
+        BIB_FILE = args.files[0]
         
     if args.YAML:
-        entries = chunk_YAML(open(BIBFILE, 'r').readlines())
+        BIB_FILE = HOME + '/joseph/readings.yaml'
+        entries = chunk_YAML(open(BIB_FILE, 'r').readlines())
     else:
-        entries = parse_bibtex(open(BIBFILE, 'r').readlines())
+        BIB_FILE = HOME + '/joseph/readings.bib'
+        entries = parse_bibtex(open(BIB_FILE, 'r').readlines())
 
     if args.keys:
         keys = args.keys[0].split(',')
@@ -196,3 +196,4 @@ if '__main__' == __name__:
     else:
         subset = subset_bibtex(entries, keys)
         emit_bibtex_subset(subset, outfd)
+        
