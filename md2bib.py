@@ -168,17 +168,17 @@ if '__main__' == __name__:
     else:
         outfd = sys.stdout
 
-    if args.YAML:
-        BIB_FILE = YAML_FILE
-    if args.files:
-        BIB_FILE = args.files[0]
         
     if args.YAML:
         BIB_FILE = HOME + '/joseph/readings.yaml'
-        entries = chunk_YAML(open(BIB_FILE, 'r').readlines())
+        chunk_func = chunk_yaml
     else:
         BIB_FILE = HOME + '/joseph/readings.bib'
-        entries = parse_bibtex(open(BIB_FILE, 'r').readlines())
+        chunk_func = parse_bibtex
+    if args.files: # override default file if specified
+        BIB_FILE = args.files[0]
+        
+    entries = chunk_func(open(BIB_FILE, 'r').readlines())
 
     if args.keys:
         keys = args.keys[0].split(',')
