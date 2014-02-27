@@ -32,7 +32,7 @@ import sys
 
 HOME = os.environ['HOME']
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
-BIBTEX_FILE = HOME+'/joseph/readings.bib'
+BIB_FILE = HOME+'/joseph/readings.bib'
 
 log_level = 100 # default
 critical = logging.critical
@@ -252,7 +252,7 @@ def number_elements(content):
 def process(args):
     
     if args.bibliography:
-        bibtex_parsed = md2bib.parse_bibtex(open(BIBTEX_FILE, 'r').readlines())
+        bibtex_parsed = md2bib.parse_bibtex(open(BIB_FILE, 'r').readlines())
 
     for in_file in args.files:
 
@@ -306,7 +306,6 @@ def process(args):
             print("args.style_csl = %s" % args.style_csl)
             pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
             info("generate temporary subset bibtex for speed")
-            BIB_FILE = HOME+'/joseph/readings.bib'
             bib_subset_tmp_fn = base_fn +'.bib'
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
             keys = md2bib.get_keys_from_md(abs_fn)
