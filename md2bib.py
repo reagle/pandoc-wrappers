@@ -18,7 +18,7 @@ import sys
 
 HOME = environ['HOME']
 BIBTEX_FILE = HOME + '/joseph/readings.bib'
-YAML_FILE = HOME + '/joseph/readings-2.yaml'
+YAML_FILE = HOME + '/joseph/readings.yaml'
 BIBFILE = BIBTEX_FILE
 
 log_level = 100 # default
@@ -52,8 +52,10 @@ def chunk_YAML(text):
 def emit_yaml_subset(entries, outfd):
     """Emit a YAML file."""
 
+    print('''---\nreferences:''')
     for identifier, chunk in entries.items():
         print(chunk.strip())
+    print('''...''')
         
 def subset_yaml(entries, keys):
     """Emit a susbet of a YAML file based on keys."""
