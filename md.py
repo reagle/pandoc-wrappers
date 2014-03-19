@@ -260,6 +260,7 @@ def process(args):
         # initial pandoc configuration based on arguments
         ##############################
 
+        pandoc_inputs = []
         pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
             '--email-obfuscation=references'] 
         if args.presentation:
@@ -269,6 +270,7 @@ def process(args):
             pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
                                 '-V', 'revealjs-url=../_reveal.js',
                                 '-V', 'theme=beige',
+                                '-V', 'transition=linear',
                                 '-c', '../_custom/revealjs.css'])
         if args.css:
             pandoc_opts.extend(['-c', args.css])
@@ -325,10 +327,11 @@ def process(args):
             entries = parse_func(open(BIB_FILE, 'r').readlines())
             subset = subset_func(entries, keys)
             emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
-            if args.YAML:
-                pandoc_opts.extend([bib_subset_tmp_fn, '-F', 'pandoc-citeproc',])
-            else:
-                pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
+            #if args.YAML:
+                ##pandoc_inputs.append(bib_subset_tmp_fn)
+                #pandoc_opts.extend(['-F', 'pandoc-citeproc',])
+            #else:
+            pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
                 
 
         shutil.copyfile(abs_fn, fn_tmp_1)
@@ -370,7 +373,8 @@ def process(args):
 
         pandoc_cmd = ['pandoc', '-f', 'markdown+mmd_title_block']
         pandoc_cmd.extend(pandoc_opts)
-        pandoc_cmd.append(fn_tmp_2)
+        pandoc_inputs.insert(0, fn_tmp_2)
+        pandoc_cmd.extend(pandoc_inputs)
         print("pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
         call(pandoc_cmd, stdout=open(fn_tmp_3, 'w'))
         info("done pandoc_cmd")

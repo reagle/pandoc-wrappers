@@ -159,6 +159,10 @@ def update_markdown(filename, md_fn):
             body_string = etree.tostring(body_node).decode("utf-8") 
             body_content = re.findall('<body>(.*)</body>', body_string, 
             	re.DOTALL)[0]
+            body_content = body_content.replace('  font-size:100%;', '').replace(
+                'style="color:#338800;"', 'class="mm-author"').replace(
+                'style="color:#090f6b;"', 'class="mm-title"').replace(
+                'style="color:#ff33b8;"', 'class="mm-bib"')
             tmp_body_fn = filename + '.tmp'
             codecs.open(tmp_body_fn, 'w', 'utf-8', 'replace'
                 ).write(body_content)
