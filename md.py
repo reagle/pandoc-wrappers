@@ -464,7 +464,7 @@ if __name__ == "__main__":
                     help="number sections and paragraphs")
     arg_parser.add_argument("-s", "--style-chicago",
                     action="store_true", default=False,
-                    help="use CSL bibliography style, default chicago")
+                    help="use CSL bibliography style, default chicago author-date")
     arg_parser.add_argument("-S", "--style-csl", nargs = 1,
                     help="specify CSL style")
     arg_parser.add_argument("-t", "--toc",
