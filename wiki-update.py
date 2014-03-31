@@ -179,7 +179,7 @@ def update_markdown(filename, md_fn):
     md_cmd.extend(md_args)
     md_cmd.extend([md_fn])
     info("md_cmd = %s" % ' '.join(md_cmd))
-    Popen(md_cmd)
+    call(md_cmd)
     if tmp_body_fn: remove(tmp_body_fn)
     if args.launch:
         #webbrowser.open(html_fn)
