@@ -376,7 +376,7 @@ def process(args):
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
         print("pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
-        Popen(pandoc_cmd, stdout=open(fn_tmp_3, 'w'), shell=True)
+        call(pandoc_cmd, stdout=open(fn_tmp_3, 'w'))
         info("done pandoc_cmd")
 
         if args.presentation:
