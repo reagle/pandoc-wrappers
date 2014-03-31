@@ -371,7 +371,7 @@ def process(args):
         ##  pandoc
         ##############################
 
-        pandoc_cmd = ['pandoc', '-f', 'markdown+mmd_title_block']
+        pandoc_cmd = ['/usr/bin/env', 'pandoc', '-f', 'markdown+mmd_title_block']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
