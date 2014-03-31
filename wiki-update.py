@@ -127,7 +127,7 @@ def update_markdown(filename, md_fn):
     
     dbg('updating_md %s' %filename)
     content = open(md_fn,"r").read()
-    md_cmd = [HOME+'/bin/pandoc-wrappers/md']
+    md_cmd = [HOME+'/bin/pandoc-wrappers/md.py']
     md_args = []
     tmp_body_fn = None # temporary store body of MM HTML
 
@@ -179,7 +179,7 @@ def update_markdown(filename, md_fn):
     md_cmd.extend(md_args)
     md_cmd.extend([md_fn])
     info("md_cmd = %s" % ' '.join(md_cmd))
-    call(md_cmd)
+    Popen(md_cmd)
     if tmp_body_fn: remove(tmp_body_fn)
     if args.launch:
         #webbrowser.open(html_fn)

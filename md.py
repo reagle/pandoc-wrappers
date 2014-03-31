@@ -371,12 +371,12 @@ def process(args):
         ##  pandoc
         ##############################
 
-        pandoc_cmd = ['/usr/bin/env', 'pandoc', '-f', 'markdown+mmd_title_block']
+        pandoc_cmd = ['pandoc', '-f', 'markdown+mmd_title_block']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
         print("pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
-        call(pandoc_cmd, stdout=open(fn_tmp_3, 'w'))
+        Popen(pandoc_cmd, stdout=open(fn_tmp_3, 'w'), shell=True)
         info("done pandoc_cmd")
 
         if args.presentation:
