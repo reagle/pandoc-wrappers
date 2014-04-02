@@ -26,12 +26,14 @@ from os.path import abspath, basename, dirname, exists, \
 import re
 import shutil
 #from sh import chmod # http://amoffat.github.com/sh/
-from subprocess import call, Popen
+import subprocess
+from subprocess import call, check_output, Popen
 import sys
 
 
 HOME = os.environ['HOME']
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
+PANDOC_BIN = '/home/reagle/.cabal/bin/pandoc'
 
 log_level = 100 # default
 critical = logging.critical
@@ -208,7 +210,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
 
 def number_elements(content):
     "add section and paragraph marks to content which is parsed as HTML"
-
+    
     info("parsing without comments")
     parser = HTMLParser(remove_comments = True, remove_blank_text = True)
     doc = parse(StringIO(content), parser)
@@ -371,11 +373,11 @@ def process(args):
         ##  pandoc
         ##############################
 
-        pandoc_cmd = ['pandoc', '-f', 'markdown+mmd_title_block']
+        pandoc_cmd = [PANDOC_BIN, '-f', 'markdown+mmd_title_block']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
-        print("pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
+        print("joined pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
         call(pandoc_cmd, stdout=open(fn_tmp_3, 'w'))
         info("done pandoc_cmd")
 
@@ -383,30 +385,33 @@ def process(args):
             create_talk_handout(abs_fn, fn_tmp_2)
 
         ##############################
-        ##  post pandoc
+        ##  post pandoc content
         ##############################
         
         # final tweaks to tmp html file
-        content = open(fn_tmp_3, 'r').read()
+        content_html = open(fn_tmp_3, 'r').read()
+        if not content_html:
+            raise ValueError('post-pandoc content_html is empty')
+            sys.exit()
         
         # text alternations
         if args.british_punctuation: # swap double/single quotes
-            content = content.replace('“', '&ldquo;').replace('”', '&rdquo;')
+            content_html = content_html.replace('“', '&ldquo;').replace('”', '&rdquo;')
             single_quote_re = re.compile(r"(\W)‘(.{2,40}?)’(\W)")
-            content = single_quote_re.sub(r'\1“\2”\3', content)
-            content = content.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
+            content_html = single_quote_re.sub(r'\1“\2”\3', content_html)
+            content_html = content_html.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
         # correct bibliography
-        content = content.replace(' Vs. ', ' vs. ')
+        content_html = content_html.replace(' Vs. ', ' vs. ')
 
         # HTML alterations
         if args.number_elements:
-            content = number_elements(content)
+            content_html = number_elements(content_html)
 
         result_fn = '%s.html' %(base_fn)
         info("result_fn = '%s'" %(result_fn))
         if args.output:
             result_fn = args.output[0]
-        open(result_fn, 'w').write(content)
+        open(result_fn, 'w').write(content_html)
         
         if args.validate:
             call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
