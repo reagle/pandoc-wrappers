@@ -25,6 +25,7 @@ import time
 #import webbrowser
 
 HOME = environ['HOME']
+MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'
 
 log_level = 100 # default
 critical = logging.critical
@@ -127,7 +128,7 @@ def update_markdown(filename, md_fn):
     
     dbg('updating_md %s' %filename)
     content = open(md_fn,"r").read()
-    md_cmd = [HOME+'/bin/pandoc-wrappers/md.py']
+    md_cmd = [MD_BIN]
     md_args = []
     tmp_body_fn = None # temporary store body of MM HTML
 
