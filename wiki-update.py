@@ -134,7 +134,7 @@ def update_markdown(filename, md_fn):
 
     if 'talks' in md_fn:
         md_args.extend(['--presentation'])
-        COURSES = ['/mcs/', '/orgcom/']
+        COURSES = ['/oc/', '/cda/']
         if any(course in md_fn for course in COURSES):
             md_args.extend(['--partial-handout'])
         if '[@' in content:
