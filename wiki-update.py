@@ -145,6 +145,7 @@ def update_markdown(filename, md_fn):
         #md_args.extend(['--self-contained'])
         md_args.extend(['--number-elements'])
         md_args.extend(['--punctuation-inside'])
+        #md_args.extend(['--YAML'])
         md_args.extend(['--style-csl', 'turabian-reagle.csl'])
         #md_args.extend(['--style-csl', 'chicago-fullnote-bibliography.csl'])
     elif 'syllabus' in md_fn:

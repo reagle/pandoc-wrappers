@@ -164,18 +164,12 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 line.startswith('<details'):  # skip rules
                 skip_to_next_header = True
                 continue 
-            ## convert pseudo div headings to h1
-            ##line = re.sub(r'^#+ (.*)', r'# \1', line) # error: matches '### '
-            #if line.startswith('##'):
-                #line = line.replace('##### ', '# ')
-                #line = line.replace('#### ', '# ')
-                #line = line.replace('## ', '# ')
             if line.startswith('----'):
                 line = line.replace('----', '# &nbsp;')
             # slide to SKIP
             if args.partial_handout:
                 info("args.partial_handout = '%s'" %(args.partial_handout))
-                if line.startswith('# '):
+                if line.startswith('# ') or line.startswith('## '):
                     if '*' in line:
                         skip_to_next_header = True
                     elif '# rev: ' in line:
