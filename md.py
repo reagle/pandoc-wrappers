@@ -320,14 +320,11 @@ def process(args):
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
             keys = md2bib.get_keys_from_md(abs_fn)
             info("keys = %s" %keys)
-            entries = parse_func(open(BIB_FILE, 'r').readlines())
-            subset = subset_func(entries, keys)
-            emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
-            #if args.YAML:
-                ##pandoc_inputs.append(bib_subset_tmp_fn)
-                #pandoc_opts.extend(['-F', 'pandoc-citeproc',])
-            #else:
-            pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
+            if keys:
+                entries = parse_func(open(BIB_FILE, 'r').readlines())
+                subset = subset_func(entries, keys)
+                emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
+                pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
                 
 
         shutil.copyfile(abs_fn, fn_tmp_1)
