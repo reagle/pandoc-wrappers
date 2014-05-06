@@ -141,14 +141,13 @@ def update_markdown(filename, md_fn):
             md_args.extend(['--bibliography'])
     elif 'cc/' in md_fn:
         md_args.extend(['--quash'])
-        #md_args.extend(['--keep-tmp'])
+        # md_args.extend(['--keep-tmp'])
         md_args.extend(['--number-elements'])
         md_args.extend(['--punctuation-inside'])
         md_args.extend(['--style-csl', 'turabian-reagle.csl'])
-        #md_args.extend(['--YAML'])
-        #md_args.extend(['--style-csl', 'chicago-fullnote-bibliography.csl'])
-        md_args.extend(['-c', 
-            'http://reagle.org/joseph/2003/mit-press.css'])
+        # md_args.extend(['--YAML'])
+        # md_args.extend(['--style-csl', 'chicago-fullnote-bibliography.csl'])
+        # md_args.extend(['-c', 'http://reagle.org/joseph/2003/mit-press.css'])
     elif 'syllabus' in md_fn:
         info("processing syllabus")
         mm_fn_html = md_fn.replace('syllabus', 'readings'
@@ -327,6 +326,9 @@ if '__main__' == __name__:
     arg_parser.add_argument("-n", "--notes-handout",
                     action="store_true", default=False,
                     help="Force creation of notes handout even if not class slide")
+    arg_parser.add_argument("-w", "--word-docx",
+                    action="store_true", default=False,
+                    help="Output to MS word docx")
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")

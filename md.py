@@ -259,6 +259,9 @@ def process(args):
         pandoc_inputs = []
         pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
             '--email-obfuscation=references'] 
+        if args.odt:
+            pandoc_opts.extend(['-t', 'odt'])
+
         if args.presentation:
             args.validate = False
             args.css = False
@@ -299,6 +302,9 @@ def process(args):
         fn_tmp_2 = "%s-2%s" %(base_fn, base_ext) # pre-pandoc
         fn_tmp_3 = "%s-3%s" %(base_fn, '.html')  # post-pandoc
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
+
+        if args.odt:
+            pandoc_opts.extend(['-o', base_fn+'.odt'])
 
         if args.style_csl:
             if args.YAML:
@@ -379,37 +385,39 @@ def process(args):
         ##  post pandoc content
         ##############################
         
-        # final tweaks to tmp html file
-        content_html = open(fn_tmp_3, 'r').read()
-        if not content_html:
-            raise ValueError('post-pandoc content_html is empty')
-            sys.exit()
-        
-        # text alternations
-        if args.british_punctuation: # swap double/single quotes
-            content_html = content_html.replace('“', '&ldquo;').replace('”', '&rdquo;')
-            single_quote_re = re.compile(r"(\W)‘(.{2,40}?)’(\W)")
-            content_html = single_quote_re.sub(r'\1“\2”\3', content_html)
-            content_html = content_html.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
-        # correct bibliography
-        content_html = content_html.replace(' Vs. ', ' vs. ')
+        if not args.odt:
 
-        # HTML alterations
-        if args.number_elements:
-            content_html = number_elements(content_html)
+            # final tweaks to tmp html file
+            content_html = open(fn_tmp_3, 'r').read()
+            if not content_html:
+                raise ValueError('post-pandoc content_html is empty')
+                sys.exit()
+            
+            # text alternations
+            if args.british_punctuation: # swap double/single quotes
+                content_html = content_html.replace('“', '&ldquo;').replace('”', '&rdquo;')
+                single_quote_re = re.compile(r"(\W)‘(.{2,40}?)’(\W)")
+                content_html = single_quote_re.sub(r'\1“\2”\3', content_html)
+                content_html = content_html.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
+            # correct bibliography
+            content_html = content_html.replace(' Vs. ', ' vs. ')
 
-        result_fn = '%s.html' %(base_fn)
-        info("result_fn = '%s'" %(result_fn))
-        if args.output:
-            result_fn = args.output[0]
-        open(result_fn, 'w').write(content_html)
-        
-        if args.validate:
-            call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
-                    result_fn])
-        if args.launch_browser:
-            info("launching %s" %result_fn)
-            Popen([BROWSER, result_fn])
+            # HTML alterations
+            if args.number_elements:
+                content_html = number_elements(content_html)
+
+            result_fn = '%s.html' %(base_fn)
+            info("result_fn = '%s'" %(result_fn))
+            if args.output:
+                result_fn = args.output[0]
+            open(result_fn, 'w').write(content_html)
+            
+            if args.validate:
+                call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
+                        result_fn])
+            if args.launch_browser:
+                info("launching %s" %result_fn)
+                Popen([BROWSER, result_fn])
             
         if not args.keep_tmp:
             info("removing tmp files")
@@ -480,6 +488,13 @@ if __name__ == "__main__":
                     action="store_true", default=False,
                     help="presentation handout is partial/redacted")
                     
+    arg_parser.add_argument("--docx",
+                    action="store_true", default=False,
+                    help="Output to MS word docx")
+    arg_parser.add_argument("--odt",
+                    action="store_true", default=False,
+                    help="Output to OO odt")
+                     
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
