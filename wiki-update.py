@@ -144,9 +144,10 @@ def update_markdown(filename, md_fn):
         # md_args.extend(['--keep-tmp'])
         md_args.extend(['--number-elements'])
         md_args.extend(['--punctuation-inside'])
-        md_args.extend(['--style-csl', 'turabian-reagle.csl'])
-        # md_args.extend(['--YAML'])
-        # md_args.extend(['--style-csl', 'chicago-fullnote-bibliography.csl'])
+        # md_args.extend(['--style-csl', 'turabian-reagle.csl'])
+        md_args.extend(['--YAML'])
+        md_args.extend(['--style-csl', 'chicago-fullnote-nobib.csl'])
+        md_args.extend(['--docx'])
         # md_args.extend(['-c', 'http://reagle.org/joseph/2003/mit-press.css'])
     elif 'syllabus' in md_fn:
         info("processing syllabus")
@@ -182,7 +183,8 @@ def update_markdown(filename, md_fn):
     md_cmd.extend([md_fn])
     info("md_cmd = %s" % ' '.join(md_cmd))
     call(md_cmd)
-    if tmp_body_fn: remove(tmp_body_fn)
+    if tmp_body_fn: 
+        remove(tmp_body_fn)
     if args.launch:
         #webbrowser.open(html_fn)
         call(["google-chrome", html_fn])
@@ -326,9 +328,6 @@ if '__main__' == __name__:
     arg_parser.add_argument("-n", "--notes-handout",
                     action="store_true", default=False,
                     help="Force creation of notes handout even if not class slide")
-    arg_parser.add_argument("-w", "--word-docx",
-                    action="store_true", default=False,
-                    help="Output to MS word docx")
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
                     help="log to file PROGRAM.log")
