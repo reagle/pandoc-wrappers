@@ -261,6 +261,8 @@ def process(args):
             '--email-obfuscation=references'] 
         if args.odt:
             pandoc_opts.extend(['-t', 'odt'])
+        elif args.docx:
+            pandoc_opts.extend(['-t', 'docx'])
 
         if args.presentation:
             args.validate = False
@@ -305,6 +307,8 @@ def process(args):
 
         if args.odt:
             pandoc_opts.extend(['-o', base_fn+'.odt'])
+        elif args.docx:
+            pandoc_opts.extend(['-o', base_fn+'.docx'])
 
         if args.style_csl:
             if args.YAML:
@@ -385,7 +389,7 @@ def process(args):
         ##  post pandoc content
         ##############################
         
-        if not args.odt:
+        if not (args.odt or args.docx):
 
             # final tweaks to tmp html file
             content_html = open(fn_tmp_3, 'r').read()
@@ -488,12 +492,12 @@ if __name__ == "__main__":
                     action="store_true", default=False,
                     help="presentation handout is partial/redacted")
                     
-    arg_parser.add_argument("--docx",
-                    action="store_true", default=False,
-                    help="Output to MS word docx")
     arg_parser.add_argument("--odt",
                     action="store_true", default=False,
                     help="Output to OO odt")
+    arg_parser.add_argument("--docx",
+                    action="store_true", default=False,
+                    help="Output to MS word docx")
                      
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
