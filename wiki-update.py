@@ -147,7 +147,7 @@ def update_markdown(filename, md_fn):
         # md_args.extend(['--style-csl', 'turabian-reagle.csl'])
         md_args.extend(['--YAML'])
         md_args.extend(['--style-csl', 'chicago-fullnote-nobib.csl'])
-        md_args.extend(['--docx'])
+        # md_args.extend(['--odt'])
         # md_args.extend(['-c', 'http://reagle.org/joseph/2003/mit-press.css'])
     elif 'syllabus' in md_fn:
         info("processing syllabus")

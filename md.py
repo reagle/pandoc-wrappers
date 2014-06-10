@@ -350,6 +350,8 @@ def process(args):
         content = content.split('***END OF FILE***')[0]
         content = content.replace('@@', '')
 
+        content = content.replace(' --- ', '---')
+
         if args.punctuation_inside: # move quotes and commas outside quotes
             swap_punct_quote_re = re.compile(r'(?<!\.)"( \[[^\[]+\])([,.])')
             content = swap_punct_quote_re.sub(r'\2"\1', content)
