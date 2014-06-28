@@ -257,12 +257,9 @@ def process(args):
         ##############################
 
         pandoc_inputs = []
-        pandoc_opts = ['-s', '--smart', '--tab-stop', '4', 
-            '--email-obfuscation=references'] 
-        if args.odt:
-            pandoc_opts.extend(['-t', 'odt'])
-        elif args.docx:
-            pandoc_opts.extend(['-t', 'docx'])
+        pandoc_opts = ['-w', args.write]
+        pandoc_opts.extend(['-s', '--smart', '--tab-stop', '4', 
+            '--email-obfuscation=references'])
 
         if args.presentation:
             args.validate = False
@@ -302,13 +299,11 @@ def process(args):
 
         fn_tmp_1 = "%s-1%s" %(base_fn, base_ext) # as read
         fn_tmp_2 = "%s-2%s" %(base_fn, base_ext) # pre-pandoc
-        fn_tmp_3 = "%s-3%s" %(base_fn, '.html')  # post-pandoc
+        fn_tmp_3 = "%s-3.%s" %(base_fn, args.write)  # post-pandoc copy
+        fn_result = base_fn+'.'+args.write
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
 
-        if args.odt:
-            pandoc_opts.extend(['-o', base_fn+'.odt'])
-        elif args.docx:
-            pandoc_opts.extend(['-o', base_fn+'.docx'])
+        pandoc_opts.extend(['-o', fn_result])
 
         if args.style_csl:
             if args.YAML:
@@ -381,7 +376,7 @@ def process(args):
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
         print("joined pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
-        call(pandoc_cmd, stdout=open(fn_tmp_3, 'w'))
+        call(pandoc_cmd) # , stdout=open(fn_tmp_3, 'w')
         info("done pandoc_cmd")
 
         if args.presentation:
@@ -391,9 +386,10 @@ def process(args):
         ##  post pandoc content
         ##############################
         
-        if not (args.odt or args.docx):
+        if args.write == 'html':
 
-            # final tweaks to tmp html file
+            # final tweaks html file
+            shutil.copyfile(fn_result, fn_tmp_3) # copy of html for debugging
             content_html = open(fn_tmp_3, 'r').read()
             if not content_html:
                 raise ValueError('post-pandoc content_html is empty')
@@ -494,12 +490,9 @@ if __name__ == "__main__":
                     action="store_true", default=False,
                     help="presentation handout is partial/redacted")
                     
-    arg_parser.add_argument("--odt",
-                    action="store_true", default=False,
-                    help="Output to OO odt")
-    arg_parser.add_argument("--docx",
-                    action="store_true", default=False,
-                    help="Output to MS word docx")
+    arg_parser.add_argument("-w", "--write",
+                    default='html',
+                    help="Write to format [html]")
                      
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
