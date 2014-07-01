@@ -306,18 +306,18 @@ def process(args):
         pandoc_opts.extend(['-o', fn_result])
 
         if args.style_csl:
-            if args.YAML:
-                BIB_FILE = HOME+'/joseph/readings.yaml'
-                bib_ext = '.yaml'
-                parse_func = md2bib.chunk_yaml
-                subset_func = md2bib.subset_yaml
-                emit_subset_func = md2bib.emit_yaml_subset
-            else:
+            if args.bibtex:
                 BIB_FILE = HOME+'/joseph/readings.bib'
                 bib_ext = '.bib'
                 parse_func = md2bib.parse_bibtex
                 subset_func = md2bib.subset_bibtex
                 emit_subset_func = md2bib.emit_bibtex_subset
+            else:
+                BIB_FILE = HOME+'/joseph/readings.yaml'
+                bib_ext = '.yaml'
+                parse_func = md2bib.chunk_yaml
+                subset_func = md2bib.subset_yaml
+                emit_subset_func = md2bib.emit_yaml_subset
                 
             pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
             info("generate temporary subset bib for speed")
@@ -434,7 +434,10 @@ if __name__ == "__main__":
     arg_parser.add_argument('files', nargs='+',  metavar='FILE')
     arg_parser.add_argument("-b", "--bibliography",
                     action="store_true", default=False,
-                    help="turn citations into hypertext w/out CSL")                    
+                    help="turn citations into hypertext w/out CSL")
+    arg_parser.add_argument("--bibtex",
+                    action="store_true", default=False,
+                    help="use .bib file instead of YAML bibliography")
     arg_parser.add_argument("-B", "--british-punctuation", 
                     action="store_true", default=False,
                     help="swap single and double quotes")
@@ -479,10 +482,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("-v", "--validate",
                     action="store_true", default=False,
                     help="validate and tidy HTML")
-    arg_parser.add_argument("-y", "--YAML",
-                    action="store_true", default=False,
-                    help="use YAML bibliography instead of bibtex")
-
+    
     arg_parser.add_argument("-p", "--presentation",
                     action="store_true", default=False,
                     help="create presentation with reveal.js")
