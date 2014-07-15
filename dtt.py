@@ -15,7 +15,7 @@ DST_FILE = '/tmp/dtt.txt'
 BIBTEX_FILE = '/home/reagle/joseph/readings.bib'
 
 opt_parser = optparse.OptionParser(usage="usage: %prog [options] URL\n\n"
-    "Document transformation wrapper")
+    "Document transformation wrapper which (by default) converts HTML to txt")
 opt_parser.add_option("-p", "--pandoc",
     action="store_true", default=False,
     help="html2txt via pandoc (quite busy with links)")
@@ -42,7 +42,7 @@ opt_parser.add_option("-f", "--pdftohtml",
     help="pdf2html via pdftohtml")
 opt_parser.add_option("-m", "--markdown",
     action="store_true", default=False,
-    help="md2md  via pandoc (with reference links)")
+    help="md2md via pandoc with custom citation expansion and reference links")
 opt_parser.add_option("-w", "--wrap",
     action="store_true", default=False,
     help="wrap text")
@@ -82,7 +82,7 @@ else: # fallback to pandoc
     content = urlopen(url).read()
     wrap = '' if opts.wrap else '--no-wrap'
     if opts.markdown:
-        DST_FILE = url
+        # DST_FILE = url
         command = ['pandoc', '-f', 'markdown', '-t', 'markdown', 
                     '--reference-links', '-s', '--atx-headers',
                     '-o', DST_FILE]
