@@ -75,7 +75,7 @@ def parse_bibtex(text):
 
     entries = OrderedDict()
     key_pat = re.compile('@(\w+){(.*),')
-    value_pat = re.compile('[ ]*(\w+)[ ]*=[ ]*{(.*)},')
+    value_pat = re.compile('[\s]*(\w+)[\s]*=[\s]*{(.*)},')
     for line in text:
         key_match = key_pat.match(line)
         if key_match:
