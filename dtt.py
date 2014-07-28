@@ -40,9 +40,6 @@ opt_parser.add_option("-d", "--docx2txt",
 opt_parser.add_option("-f", "--pdftohtml",
     action="store_true", default=False,
     help="pdf2html via pdftohtml")
-opt_parser.add_option("-m", "--markdown",
-    action="store_true", default=False,
-    help="md2md via pandoc with custom citation expansion and reference links")
 opt_parser.add_option("-w", "--wrap",
     action="store_true", default=False,
     help="wrap text")
