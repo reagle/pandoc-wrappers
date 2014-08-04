@@ -78,19 +78,8 @@ elif opts.pdftohtml:
 else: # fallback to pandoc
     content = urlopen(url).read()
     wrap = '' if opts.wrap else '--no-wrap'
-    if opts.markdown:
-        # DST_FILE = url
-        command = ['pandoc', '-f', 'markdown', '-t', 'markdown', 
-                    '--reference-links', '-s', '--atx-headers',
-                    '-o', DST_FILE]
-        bibtex_parsed = parse_bibtex(open(BIBTEX_FILE, 'r').readlines())
-        new_content = []
-        for line in content.split('\n'):
-            new_content.append(link_citations(line, bibtex_parsed))
-        content = '\n'.join(new_content)
-    else:
-        command = ['pandoc', '-f', 'html', '-t', 'markdown', 
-                    '--reference-links', '-o', DST_FILE]
+    command = ['pandoc', '-f', 'html', '-t', 'markdown', 
+                '--reference-links', '-o', DST_FILE]
 
 command.extend(wrap.split())
 print "** command = ", command
