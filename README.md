@@ -1,10 +1,9 @@
 
-These are wrappers for the wonderful [pandoc](http://johnmacfarlane.net/pandoc/) tool that I use for creating web pages, presentations, papers, and even my book. I don't imagine they will be useful to others off-the-shelf but there might be handy techniques, particular the super simple, limited, but fast bibtex parser in `mdn2bib`.
+These are wrappers for the wonderful [pandoc](http://johnmacfarlane.net/pandoc/) tool that I use for creating web pages, presentations, papers, and even books. I don't imagine they will be useful to others off-the-shelf but there might be handy techniques, particular the super simple, limited, but fast bibtex parser in `mdn2bib`.
 
-## mdn2bib.py
+## md2bib.py
 
-A set of bibtex utilities for parsing and manipulating bibtex files, 
-especially in the context of my pandoc wrappers
+A set of bibtex utilities for parsing and manipulating bibtex files, especially in the context of my pandoc wrappers
 
 ## md.py
 
@@ -21,6 +20,10 @@ Build a PDF (article or book) by converting from markdown to LaTeX.
 ## bdh.py
 
 Like `bd`, but will build HTML using [htlatex](http://www.tug.org/applications/tex4ht/mn-commands.html).
+
+## dtt.py
+
+Wraps many tools for converting HTML to text.
 
 ## wiki-update.py
 
