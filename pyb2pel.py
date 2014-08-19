@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+'''Convert Pyblosxom content to markdown for Pelican'''
 
 import codecs
 import locale
