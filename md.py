@@ -136,7 +136,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
     info("starting handout")
     # http://www.farside.org.uk/200804/osjam/markdown2.py
     ast_bullet_re = re.compile(r'^(\s*)(\* )')
-    em_re = re.compile(r'(?<!\*)\*([^\*]+?)\*')
+    em_re = re.compile(r'(?<!_)_([^_]+?)_')
     def em_mask(matchobj):
         info("return replace function")
         return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
