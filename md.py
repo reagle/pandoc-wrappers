@@ -375,7 +375,7 @@ def process(args):
         ##############################
 
         pandoc_cmd = [PANDOC_BIN, '-f', 'markdown+mmd_title_block'
-            '+implicit_header_references']
+            '+implicit_header_references' '+superscript+subscript']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
