@@ -175,7 +175,7 @@ def update_markdown(filename, md_fn):
     # check for a multimarkdown metadata line with extra build options
     match_md_opts = re.search('^md_opts: (.*)', content, re.MULTILINE)
     if match_md_opts:
-        md_opts = match_md_opts.group(1).split(' ')
+        md_opts = match_md_opts.group(1).strip().split(' ')
         info("md_opts = %s" % md_opts)
         md_args.extend(md_opts)
     md_cmd.extend(md_args)
