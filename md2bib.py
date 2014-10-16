@@ -123,6 +123,7 @@ def subset_bibtex(entries, keys):
 def get_keys_from_md(filename):
     """Return a list of keys used in a markdown document"""
 
+    info("filename = '%s'" %filename)
     text = open(filename, 'r').read()
     text = text.split('***END OF FILE***')[0]
     finds = re.findall('@(.*?)[\.,:;\] ]', text)
