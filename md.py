@@ -277,6 +277,8 @@ def process(args):
             pandoc_opts.extend(['-c', args.css])
         if args.toc:
             pandoc_opts.extend(['--toc'])
+            if args.toc_depth:
+                pandoc_opts.extend(['--toc-depth=%s' %args.toc_depth[0]])
         if args.self_contained:
             pandoc_opts.extend(['--self-contained'])
         if args.divs:
@@ -483,6 +485,8 @@ if __name__ == "__main__":
     arg_parser.add_argument("-t", "--toc",
                     action="store_true", default=False,
                     help="create table of contents")
+    arg_parser.add_argument("--toc-depth", nargs = 1,
+                    help="table of contents depth")
     arg_parser.add_argument("-v", "--validate",
                     action="store_true", default=False,
                     help="validate and tidy HTML")
