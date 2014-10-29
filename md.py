@@ -345,10 +345,6 @@ def process(args):
 
         print("split(abs_fn) = %s, %s" % (os.path.split(abs_fn)))
 
-        # remove writemonkey repository and bookmarks
-        content = content.split('***END OF FILE***')[0]
-        content = content.replace('@@', '')
-
         content = content.replace(' --- ', '---')
 
         if args.punctuation_inside: # move quotes and commas outside quotes
