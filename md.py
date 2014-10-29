@@ -336,7 +336,6 @@ def process(args):
                 emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
                 pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
                 
-
         shutil.copyfile(abs_fn, fn_tmp_1)
         f1 = codecs.open(fn_tmp_1, 'r', "UTF-8", "replace")
         content = f1.read()
@@ -345,7 +344,7 @@ def process(args):
         f2 = codecs.open(fn_tmp_2, 'w', "UTF-8", "replace")
 
         print("split(abs_fn) = %s, %s" % (os.path.split(abs_fn)))
-            
+
         # remove writemonkey repository and bookmarks
         content = content.split('***END OF FILE***')[0]
         content = content.replace('@@', '')
@@ -366,7 +365,9 @@ def process(args):
             if args.bibliography: # create hypertext refs from bibtex db
                 line = link_citations(line, bibtex_parsed)
                 #info("\n** line is now %s" % line)
-
+            if args.presentation: # color some revealjs top of column slides
+                if line.startswith('# ') and '{data-' not in line:
+                    line += ' {data-state="cobalt"}'
             #info("END line: '%s'" % line)
             f2.write(line + '\n')
         f1.close()
