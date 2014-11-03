@@ -363,7 +363,7 @@ def process(args):
                 #info("\n** line is now %s" % line)
             if args.presentation: # color some revealjs top of column slides
                 if line.startswith('# ') and '{data-' not in line:
-                    line += ' {data-state="cobalt"}'
+                    line = line[0:-1] + ' {data-state="cobalt"}\n'
             #info("END line: '%s'" % line)
             f2.write(line + '\n')
         f1.close()
