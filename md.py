@@ -135,9 +135,10 @@ def create_talk_handout(abs_fn, tmp2_fn):
         
     info("starting handout")
     # http://www.farside.org.uk/200804/osjam/markdown2.py
-    ast_bullet_re = re.compile(r'^(\s*)(\* )')
-    em_re = re.compile(r'(?<!_)_([^_]+?)_')
+    # ast_bullet_re = re.compile(r'^(\s*)(\* )') # what does this do?
+    em_re = re.compile(r'(?<! _)_([^_]+?)_ ')
     def em_mask(matchobj):
+        """replace emphasis with underscores"""
         info("return replace function")
         return '&#95;'*len(matchobj.group(0)) # underscore that pandoc will ignore
         
@@ -169,8 +170,10 @@ def create_talk_handout(abs_fn, tmp2_fn):
             # slide to SKIP
             if args.partial_handout:
                 info("args.partial_handout = '%s'" %(args.partial_handout))
+                line = line.replace('### ', ' ')
                 if line.startswith('# ') or line.startswith('## '):
-                    if '*' in line:
+                    # slides to SKIP
+                    if '_' in line:
                         skip_to_next_header = True
                     elif '# rev: ' in line:
                         skip_to_next_header = True
@@ -178,15 +181,16 @@ def create_talk_handout(abs_fn, tmp2_fn):
                         skip_to_next_header = False
                     handout_f.write(line)
                 else:
-                    # REDACT some content
+                    # REDACT some content in a slide
                     if not skip_to_next_header:
-                        if line.startswith('> *'):
+                        if line.startswith('> *') or \
+                            line.startswith('> -'):
                             handout_f.write('\n')
                             continue
                         info("entering em redaction")
-                        line = ast_bullet_re.subn(r'\1- ', line)[0]
+                        # line = ast_bullet_re.subn(r'\1- ', line)[0]
                         # info("line_ast = %s" %line)
-                        line = em_re.subn(em_mask, line)[0]
+                        line = em_re.subn(em_mask, line)[0] # replace empth w/ _
                         # info("line_em = %s" %line)
                         handout_f.write(line)
                     else:
