@@ -271,12 +271,14 @@ def process(args):
         if args.presentation:
             args.validate = False
             args.css = False
-            # theme also in ~/joseph/talks/_custom/revealjs.css
             pandoc_opts.extend(['-t', 'revealjs', '--slide-level=2',
+                                # '--template=default.reveal3js',
+                                # '-V', 'revealjs-url=../_reveal3.js',
                                 '-V', 'revealjs-url=../_reveal.js',
                                 '-V', 'theme=beige',
                                 '-V', 'transition=linear',
-                                '-c', '../_custom/revealjs.css'])
+                                '-c', '../_custom/revealjs.css'
+                                ])
         if args.css:
             pandoc_opts.extend(['-c', args.css])
         if args.toc:
