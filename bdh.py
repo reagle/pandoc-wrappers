@@ -15,8 +15,8 @@ import shutil
 from subprocess import call, check_call, Popen, PIPE
 import sys
 
-from os import environ
-HOME = environ['HOME']
+from os.path import expanduser
+HOME = expanduser("~")
 
 import argparse # http://docs.python.org/dev/library/argparse.html
 arg_parser = argparse.ArgumentParser(description=

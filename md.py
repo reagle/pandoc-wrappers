@@ -30,10 +30,10 @@ import subprocess
 from subprocess import call, check_output, Popen
 import sys
 
-
-HOME = os.environ['HOME']
+from os.path import expanduser
+HOME = expanduser("~")
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
-PANDOC_BIN = '/home/reagle/.cabal/bin/pandoc'
+PANDOC_BIN = HOME+'/.cabal/bin/pandoc'
 
 log_level = 100 # default
 critical = logging.critical
