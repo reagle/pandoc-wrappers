@@ -10,9 +10,11 @@ from subprocess import call, Popen, PIPE
 import textwrap
 from urllib import urlopen
 
+from os.path import expanduser
+HOME = expanduser("~")
 EDITOR = os.environ['EDITOR']
 DST_FILE = '/tmp/dtt.txt'
-BIBTEX_FILE = '/home/reagle/joseph/readings.bib'
+BIBTEX_FILE = HOME+'/joseph/readings.bib'
 
 opt_parser = optparse.OptionParser(usage="usage: %prog [options] URL\n\n"
     "Document transformation wrapper which (by default) converts HTML to txt")

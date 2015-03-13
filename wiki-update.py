@@ -24,7 +24,9 @@ import sys
 import time
 #import webbrowser
 
-HOME = environ['HOME']
+from os.path import expanduser
+HOME = expanduser("~")
+
 MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'
 
 log_level = 100 # default
@@ -217,7 +219,7 @@ def check_mm_files(HOMEDIR):
                 if getmtime(mm_filename) > getmtime(html_fn):
                     info('updating_mm %s' %filename)
                     call(['xsltproc', '-o', html_fn, 
-                        '/home/reagle/bin/mmtoxhtml.xsl', mm_filename])
+                        HOME+'/bin/mmtoxhtml.xsl', mm_filename])
                     call(['tidy', '-asxhtml', '-utf8', 
                           '-w', '0', '-m', html_fn])
                     p3 = Popen(['tail', '-n', '+2', html_fn], 
@@ -348,12 +350,12 @@ if '__main__' == __name__:
     ## Private files
     
     # Zim: Joseph and Nora planning
-    HOMEDIR = '/home/reagle/joseph/plan/joseph-nora/'
+    HOMEDIR = HOME+'/joseph/plan/joseph-nora/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
 
     # Zim: Work planning
-    HOMEDIR = '/home/reagle/joseph/plan/'
+    HOMEDIR = HOME+'/joseph/plan/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         if retire_tasks(HOMEDIR + 'zim/'):
             export_zim(HOMEDIR)
@@ -367,7 +369,7 @@ if '__main__' == __name__:
     ## Public files
 
     # Zim: Public
-    HOMEDIR = '/home/reagle/joseph/'
+    HOMEDIR = HOME+'/joseph/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
     

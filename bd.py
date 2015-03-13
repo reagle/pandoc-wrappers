@@ -21,8 +21,9 @@ from subprocess import call
 import sys
 from time import localtime, strftime
 
-from os import environ
-HOME = environ['HOME']
+from os.path import expanduser
+HOME = expanduser("~")
+
 BIB_FILE = HOME+'/joseph/readings.bib'
 
 log_level = 100 # default
@@ -231,13 +232,13 @@ def main(args, files):
             files = []
             files.append(src_file)
 
-            # /home/reagle/joseph/2009/01/
+            # HOME+/joseph/2009/01/
             src_dir = path.dirname(path.realpath(ori_file)) + '/'
 
-            # /home/reagle/joseph/2009/01/latex-int/
+            # HOME+/joseph/2009/01/latex-int/
             dst_dir = src_dir + 'latex-' + src_file[:3] + '/'
 
-            # /home/reagle/joseph/2009/01/latex-int/0-article.tex
+            # HOME+/joseph/2009/01/latex-int/0-article.tex
             build_file_name = '0-article'
             build_file_base = dst_dir + build_file_name
             build_file = build_file_base + '.tex'
