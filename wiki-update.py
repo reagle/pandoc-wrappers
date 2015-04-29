@@ -56,8 +56,8 @@ def locate(pattern, root):
     '''Locate all files matching supplied filename pattern in and below
     supplied root directory.'''
     for path, dirs, files in walk(abspath(root)):
-        for filename in fnmatch.filter(files, pattern):
-            yield join(path, filename)
+        for fn in fnmatch.filter(files, pattern):
+            yield join(path, fn)
 
 def has_dir_changed(directory):
     
@@ -173,14 +173,14 @@ def check_markdown_files(HOMEDIR):
 
     files = locate('*.md', HOMEDIR)
     for md_fn in files:
-        filename = md_fn.rsplit('.',1)[0]
-        html_fn = filename + '.html'
+        fn = splitext(md_fn)[0]
+        html_fn = fn + '.html'
         dbg("html_fn = %s" % html_fn)
         if exists(html_fn):
             if getmtime(md_fn) > getmtime(html_fn):
                 info("%s %s > %s %s" %(md_fn, getmtime(md_fn), 
                                        html_fn, getmtime(html_fn)))
-                update_markdown(filename, md_fn)
+                update_markdown(fn, md_fn)
     
 def check_mm_files(HOMEDIR):
     '''Convert any Freemind mindmap whose HTML file is older than it.
@@ -189,15 +189,15 @@ def check_mm_files(HOMEDIR):
     INCLUDE_PATHS = ['syllabus', 'readings', 'concepts']
 
     files = locate('*.mm', HOMEDIR)
-    for mm_filename in files:
-        if any([included in mm_filename for included in INCLUDE_PATHS]):
-            filename = mm_filename.rsplit('.',1)[0]
-            html_fn = filename + '.html'
+    for mm_fn in files:
+        if any([included in mm_fn for included in INCLUDE_PATHS]):
+            fn = splitext(md_fn)[0]
+            html_fn = fn + '.html'
             if exists(html_fn):
-                if getmtime(mm_filename) > getmtime(html_fn):
-                    info('updating_mm %s' %filename)
+                if getmtime(mm_fn) > getmtime(html_fn):
+                    info('updating_mm %s' %fn)
                     call(['xsltproc', '-o', html_fn, 
-                        HOME+'/bin/mmtoxhtml.xsl', mm_filename])
+                        HOME+'/bin/mmtoxhtml.xsl', mm_fn])
                     call(['tidy', '-asxhtml', '-utf8', 
                           '-w', '0', '-m', html_fn])
                     p3 = Popen(['tail', '-n', '+2', html_fn], 
@@ -206,11 +206,11 @@ def check_mm_files(HOMEDIR):
                                 '-o', html_fn],
                          stdin=p3.stdout)
                     # if exists, update the syllabus.md that uses the MM's HTML
-                    if 'readings' in mm_filename:
-                        md_syllabus_fn = filename.replace('readings', 
+                    if 'readings' in mm_fn:
+                        md_syllabus_fn = fn.replace('readings', 
                             'syllabus') + '.md'
                         if exists(md_syllabus_fn):
-                            update_markdown(filename, md_syllabus_fn)
+                            update_markdown(fn, md_syllabus_fn)
 
 def check_mm_tmp_html_files():
     '''Freemind exports HTML to '/tmp/tmm543...72.html; find them and 
@@ -271,12 +271,12 @@ def retire_tasks(directory):
         return False
     else:
         zim_files = locate('*.txt', directory)
-        for zim_filename in zim_files:
-            info(zim_filename)
+        for zim_fn in zim_files:
+            info(zim_fn)
             done_tasks =[]
             activity = 'misc'
             new_wiki_page = []
-            with open(zim_filename, 'r') as wiki_page:
+            with open(zim_fn, 'r') as wiki_page:
                 for line in wiki_page:
                     label = re.search('@\w+', line)
                     if label: # TODO: support multiple labels and remove from activity
@@ -289,7 +289,7 @@ def retire_tasks(directory):
                     else:
                         new_wiki_page.append(line)
             if done_tasks:
-                new_wiki_page_fd = open(zim_filename, 'w')
+                new_wiki_page_fd = open(zim_fn, 'w')
                 new_wiki_page_fd.writelines("%s" % line for line in new_wiki_page)
                 new_wiki_page_fd.close()
                 log2work(done_tasks)
