@@ -149,28 +149,6 @@ def update_markdown(filename, md_fn):
         # md_args.extend(['--style-csl', 'turabian-reagle.csl'])
         md_args.extend(['--style-csl', 'chicago-fullnote-nobib.csl'])
         # md_args.extend(['--odt'])
-        # md_args.extend(['-c', 'http://reagle.org/joseph/2003/mit-press.css'])
-    # elif 'syllabus' in md_fn:
-    #     info("processing syllabus")
-    #     mm_fn_html = md_fn.replace('syllabus', 'readings'
-    #         ).replace('.md', '.html')
-    #     info("mm_fn_html = '%s'" %(mm_fn_html))
-    #     if exists(mm_fn_html):
-    #         info("transcluding HTML from mindmap")
-    #         html_parser = etree.HTMLParser()
-    #         doc = etree.parse(open(mm_fn_html, 'rb'), html_parser)
-    #         body_node = doc.xpath('//body')[0] # must be single element to serialize
-    #         body_string = etree.tostring(body_node).decode("utf-8") 
-    #         body_content = re.findall('<body>(.*)</body>', body_string, 
-    #         	re.DOTALL)[0]
-    #         body_content = body_content.replace('  font-size:100%;', '').replace(
-    #             'style="color:#338800;"', 'class="mm-author"').replace(
-    #             'style="color:#090f6b;"', 'class="mm-title"').replace(
-    #             'style="color:#ff33b8;"', 'class="mm-bib"')
-    #         tmp_body_fn = filename + '.tmp'
-    #         codecs.open(tmp_body_fn, 'w', 'utf-8', 'replace'
-    #             ).write(body_content)
-    #         md_args.extend(['--include-after-body', tmp_body_fn])
     else:
         md_args.extend(['-c', 
             'http://reagle.org/joseph/2003/papers.css'])
