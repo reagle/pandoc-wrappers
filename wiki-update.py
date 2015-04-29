@@ -125,10 +125,10 @@ def insert_todos(plan_fn, todos):
     parent.replace(div, todos)
     doc.write(plan_fn)
 
-def update_markdown(filename, md_fn):
+def update_markdown(fn, md_fn):
     '''Convert markdown file'''
     
-    dbg('updating_md %s' %filename)
+    dbg('updating_md %s' %fn)
     content = open(md_fn,"r").read()
     md_cmd = [MD_BIN]
     md_args = []
@@ -165,6 +165,7 @@ def update_markdown(filename, md_fn):
     if tmp_body_fn: 
         remove(tmp_body_fn)
     if args.launch:
+        html_fn = fn + '.html'
         #webbrowser.open(html_fn)
         call(["google-chrome", html_fn])
 
@@ -191,7 +192,7 @@ def check_mm_files(HOMEDIR):
     files = locate('*.mm', HOMEDIR)
     for mm_fn in files:
         if any([included in mm_fn for included in INCLUDE_PATHS]):
-            fn = splitext(md_fn)[0]
+            fn = splitext(mm_fn)[0]
             html_fn = fn + '.html'
             if exists(html_fn):
                 if getmtime(mm_fn) > getmtime(html_fn):
