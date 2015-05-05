@@ -407,10 +407,10 @@ def process(args):
             
             # text alternations
             if args.british_punctuation: # swap double/single quotes
-                content_html = content_html.replace('“', '&ldquo;').replace('”', '&rdquo;')
-                single_quote_re = re.compile(r"(\W)‘(.{2,40}?)’(\W)")
-                content_html = single_quote_re.sub(r'\1“\2”\3', content_html)
-                content_html = content_html.replace('&ldquo;', r"‘").replace('&rdquo;', '’')
+                content_html = content_html.replace('"', '&ldquo;').replace('"', '&rdquo;')
+                single_quote_re = re.compile(r"(\W)'(.{2,40}?)'(\W)")
+                content_html = single_quote_re.sub(r'\1"\2"\3', content_html)
+                content_html = content_html.replace('&ldquo;', r"'").replace('&rdquo;', "'")
             # correct bibliography
             content_html = content_html.replace(' Vs. ', ' vs. ')
 
