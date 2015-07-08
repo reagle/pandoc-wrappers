@@ -371,6 +371,8 @@ def process(args):
             if args.presentation: # color some revealjs top of column slides
                 if line.startswith('# ') and '{data-' not in line:
                     line = line.strip() + ' {data-background="LightBlue"}\n'
+                if 'script' not in line:
+                    line = line.replace(' src=', ' data-src=')
             #info("END line: '%s'" % line)
             f2.write(line + '\n')
         f1.close()
