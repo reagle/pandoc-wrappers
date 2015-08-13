@@ -66,11 +66,12 @@ def link_citations(line, bibtex_parsed):
             return key
         url = reference.get('url')
         title = reference.get('shorttitle')
+        last_name, year, _ = re.split('(\d\d\d\d)', key)
         
         if citation.startswith('-'):
             key_text = re.findall(r'\d\d\d\d.*', key)[0] # year
         else:
-            key_text = key
+            key_text = "%s %s" %(last_name, year)
         
         #info("**   url = %s" % url)
         if url:
