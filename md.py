@@ -159,12 +159,14 @@ def create_talk_handout(abs_fn, tmp2_fn):
         info("md_dir = '%s', handout_dir = '%s'" %(md_dir, handout_dir))
         media_relpath = relpath(md_dir, handout_dir)
         info("media_relpath = '%s'" %(media_relpath))
+        content = content.replace(' data-src=', ' src=')
         content = content.replace('](media/', '](%s/media/' % media_relpath)
+        content = content.replace('="media/', '="%s/media/' % media_relpath)
         lines = [line+'\n' for line in content.split('\n')]
         for line in lines:
-            if '<video ' in line or \
-                line.startswith('<details'):  # skip rules
+            if line.startswith('<details'):  # skip rules
                 skip_to_next_header = True
+                info("skipping line = '%s'" % line)
                 continue 
             if line.startswith('----'):
                 line = line.replace('----', '# &nbsp;')
@@ -204,7 +206,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
             handout_fn]
         info("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
-        remove(handout_fn)
+        if not args.keep_tmp:
+            remove(handout_fn)
     info("done handout")
 
 def number_elements(content):
