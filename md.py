@@ -411,7 +411,7 @@ def process(args):
                 raise ValueError('post-pandoc content_html is empty')
                 sys.exit()
             
-            # text alternations
+            # text alterations
             if args.british_punctuation: # swap double/single quotes
                 content_html = content_html.replace('"', '&ldquo;').replace('"', '&rdquo;')
                 single_quote_re = re.compile(r"(\W)'(.{2,40}?)'(\W)")
