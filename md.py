@@ -368,6 +368,7 @@ def process(args):
             # fix Wikicommons relative network-path references 
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
+            # TODO: encode ampersands in URLs
             line = quash_citations(line)
             if args.bibliography: # create hypertext refs from bibtex db
                 line = link_citations(line, bibtex_parsed)
