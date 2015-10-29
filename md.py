@@ -61,6 +61,7 @@ def link_citations(line, bibtex_parsed):
         key = citation.split('@', 1)[1]
         info("**   processing key: %s" % key)
         reference = bibtex_parsed.get(key)
+        info(reference)
         if reference == None:
             print("WARNING: key %s not found" % key)
             return key
@@ -68,6 +69,9 @@ def link_citations(line, bibtex_parsed):
         title = reference.get('shorttitle')
         last_name, year, _ = re.split('(\d\d\d\d)', key)
         
+        if 'origdate' in reference:
+            year = reference['origdate'] # + "/" + year
+
         if citation.startswith('-'):
             key_text = re.findall(r'\d\d\d\d.*', key)[0] # year
         else:
