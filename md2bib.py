@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 # (c) Copyright 2011-2014 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
