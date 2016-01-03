@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 # (c) Copyright 2008-2012 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
@@ -270,9 +270,9 @@ def process(args):
 
         pandoc_inputs = []
         pandoc_opts = ['-w', args.write]
-        if args.write == 'markdown-citations':
-            pandoc_opts.extend(['--csl=sage-harvard.csl', 
-                '--bibliography=/home/reagle/joseph/readings.yaml'])    
+        # if args.write == 'markdown-citations':
+        #     pandoc_opts.extend(['--csl=sage-harvard.csl', 
+        #         '--bibliography=/home/reagle/joseph/readings.yaml'])    
         pandoc_opts.extend(['-s', '--smart', '--tab-stop', '4', 
             '--email-obfuscation=references'])
 
