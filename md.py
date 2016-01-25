@@ -371,18 +371,19 @@ def process(args):
         for lineNo, line in enumerate(lines):
             # fix Wikicommons relative network-path references 
             # so the URLs work on local file system (i.e.,'file:///')
-            line = line.replace('src="//', 'src="http://')
-            # TODO: encode ampersands in URLs
-            line = quash_citations(line)
-            if args.bibliography: # create hypertext refs from bibtex db
-                line = link_citations(line, bibtex_parsed)
-                #info("\n** line is now %s" % line)
-            if args.presentation: # color some revealjs top of column slides
-                if line.startswith('# ') and '{data-' not in line:
-                    line = line.strip() + ' {data-background="LightBlue"}\n'
-                if 'script' not in line:
-                    line = line.replace(' src=', ' data-src=')
-            #info("END line: '%s'" % line)
+            if not line.startswith('    '): # not verbatim
+                line = line.replace('src="//', 'src="http://')
+                # TODO: encode ampersands in URLs
+                line = quash_citations(line)
+                if args.bibliography: # create hypertext refs from bibtex db
+                    line = link_citations(line, bibtex_parsed)
+                    #info("\n** line is now %s" % line)
+                if args.presentation: # color some revealjs top of column slides
+                    if line.startswith('# ') and '{data-' not in line:
+                        line = line.strip() + ' {data-background="LightBlue"}\n'
+                    if 'script' not in line:
+                        line = line.replace(' src=', ' data-src=')
+                #info("END line: '%s'" % line)
             f2.write(line + '\n')
         f1.close()
         f2.close()
