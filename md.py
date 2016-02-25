@@ -494,9 +494,9 @@ if __name__ == "__main__":
                     help="number sections and paragraphs")
     arg_parser.add_argument("-s", "--style-chicago",
                     action="store_true", default=False,
-                    help="use CSL bibliography style, default chicago author-date")
+                    help="use CSL bibliography style, default chicago-author-date.csl")
     arg_parser.add_argument("-S", "--style-csl", nargs = 1,
-                    help="specify CSL style")
+                    help="specify CSL style [chicago-fullnote-bibliography.csl, ...]")
     arg_parser.add_argument("-t", "--toc",
                     action="store_true", default=False,
                     help="create table of contents")
@@ -515,7 +515,7 @@ if __name__ == "__main__":
                     
     arg_parser.add_argument("-w", "--write",
                     default='html',
-                    help="Write to format [html,markdown-citations,...]")
+                    help="Write to format [html, markdown-citations,...]")
                      
     arg_parser.add_argument('-L', '--log-to-file',
                     action="store_true", default=False,
