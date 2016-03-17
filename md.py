@@ -262,7 +262,10 @@ def process(args):
         BIB_FILE = HOME+'/joseph/readings.bib'
         bibtex_parsed = md2bib.parse_bibtex(open(BIB_FILE, 'r').readlines())
 
+    info("args.files = '%s'" %args.files)
     for in_file in args.files:
+        if not in_file: continue
+        info("in_file = '%s'" %in_file)
 
         ##############################
         # initial pandoc configuration based on arguments
@@ -351,6 +354,7 @@ def process(args):
                 emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
                 pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
                 
+        print((abs_fn, fn_tmp_1))
         shutil.copyfile(abs_fn, fn_tmp_1)
         f1 = codecs.open(fn_tmp_1, 'r', "UTF-8", "replace")
         content = f1.read()
