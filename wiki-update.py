@@ -131,7 +131,7 @@ def update_markdown(fn, md_fn):
     dbg('updating_md %s' %fn)
     content = open(md_fn,"r").read()
     md_cmd = [MD_BIN]
-    md_args = []
+    md_args = [] # '-VV'
     tmp_body_fn = None # temporary store body of MM HTML
 
     if 'talks' in md_fn:
@@ -160,6 +160,8 @@ def update_markdown(fn, md_fn):
         md_args.extend(md_opts)
     md_cmd.extend(md_args)
     md_cmd.extend([md_fn])
+    md_cmd = list(filter(None, md_cmd)) # remove any empty strings
+    info("md_cmd = '%s'" %md_cmd)
     info("md_cmd = %s" % ' '.join(md_cmd))
     call(md_cmd)
     if tmp_body_fn: 
