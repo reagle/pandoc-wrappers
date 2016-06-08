@@ -27,7 +27,8 @@ import time
 from os.path import expanduser
 HOME = expanduser("~")
 
-MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'
+MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'  
+ZIM_BIN = '/usr/local/bin/python %s/bin/zim-0.60/zim.py' %HOME
 
 log_level = 100 # default
 critical = logging.critical
@@ -91,14 +92,14 @@ def chmod_recursive(path, dir_perms, file_perms):
             chmod(join(root, f), file_perms)
 
 ##################################
-                
+          
 def export_zim(zim_path):
-    info('zim --export --output=%szwiki --format=html '
+    info('%s --export --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
-        '--index-page index ' %(zim_path, zim_path))
-    results = (Popen('zim --export --output=%szwiki --format=html '
+        '--index-page index ' %(ZIM_BIN, zim_path, zim_path))
+    results = (Popen('%s --export --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
-        '--index-page index ' %(zim_path, zim_path), 
+        '--index-page index ' %(ZIM_BIN, zim_path, zim_path), 
         stdout=PIPE, shell=True).communicate()[0].decode('utf8'))
     chmod_recursive('%szwiki' %zim_path, 0o755, 0o744)
     if results: print(results)

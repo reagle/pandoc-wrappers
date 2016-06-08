@@ -33,8 +33,8 @@ import sys
 from os.path import expanduser
 HOME = expanduser("~")
 BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
-# PANDOC_BIN = HOME+'/.cabal/bin/pandoc'
-PANDOC_BIN = '/usr/bin/pandoc'
+PANDOC_BIN = HOME+'/.cabal/bin/pandoc'
+# PANDOC_BIN = '/usr/bin/pandoc'
 
 log_level = 100 # default
 critical = logging.critical
