@@ -28,7 +28,7 @@ from os.path import expanduser
 HOME = expanduser("~")
 
 MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'  
-ZIM_BIN = '/usr/local/bin/python %s/bin/zim-0.60/zim.py' %HOME
+ZIM_BIN = '/usr/local/bin/python %s/bin/zim-0.65/zim.py' %HOME
 
 log_level = 100 # default
 critical = logging.critical
@@ -94,13 +94,14 @@ def chmod_recursive(path, dir_perms, file_perms):
 ##################################
           
 def export_zim(zim_path):
-    info('%s --export --output=%szwiki --format=html '
+    # TODO: remove old wiki?
+    rebuild_index = Popen('%s --index %s/zim' %(ZIM_BIN, zim_path),
+        stdout=PIPE, shell=True).communicate()[0].decode('utf8')
+    ZIM_CMD = ('%s --export --recursive --overwrite --output=%szwiki --format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
-        '--index-page index ' %(ZIM_BIN, zim_path, zim_path))
-    results = (Popen('%s --export --output=%szwiki --format=html '
-        '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
-        '--index-page index ' %(ZIM_BIN, zim_path, zim_path), 
-        stdout=PIPE, shell=True).communicate()[0].decode('utf8'))
+        '--format=html --index-page index ' %(ZIM_BIN, zim_path, zim_path))
+    info(ZIM_CMD)
+    results = Popen((ZIM_CMD), stdout=PIPE, shell=True).communicate()[0].decode('utf8')
     chmod_recursive('%szwiki' %zim_path, 0o755, 0o744)
     if results: print(results)
 
@@ -276,7 +277,7 @@ def retire_tasks(directory):
     else:
         zim_files = locate('*.txt', directory)
         for zim_fn in zim_files:
-            info(zim_fn)
+            # info(zim_fn)
             done_tasks =[]
             activity = 'misc'
             new_wiki_page = []
