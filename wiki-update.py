@@ -16,19 +16,22 @@ import logging
 import md
 from os import chdir, chmod, environ, mkdir, path, rename, remove, walk
 from os.path import abspath, basename, dirname, exists, \
-    getmtime, join, relpath, splitext
+    expanduser, getmtime, join, relpath, splitext
 import re
 from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
+import shutil
 import sys
 import time
 #import webbrowser
 
-from os.path import expanduser
-HOME = expanduser("~")
-
+HOME = expanduser("~") if exists(expanduser("~")) else None
+BROWSER = environ['BROWSER'] if 'BROWSER' in environ else None
+PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'  
 ZIM_BIN = '/usr/local/bin/python %s/bin/zim-0.65/zim.py' %HOME
+if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
+    raise FileNotFoundError("Your environment is not configured correctly")
 
 log_level = 100 # default
 critical = logging.critical
@@ -156,6 +159,7 @@ def update_markdown(fn, md_fn):
             'http://reagle.org/joseph/2003/papers.css'])
     # check for a multimarkdown metadata line with extra build options
     match_md_opts = re.search('^md_opts: (.*)', content, re.MULTILINE)
+    # md_args.extend(['--keep-tmp']) # for debugging
     if match_md_opts:
         md_opts = match_md_opts.group(1).strip().split(' ')
         info("md_opts = %s" % md_opts)
