@@ -22,7 +22,7 @@ import md2bib
 import os
 from os import chdir, environ, mkdir, path, rename, remove, walk
 from os.path import abspath, basename, dirname, exists, \
-    getmtime, join, relpath, splitext
+    expanduser, getmtime, join, relpath, splitext
 import re
 import shutil
 #from sh import chmod # http://amoffat.github.com/sh/
@@ -30,11 +30,11 @@ import subprocess
 from subprocess import call, check_output, Popen
 import sys
 
-from os.path import expanduser
-HOME = expanduser("~")
-BROWSER = os.environ['BROWSER'] if 'BROWSER' in os.environ else None
-PANDOC_BIN = HOME+'/.cabal/bin/pandoc'
-# PANDOC_BIN = '/usr/bin/pandoc'
+HOME = expanduser("~") if exists(expanduser("~")) else None
+BROWSER = environ['BROWSER'] if 'BROWSER' in os.environ else None
+PANDOC_BIN = shutil.which("pandocc")
+if not all([HOME, BROWSER, PANDOC_BIN]):
+    raise FileNotFoundError("Your environment is not configured correctly")
 
 log_level = 100 # default
 critical = logging.critical
