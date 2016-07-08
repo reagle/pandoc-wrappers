@@ -79,7 +79,7 @@ elif opts.pdftohtml:
     command = ['pdftotext', '-layout', '-nopgbrk', url, '-']
 else: # fallback to pandoc
     content = urlopen(url).read()
-    wrap = '' if opts.wrap else '--no-wrap'
+    wrap = '' if opts.wrap else '--wrap=none'
     command = ['pandoc', '-f', 'html', '-t', 'markdown', 
                 '--reference-links', '-o', DST_FILE]
 
