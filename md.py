@@ -31,7 +31,7 @@ from subprocess import call, check_output, Popen
 import sys
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
-BROWSER = environ['BROWSER'] if 'BROWSER' in environ else None
+BROWSER = environ['BROWSER'].replace('*', ' ') if 'BROWSER' in environ else None
 PANDOC_BIN = shutil.which("pandoc")
 if not all([HOME, BROWSER, PANDOC_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
