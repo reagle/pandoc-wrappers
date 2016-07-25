@@ -328,6 +328,7 @@ def process(args):
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
 
         pandoc_opts.extend(['-o', fn_result])
+        pandoc_opts.extend(['--mathjax'])
 
         if args.style_csl:
             if args.bibtex:
@@ -397,7 +398,8 @@ def process(args):
         ##############################
 
         pandoc_cmd = [PANDOC_BIN, '-f', 'markdown+mmd_title_block'
-            '+implicit_header_references' '+superscript+subscript']
+            '+implicit_header_references' '+superscript+subscript'
+            '+tex_math_dollars']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
