@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Document transformation wrapper"""
 
@@ -6,9 +6,10 @@ from md import link_citations
 from md2bib import parse_bibtex
 import optparse
 import os
+import shutil
 from subprocess import call, Popen, PIPE
 import textwrap
-from urllib import urlopen
+from urllib.request import urlopen
 
 from os.path import expanduser
 HOME = expanduser("~")
@@ -51,7 +52,7 @@ opt_parser.add_option("-q", "--quote",
 opts, args = opt_parser.parse_args()
 
 url = args[0]
-print "** url = ", url
+print(("** url = %s" %url))
 content = None
 os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
 
@@ -84,7 +85,7 @@ else: # fallback to pandoc
                 '--reference-links', '-o', DST_FILE]
 
 command.extend(wrap.split())
-print "** command = ", command
+print(("** command = %s" %command))
 process = Popen(command, stdin=PIPE, stdout=open(DST_FILE, 'w'))
 process.communicate(input = content)
 
@@ -102,5 +103,5 @@ if opts.wrap or opts.quote:
     with open(DST_FILE, 'w') as f:
         f.write(content)
 
-os.chmod(DST_FILE, 0600)
+os.chmod(DST_FILE, 0o600)
 call([EDITOR, DST_FILE])
