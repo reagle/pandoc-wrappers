@@ -117,6 +117,7 @@ def grab_todos(filename):
     div.set('id', 'Ongoing-todos')
     div_txt = etree.tostring(div).decode("utf-8")
     div_txt = div_txt.replace('href="./', 'href="../zwiki/')
+    div_txt = div_txt.replace('href="file:///Users/reagle/joseph/', 'href="../../')
     new_div = html.fragment_fromstring(div_txt)
     return new_div
 
