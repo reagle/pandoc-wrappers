@@ -288,12 +288,13 @@ def process(args):
                                 '-t', 'revealjs', '--slide-level=2',
                                 '--template=default.reveal3js',
                                 '-V', 'revealjs-url=../_reveal3.js',
-                                # '-V', 'revealjs-url=../_reveal.js',
                                 '-V', 'theme=beige',
                                 '-V', 'transition=linear',
                                 ])
         if args.css:
             pandoc_opts.extend(['-c', args.css])
+        if args.condensed:
+            pandoc_opts.extend(['-c', 'http://reagle.org/joseph/2003/papers-condensed.css'])
         if args.toc:
             pandoc_opts.extend(['--toc'])
             if args.toc_depth:
@@ -479,6 +480,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("-c", "--css", 
                     default='http://reagle.org/joseph/2003/papers.css',
                     help="apply non-default CSS")
+    arg_parser.add_argument("--condensed", 
+                    action="store_true", default=False,
+                    help="use condensed line spacing CSS")
     arg_parser.add_argument("-d", "--divs", 
                     action="store_true", default=False,
                     help="use pandoc's --section-divs")
