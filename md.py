@@ -398,7 +398,7 @@ def process(args):
         ##  pandoc
         ##############################
 
-        pandoc_cmd = [PANDOC_BIN, '-f', 'markdown+mmd_title_block'
+        pandoc_cmd = [PANDOC_BIN, '-f', 'markdown+mmd_title_block+yaml_metadata_block'
             '+implicit_header_references' '+superscript+subscript'
             '+tex_math_dollars']
         pandoc_cmd.extend(pandoc_opts)

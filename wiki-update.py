@@ -159,7 +159,7 @@ def update_markdown(fn, md_fn):
         md_args.extend(['-c', 
             'http://reagle.org/joseph/2003/papers.css'])
     # check for a multimarkdown metadata line with extra build options
-    match_md_opts = re.search('^md_opts: (.*)', content, re.MULTILINE)
+    match_md_opts = re.search('^md_opts_: (.*)', content, re.MULTILINE)
     # md_args.extend(['--keep-tmp']) # for debugging
     if match_md_opts:
         md_opts = match_md_opts.group(1).strip().split(' ')
