@@ -7,11 +7,15 @@
     1. associates the result with a particular style sheet.
     2. can replace [@key] with hypertext'd refs from bibtex database.
     3. makes use of reveal.js for presentations.
-    
-TODO:
-    1. reduce redundant references: page only, if key already cited
-    2. replace square brackets with round when no URL.
 '''
+
+# TODO:
+#     1. reduce redundant references: page only, if key already cited
+#     2. replace square brackets with round when no URL.
+#     3. restore move_punctuation_outside, 
+#         move each of these periods to right of quotation mark:
+#         a. if using note style: "I do what I hate" [#@Paul2006r7].
+#         b. all styles: "Testes Testes Testes."
 
 import codecs
 from io import StringIO
@@ -101,13 +105,14 @@ def link_citations(line, bibtex_parsed):
     line = P_KEY.sub(hyperize, line)
     return line
 
-def quash_citations(line):
+def process_commented_citations(line):
 
     P_BRACKET_PAIR = re.compile(r' \[[-#]?@[^\]]+\]')
     def quash(cite_match): 
         """
-        Collect and rewrite citations, dropping those preceded by a pound
-        sign if args.quash_citations [#@Reagle2012foo]
+        Collect and rewrite citations.
+        if args.quash_citations drop citation [#@Reagle2012foo]
+        else uncomment
         """
         citation = cite_match.group(0)
         #critical("citation = '%s'" %(citation))
@@ -133,8 +138,13 @@ def quash_citations(line):
         else:
             return ''
     
+    new_line = P_BRACKET_PAIR.subn(quash, line)[0]
+    # if I quashed a citation completely, I might have a period after a quote
+    if args.quash_citations:
+        if '].' in line and '".' in new_line: # imperfect test
+            new_line = new_line.replace('".', '."')
+    return new_line
 
-    return P_BRACKET_PAIR.subn(quash, line)[0]
 
 def create_talk_handout(abs_fn, tmp2_fn):
     '''If talks and handouts exists, create (partial) handout'''
@@ -367,20 +377,17 @@ def process(args):
 
         print("split(abs_fn) = %s, %s" % (os.path.split(abs_fn)))
 
-        content = content.replace(' --- ', '---')
+        # content = content.replace(' --- ', '---') # what is this 20161215?
 
-        if args.punctuation_inside: # move quotes and commas outside quotes
-            swap_punct_quote_re = re.compile(r'(?<!\.)"( \[[^\[]+\])([,.])')
-            content = swap_punct_quote_re.sub(r'\2"\1', content)
-        
         lines = content.split('\n')
+        new_lines = []
         
         for lineNo, line in enumerate(lines):
             # fix Wikicommons relative network-path references 
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
             # TODO: encode ampersands in URLs
-            line = quash_citations(line)
+            line = process_commented_citations(line)
             if args.bibliography: # create hypertext refs from bibtex db
                 line = link_citations(line, bibtex_parsed)
                 #info("\n** line is now %s" % line)
@@ -390,8 +397,9 @@ def process(args):
                 if 'script' not in line:
                     line = line.replace(' src=', ' data-src=')
             #info("END line: '%s'" % line)
-            f2.write(line + '\n')
+            new_lines.append(line)
         f1.close()
+        f2.write('\n'.join(new_lines))
         f2.close()
         
         ##############################
@@ -425,7 +433,7 @@ def process(args):
                 sys.exit()
             
             # text alterations
-            if args.british_punctuation: # swap double/single quotes
+            if args.british_quotes: # swap double/single quotes
                 content_html = content_html.replace('"', '&ldquo;').replace('"', '&rdquo;')
                 single_quote_re = re.compile(r"(\W)'(.{2,40}?)'(\W)")
                 content_html = single_quote_re.sub(r'\1"\2"\3', content_html)
@@ -467,16 +475,12 @@ if __name__ == "__main__":
     arg_parser.add_argument("--bibtex",
                     action="store_true", default=False,
                     help="use .bib file instead of YAML bibliography")
-    arg_parser.add_argument("-B", "--british-punctuation", 
+    arg_parser.add_argument("-B", "--british-quotes", 
                     action="store_true", default=False,
                     help="swap single and double quotes")
     arg_parser.add_argument("-q", "--quash-citations",
                     action="store_true", default=False,
                     help="quash citations that begin with hash (#@Reagle2012foo)")                    
-    arg_parser.add_argument("--punctuation-inside", 
-                    action="store_true", default=False,
-                    help="move punctuation inside of quotes, "
-                    "use with note citation styles")
     arg_parser.add_argument("-c", "--css", 
                     default='http://reagle.org/joseph/2003/papers.css',
                     help="apply non-default CSS")
