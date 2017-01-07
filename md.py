@@ -365,7 +365,9 @@ def process(args):
                 entries = parse_func(open(BIB_FILE, 'r').readlines())
                 subset = subset_func(entries, keys)
                 emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
-                pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
+                # deprecate for YAML workaround: bug https://github.com/jgm/pandoc-citeproc/issues/272
+                # pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
+                pandoc_opts.extend(['--filter', 'pandoc-citeproc',])
                 
         print((abs_fn, fn_tmp_1))
         shutil.copyfile(abs_fn, fn_tmp_1)
@@ -412,6 +414,8 @@ def process(args):
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
+        # YAML workaround: bug https://github.com/jgm/pandoc-citeproc/issues/272
+        pandoc_cmd.extend([bib_subset_tmp_fn])
         print("joined pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
         call(pandoc_cmd) # , stdout=open(fn_tmp_3, 'w')
         info("done pandoc_cmd")
