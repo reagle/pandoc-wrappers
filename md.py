@@ -332,6 +332,7 @@ def process(args):
         fn_path = os.path.split(abs_fn)[0]
         info("fn_path = '%s'" %(fn_path))
 
+        bib_subset_tmp_fn = None # fn of subset of main biblio
         fn_tmp_1 = "%s-1%s" %(base_fn, base_ext) # as read
         fn_tmp_2 = "%s-2%s" %(base_fn, base_ext) # pre-pandoc
         fn_tmp_3 = "%s-3.%s" %(base_fn, args.write)  # post-pandoc copy
@@ -415,7 +416,8 @@ def process(args):
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
         # YAML workaround: bug https://github.com/jgm/pandoc-citeproc/issues/272
-        pandoc_cmd.extend([bib_subset_tmp_fn])
+        if bib_subset_tmp_fn:
+            pandoc_cmd.extend([bib_subset_tmp_fn])
         print("joined pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
         call(pandoc_cmd) # , stdout=open(fn_tmp_3, 'w')
         info("done pandoc_cmd")
