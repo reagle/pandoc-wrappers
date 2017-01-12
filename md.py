@@ -397,8 +397,6 @@ def process(args):
             if args.presentation: # color some revealjs top of column slides
                 if line.startswith('# ') and '{data-' not in line:
                     line = line.strip() + ' {data-background="LightBlue"}\n'
-                if 'script' not in line:
-                    line = line.replace(' src=', ' data-src=')
             #info("END line: '%s'" % line)
             new_lines.append(line)
         f1.close()
@@ -446,6 +444,11 @@ def process(args):
                 content_html = content_html.replace('&ldquo;', r"'").replace('&rdquo;', "'")
             # correct bibliography
             content_html = content_html.replace(' Vs. ', ' vs. ')
+
+            if args.presentation: 
+                # convert to data-src for lazy loading
+                lazy_elements_re = re.compile(r'''(\<img|<iframe|<video)(.*?) src=''')
+                content_html = lazy_elements_re.sub(r'\1\2 data-src=', content_html)
 
             # HTML alterations
             if args.number_elements:
