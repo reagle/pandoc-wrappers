@@ -300,6 +300,7 @@ def process(args):
                                 '-V', 'revealjs-url=../_reveal3.js',
                                 '-V', 'theme=beige',
                                 '-V', 'transition=linear',
+                                '--no-highlight', # conflicts with reveal's highlight.js
                                 ])
         if args.css:
             pandoc_opts.extend(['-c', args.css])
