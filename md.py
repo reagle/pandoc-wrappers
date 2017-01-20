@@ -296,11 +296,11 @@ def process(args):
             pandoc_opts.extend(['-c', '../_custom/reveal3js.css',
                                 '-c', '../_custom/font-awesome/css/font-awesome.min.css',
                                 '-t', 'revealjs', '--slide-level=2',
-                                '--template=default.reveal3js',
+                                # '--template=default.reveal3js',
                                 '-V', 'revealjs-url=../_reveal3.js',
                                 '-V', 'theme=beige',
                                 '-V', 'transition=linear',
-                                '--no-highlight', # conflicts with reveal's highlight.js
+                                # '--no-highlight', # conflicts with reveal's highlight.js
                                 ])
         if args.css:
             pandoc_opts.extend(['-c', args.css])
@@ -341,7 +341,7 @@ def process(args):
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
 
         pandoc_opts.extend(['-o', fn_result])
-        pandoc_opts.extend(['--mathjax'])
+        pandoc_opts.extend(['--katex'])
 
         if args.style_csl:
             if args.bibtex:
