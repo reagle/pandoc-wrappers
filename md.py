@@ -183,8 +183,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 skip_to_next_header = True
                 info("skipping line = '%s'" % line)
                 continue 
-            if line.startswith('----'):
-                line = line.replace('----', '# &nbsp;')
+            # if line.startswith('----'):
+                # line = line.replace('----', '# &nbsp;')
             # slide to SKIP
             if args.partial_handout:
                 info("args.partial_handout = '%s'" %(args.partial_handout))
@@ -193,8 +193,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
                     # slides to SKIP
                     if '_' in line:
                         skip_to_next_header = True
-                    elif '# rev: ' in line:
-                        skip_to_next_header = True
+                    # elif '# rev: ' in line:
+                        # skip_to_next_header = True
                     else:
                         skip_to_next_header = False
                     handout_f.write(line)
@@ -202,14 +202,12 @@ def create_talk_handout(abs_fn, tmp2_fn):
                     # REDACT some content in a slide
                     if not skip_to_next_header:
                         if line.startswith('> *') or \
-                            line.startswith('> -'):
+                            line.startswith('> -') or \
+                            line.startswith('_'):
                             handout_f.write('\n')
                             continue
                         info("entering em redaction")
-                        # line = ast_bullet_re.subn(r'\1- ', line)[0]
-                        # info("line_ast = %s" %line)
                         line = em_re.subn(em_mask, line)[0] # replace empth w/ _
-                        # info("line_em = %s" %line)
                         handout_f.write(line)
                     else:
                         handout_f.write('\n')
