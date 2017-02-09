@@ -291,14 +291,15 @@ def process(args):
         if args.presentation:
             args.validate = False
             args.css = False
-            pandoc_opts.extend(['-c', '../_custom/reveal3js.css',
-                                '-c', '../_custom/Font-Awesome/css/font-awesome.min.css',
-                                '-t', 'revealjs', '--slide-level=2',
-                                '-V', 'revealjs-url=../_reveal3.js',
-                                '-V', 'theme=beige',
-                                '-V', 'transition=linear',
-                                # '--no-highlight', # conflicts with reveal's highlight.js
-                                ])
+            pandoc_opts.extend([
+                    '-c', '../_custom/reveal3js.css',
+                    '-c', '../_custom/Font-Awesome/css/font-awesome.min.css',
+                    '-t', 'revealjs', '--slide-level=2',
+                    '-V', 'revealjs-url=../_reveal3.js',
+                    '-V', 'theme=beige',
+                    '-V', 'transition=linear',
+                    # '--no-highlight', # conflicts with reveal's highlight.js
+                    ])
         if args.css:
             pandoc_opts.extend(['-c', args.css])
         if args.condensed:
