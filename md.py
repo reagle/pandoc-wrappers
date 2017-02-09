@@ -292,9 +292,8 @@ def process(args):
             args.validate = False
             args.css = False
             pandoc_opts.extend(['-c', '../_custom/reveal3js.css',
-                                '-c', '../_custom/font-awesome/css/font-awesome.min.css',
+                                '-c', '../_custom/Font-Awesome/css/font-awesome.min.css',
                                 '-t', 'revealjs', '--slide-level=2',
-                                # '--template=default.reveal3js',
                                 '-V', 'revealjs-url=../_reveal3.js',
                                 '-V', 'theme=beige',
                                 '-V', 'transition=linear',
