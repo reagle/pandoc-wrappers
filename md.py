@@ -191,7 +191,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 line = line.replace('### ', ' ')
                 if line.startswith('# ') or line.startswith('## '):
                     # slides to SKIP
-                    if '_' in line:
+                    if ' _' in line:
                         skip_to_next_header = True
                     # elif '# rev: ' in line:
                         # skip_to_next_header = True
