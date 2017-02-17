@@ -59,7 +59,7 @@ os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
 # I prefer to use the programs native wrap if possible
 if opts.lynx:
     wrap = '-width 76' if opts.wrap else '-width 1024'
-    command = ['lynx', '-dump', '-nonumbers', url]
+    command = ['lynx', '-dump', '-nonumbers', '-display_charset=utf-8', url]
 elif opts.links:
     wrap = '-width 76' if opts.wrap else ''
     command = ['links', '-dump', url]
