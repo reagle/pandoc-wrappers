@@ -255,20 +255,27 @@ def log2work(done_tasks):
         log_items.append(log_item)
 
     OUT_FILE = HOME+'/data/2web/reagle.org/joseph/plan/plans/index.html'
-    fd = codecs.open(OUT_FILE, 'r', 'utf-8', 'replace')
-    content = fd.read()
-    fd.close()
+    plan_fd = codecs.open(OUT_FILE, 'r', 'utf-8', 'replace')
+    plan_content = plan_fd.read()
+    plan_fd.close()
+
+    # TODO: finish transition to xml - jr 20170222
+    # plan_tree = etree.fromstring(plan_content)
+    # ul_found = plan_tree.xpath('''//div[@id='Done']/ul''')
+    # if ul_found:
+        # ul_found[0].insert(0, etree.XML(''.join(log_items)))
+        # new_content = str(etree.tostring(plan_tree, pretty_print=True))
 
     insertion_regexp = re.compile('(<h2>Done Work</h2>\s*<ol>)')
 
-    newcontent = insertion_regexp.sub('\\1 \n  %s' %
+    new_content = insertion_regexp.sub('\\1 \n  %s' %
         ''.join(log_items), content, re.DOTALL|re.IGNORECASE)
-    if newcontent:
+    if new_content:
         fd = codecs.open(OUT_FILE, 'w', 'utf-8', 'replace')
-        fd.write(newcontent)
+        fd.write(new_content)
         fd.close()
     else:
-        print("Sorry, output regexp subsitution failed.")
+        print("Sorry, XML insertion failed.")
                          
                          
 def retire_tasks(directory):
