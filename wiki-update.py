@@ -260,16 +260,17 @@ def log2work(done_tasks):
     plan_fd.close()
 
     # TODO: finish transition to xml - jr 20170222
+    #     I should also escape_XML plan_content
     # plan_tree = etree.fromstring(plan_content)
     # ul_found = plan_tree.xpath('''//div[@id='Done']/ul''')
     # if ul_found:
         # ul_found[0].insert(0, etree.XML(''.join(log_items)))
         # new_content = str(etree.tostring(plan_tree, pretty_print=True))
 
-    insertion_regexp = re.compile('(<h2>Done Work</h2>\s*<ol>)')
+    insertion_regexp = re.compile('(<h2>Done Work</h2>\s*<ul>)')
 
     new_content = insertion_regexp.sub('\\1 \n  %s' %
-        ''.join(log_items), content, re.DOTALL|re.IGNORECASE)
+           ''.join(log_items), plan_content, re.DOTALL|re.IGNORECASE)
     if new_content:
         fd = codecs.open(OUT_FILE, 'w', 'utf-8', 'replace')
         fd.write(new_content)
