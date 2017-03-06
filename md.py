@@ -340,7 +340,7 @@ def process(args):
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
 
         pandoc_opts.extend(['-o', fn_result])
-        pandoc_opts.extend(['--katex'])
+        pandoc_opts.extend(['--mathjax'])
 
         if args.style_csl:
             if args.bibtex:
