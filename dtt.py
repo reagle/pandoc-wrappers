@@ -13,7 +13,7 @@ from urllib.request import urlopen
 
 from os.path import expanduser
 HOME = expanduser("~")
-EDITOR = os.environ['EDITOR']
+VISUAL = os.environ['VISUAL']
 DST_FILE = '/tmp/dtt.txt'
 BIBTEX_FILE = HOME+'/joseph/readings.bib'
 
@@ -104,4 +104,4 @@ if opts.wrap or opts.quote:
         f.write(content)
 
 os.chmod(DST_FILE, 0o600)
-call([EDITOR, DST_FILE])
+call([VISUAL, DST_FILE])
