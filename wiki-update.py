@@ -10,6 +10,7 @@ zim/* (zim-wiki) -> html
 """
 
 import codecs
+from concurrent import futures
 import fnmatch
 import hashlib
 from lxml import etree, html
@@ -144,24 +145,25 @@ def insert_todos(plan_fn, todos):
     parent.replace(div, todos)
     doc.write(plan_fn)
 
-
-def update_markdown(fn, md_fn):
+# fn_bare, fn_md, fn_html
+def update_markdown(files_to_process):
     '''Convert markdown file'''
 
-    dbg('updating_md %s' % fn)
-    content = open(md_fn, "r").read()
+    fn_bare, fn_md, fn_html = files_to_process
+    dbg('updating fn_md %s' % fn_md)
+    content = open(fn_md, "r").read()
     md_cmd = [MD_BIN]
     md_args = []  # '-VV'
     tmp_body_fn = None  # temporary store body of MM HTML
 
-    if 'talks' in md_fn:
+    if 'talks' in fn_md:
         md_args.extend(['--presentation'])
         COURSES = ['/oc/', '/cda/']
-        if any(course in md_fn for course in COURSES):
+        if any(course in fn_md for course in COURSES):
             md_args.extend(['--partial-handout'])
         if '[@' in content:
             md_args.extend(['--bibliography'])
-    elif 'cc/' in md_fn:
+    elif 'cc/' in fn_md:
         md_args.extend(['--quash'])
         # md_args.extend(['--keep-tmp'])
         md_args.extend(['--number-elements'])
@@ -179,7 +181,7 @@ def update_markdown(fn, md_fn):
         info("md_opts = %s" % md_opts)
         md_args.extend(md_opts)
     md_cmd.extend(md_args)
-    md_cmd.extend([md_fn])
+    md_cmd.extend([fn_md])
     md_cmd = list(filter(None, md_cmd))  # remove any empty strings
     info("md_cmd = '%s'" % md_cmd)
     info("md_cmd = %s" % ' '.join(md_cmd))
@@ -187,24 +189,30 @@ def update_markdown(fn, md_fn):
     if tmp_body_fn:
         remove(tmp_body_fn)
     if args.launch:
-        html_fn = fn + '.html'
-        # webbrowser.open(html_fn)
-        call(["google-chrome", html_fn])
+        # webbrowser.open(fn_html)
+        call(["google-chrome", fn_html])
 
 
 def check_markdown_files(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
 
-    files = locate('*.md', HOMEDIR)
-    for md_fn in files:
-        fn = splitext(md_fn)[0]
-        html_fn = fn + '.html'
-        dbg("html_fn = %s" % html_fn)
-        if exists(html_fn):
-            if getmtime(md_fn) > getmtime(html_fn):
+    files_bare = [splitext(fn_md)[0] for fn_md in locate('*.md', HOMEDIR)]
+    files_to_process = []
+    for fn_bare in files_bare:
+        fn_md = fn_bare + '.md'
+        fn_html = fn_bare + '.html'
+        if exists(fn_html):
+            if getmtime(fn_md) > getmtime(fn_html):
                 info("%s %s > %s %s"
-                     % (md_fn, getmtime(md_fn), html_fn, getmtime(html_fn)))
-                update_markdown(fn, md_fn)
+                     % (fn_md, getmtime(fn_md), fn_html, getmtime(fn_html)))
+                files_to_process.append((fn_bare, fn_md, fn_html))
+    if args.parallel:
+        # only useful for file sets > 10
+        with futures.ProcessPoolExecutor() as executor:
+            results = executor.map(update_markdown, files_to_process)
+    else:
+        # in python 3, map is lazy and won't do anything until iterated
+        list(map(update_markdown, files_to_process))
 
 
 def check_mm_files(HOMEDIR):
@@ -218,17 +226,17 @@ def check_mm_files(HOMEDIR):
     for mm_fn in files:
         if any([included in mm_fn for included in INCLUDE_PATHS]):
             fn = splitext(mm_fn)[0]
-            html_fn = fn + '.html'
-            if exists(html_fn):
-                if getmtime(mm_fn) > getmtime(html_fn):
+            fn_html = fn + '.html'
+            if exists(fn_html):
+                if getmtime(mm_fn) > getmtime(fn_html):
                     info('updating_mm %s' % fn)
-                    call(['xsltproc', '-o', html_fn,
+                    call(['xsltproc', '-o', fn_html,
                          HOME+'/bin/mmtoxhtml.xsl', mm_fn])
                     call(['tidy', '-asxhtml', '-utf8',
-                          '-w', '0', '-m', html_fn])
-                    p3 = Popen(['tail', '-n', '+2', html_fn], stdout=PIPE)
+                          '-w', '0', '-m', fn_html])
+                    p3 = Popen(['tail', '-n', '+2', fn_html], stdout=PIPE)
                     p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0',
-                                '-o', html_fn], stdin=p3.stdout)
+                                '-o', fn_html], stdin=p3.stdout)
                     # if exists, update the syllabus.md that uses the MM's HTML
                     if 'readings' in mm_fn:
                         md_syllabus_fn = fn.replace(
@@ -242,13 +250,13 @@ def check_mm_tmp_html_files():
     associate style sheet.'''
 
     files = locate('tmm*.html', '/tmp/')
-    for html_fn in files:
-        html_fd = open(html_fn, "r")
+    for fn_html in files:
+        html_fd = open(fn_html, "r")
         content = html_fd.read()
         content = content.replace('</title>', '''
             </title>\n\t\t<link href="/home/reagle/joseph/2005/01/mm-print.css"
             rel="stylesheet" type="text/css" />''')
-        html_fd = open(html_fn, "w")
+        html_fd = open(fn_html, "w")
         html_fd.write(content)
 
 
@@ -348,6 +356,10 @@ if '__main__' == __name__:
         "-n", "--notes-handout",
         action="store_true", default=False,
         help="Force creation of notes handout even if not class slide")
+    arg_parser.add_argument(
+        "-p", "--parallel",
+        action="store_true", default=False,
+        help="Executes instances of pandoc in parallel")
     arg_parser.add_argument(
         '-L', '--log-to-file',
         action="store_true", default=False,
