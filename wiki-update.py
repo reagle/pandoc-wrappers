@@ -3,7 +3,7 @@
 """
 Build the static portions of my website by looking for source files newer
     than existing HTML files.
-*.mm (freemind)-> html
+*.mm (Freeplane)-> html
 *.md (pandoc)-> html
 zim/* (zim-wiki) -> html
 
@@ -14,7 +14,6 @@ import fnmatch
 import hashlib
 from lxml import etree, html
 import logging
-import md
 from os import chdir, chmod, environ, mkdir, path, rename, remove, walk
 from os.path import abspath, basename, dirname, exists, \
     expanduser, getmtime, join, relpath, splitext
@@ -102,9 +101,8 @@ def chmod_recursive(path, dir_perms, file_perms):
 
 def export_zim(zim_path):
     # TODO: remove old wiki?
-    rebuild_index = Popen(
-        '%s --index %s/zim' % (ZIM_BIN, zim_path),
-        stdout=PIPE, shell=True).communicate()[0].decode('utf8')
+    Popen('%s --index %s/zim' % (ZIM_BIN, zim_path),
+          stdout=PIPE, shell=True).communicate()[0].decode('utf8')
     ZIM_CMD = (
         '%s --export --recursive --overwrite --output=%szwiki '
         '--format=html '
@@ -210,11 +208,11 @@ def check_markdown_files(HOMEDIR):
 
 
 def check_mm_files(HOMEDIR):
-    '''Convert any Freemind mindmap whose HTML file is older than it.
+    '''Convert any Freeplane mindmap whose HTML file is older than it.
     NOTE: If the syllabus.md hasn't been updated it won't reflect
     the changes'''
 
-    INCLUDE_PATHS = ['syllabus', 'readings', 'concepts']
+    INCLUDE_PATHS = {'syllabus', 'readings', 'concepts'}
 
     files = locate('*.mm', HOMEDIR)
     for mm_fn in files:
@@ -240,7 +238,7 @@ def check_mm_files(HOMEDIR):
 
 
 def check_mm_tmp_html_files():
-    '''Freemind exports HTML to '/tmp/tmm543...72.html; find them and
+    '''Freeplane exports HTML to '/tmp/tmm543...72.html; find them and
     associate style sheet.'''
 
     files = locate('tmm*.html', '/tmp/')
