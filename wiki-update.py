@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Build the static portions of my website by looking for source files newer than existing HTML files.
+Build the static portions of my website by looking for source files newer
+    than existing HTML files.
 *.mm (freemind)-> html
 *.md (pandoc)-> html
 zim/* (zim-wiki) -> html
@@ -23,17 +24,16 @@ from subprocess import call, check_output, Popen, PIPE
 import shutil
 import sys
 import time
-#import webbrowser
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = environ['BROWSER'] if 'BROWSER' in environ else None
 PANDOC_BIN = shutil.which("pandoc")
-MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'  
-ZIM_BIN = '/usr/local/bin/python %s/bin/zim-0.65/zim.py' %HOME
+MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'
+ZIM_BIN = '/usr/local/bin/python %s/bin/zim-0.65/zim.py' % HOME
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
-log_level = 100 # default
+log_level = 100  # default
 critical = logging.critical
 info = logging.info
 dbg = logging.debug
@@ -63,21 +63,22 @@ def locate(pattern, root):
         for fn in fnmatch.filter(files, pattern):
             yield join(path, fn)
 
+
 def has_dir_changed(directory):
-    
-        info('dir   = %s' %directory)
+
+        info('dir   = %s' % directory)
         checksum_file = directory + '.dirs.md5sum'
-        checksum = Popen(["ls -l -R %s | md5sum" % directory], 
-                shell=True, stdout=PIPE).communicate()[0]
+        checksum = Popen(["ls -l -R %s | md5sum" % directory],
+                         shell=True, stdout=PIPE).communicate()[0]
         checksum = checksum.split()[0].decode("utf-8")
         if not exists(checksum_file):
             open(checksum_file, 'w').write(checksum)
-            info('checksum created %s' %checksum)
+            info('checksum created %s' % checksum)
             return True
         else:
-            info("checksum_file = '%s'" %checksum_file)
+            info("checksum_file = '%s'" % checksum_file)
             state = open(checksum_file, 'r').read()
-            info('state = %s' %state)
+            info('state = %s' % state)
             if checksum == state:
                 info('checksum == state')
                 return False
@@ -86,59 +87,74 @@ def has_dir_changed(directory):
                 info('checksum updated')
                 return True
 
+
 def chmod_recursive(path, dir_perms, file_perms):
-    info("changings perms to %o;%o on path = '%s'" %(dir_perms, file_perms, path))
-    for root, dirs, files in walk(path):  
-        for d in dirs:  
+    info("changings perms to %o;%o on path = '%s'"
+         % (dir_perms, file_perms, path))
+    for root, dirs, files in walk(path):
+        for d in dirs:
             chmod(join(root, d), dir_perms)
         for f in files:
             chmod(join(root, f), file_perms)
 
 ##################################
-          
+
+
 def export_zim(zim_path):
     # TODO: remove old wiki?
-    rebuild_index = Popen('%s --index %s/zim' %(ZIM_BIN, zim_path),
+    rebuild_index = Popen(
+        '%s --index %s/zim' % (ZIM_BIN, zim_path),
         stdout=PIPE, shell=True).communicate()[0].decode('utf8')
-    ZIM_CMD = ('%s --export --recursive --overwrite --output=%szwiki --format=html '
+    ZIM_CMD = (
+        '%s --export --recursive --overwrite --output=%szwiki '
+        '--format=html '
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
-        '--format=html --index-page index ' %(ZIM_BIN, zim_path, zim_path))
+        '--format=html --index-page index ' % (ZIM_BIN, zim_path, zim_path))
     info(ZIM_CMD)
-    results = Popen((ZIM_CMD), stdout=PIPE, shell=True).communicate()[0].decode('utf8')
-    chmod_recursive('%szwiki' %zim_path, 0o755, 0o744)
-    if results: print(results)
+    results = Popen(
+        (ZIM_CMD), stdout=PIPE, shell=True
+        ).communicate()[0].decode('utf8')
+    chmod_recursive('%szwiki' % zim_path, 0o755, 0o744)
+    if results:
+        print(results)
+
 
 def grab_todos(filename):
 
-    info("grab_todos")   
-    html_parser = etree.HTMLParser(remove_comments = True, remove_blank_text = True)
+    info("grab_todos")
+    html_parser = etree.HTMLParser(
+        remove_comments=True, remove_blank_text=True)
     doc = etree.parse(open(filename, 'rb'), html_parser)
     div = doc.xpath('//div[@id="zim-content-body"]')[0]
     div.set('id', 'Ongoing-todos')
     div_txt = etree.tostring(div).decode("utf-8")
     div_txt = div_txt.replace('href="./', 'href="../zwiki/')
-    div_txt = div_txt.replace('href="file:///Users/reagle/joseph/', 'href="../../')
+    div_txt = div_txt.replace('href="file:///Users/reagle/joseph/',
+                              'href="../../')
     new_div = html.fragment_fromstring(div_txt)
     return new_div
 
+
 def insert_todos(plan_fn, todos):
-    
+
     info("insert_todos")
-    html_parser = etree.HTMLParser(remove_comments = True, remove_blank_text = True)
+    html_parser = etree.HTMLParser(remove_comments=True,
+                                   remove_blank_text=True)
     doc = etree.parse(open(plan_fn, 'rb'), html_parser)
     div = doc.xpath('//div[@id="Ongoing-todos"]')[0]
     parent = div.getparent()
     parent.replace(div, todos)
     doc.write(plan_fn)
 
+
 def update_markdown(fn, md_fn):
     '''Convert markdown file'''
-    
-    dbg('updating_md %s' %fn)
-    content = open(md_fn,"r").read()
+
+    dbg('updating_md %s' % fn)
+    content = open(md_fn, "r").read()
     md_cmd = [MD_BIN]
-    md_args = [] # '-VV'
-    tmp_body_fn = None # temporary store body of MM HTML
+    md_args = []  # '-VV'
+    tmp_body_fn = None  # temporary store body of MM HTML
 
     if 'talks' in md_fn:
         md_args.extend(['--presentation'])
@@ -156,8 +172,7 @@ def update_markdown(fn, md_fn):
         md_args.extend(['--style-csl', 'chicago-fullnote-nobib.csl'])
         # md_args.extend(['--odt'])
     else:
-        md_args.extend(['-c', 
-            'http://reagle.org/joseph/2003/papers.css'])
+        md_args.extend(['-c', 'http://reagle.org/joseph/2003/papers.css'])
     # check for a multimarkdown metadata line with extra build options
     match_md_opts = re.search('^md_opts_: (.*)', content, re.MULTILINE)
     # md_args.extend(['--keep-tmp']) # for debugging
@@ -167,16 +182,17 @@ def update_markdown(fn, md_fn):
         md_args.extend(md_opts)
     md_cmd.extend(md_args)
     md_cmd.extend([md_fn])
-    md_cmd = list(filter(None, md_cmd)) # remove any empty strings
-    info("md_cmd = '%s'" %md_cmd)
+    md_cmd = list(filter(None, md_cmd))  # remove any empty strings
+    info("md_cmd = '%s'" % md_cmd)
     info("md_cmd = %s" % ' '.join(md_cmd))
     call(md_cmd)
-    if tmp_body_fn: 
+    if tmp_body_fn:
         remove(tmp_body_fn)
     if args.launch:
         html_fn = fn + '.html'
-        #webbrowser.open(html_fn)
+        # webbrowser.open(html_fn)
         call(["google-chrome", html_fn])
+
 
 def check_markdown_files(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
@@ -188,14 +204,16 @@ def check_markdown_files(HOMEDIR):
         dbg("html_fn = %s" % html_fn)
         if exists(html_fn):
             if getmtime(md_fn) > getmtime(html_fn):
-                info("%s %s > %s %s" %(md_fn, getmtime(md_fn), 
-                                       html_fn, getmtime(html_fn)))
+                info("%s %s > %s %s"
+                     % (md_fn, getmtime(md_fn), html_fn, getmtime(html_fn)))
                 update_markdown(fn, md_fn)
-    
+
+
 def check_mm_files(HOMEDIR):
     '''Convert any Freemind mindmap whose HTML file is older than it.
-    NOTE: If the syllabus.md hasn't been updated it won't reflect the changes'''
-    
+    NOTE: If the syllabus.md hasn't been updated it won't reflect
+    the changes'''
+
     INCLUDE_PATHS = ['syllabus', 'readings', 'concepts']
 
     files = locate('*.mm', HOMEDIR)
@@ -205,37 +223,37 @@ def check_mm_files(HOMEDIR):
             html_fn = fn + '.html'
             if exists(html_fn):
                 if getmtime(mm_fn) > getmtime(html_fn):
-                    info('updating_mm %s' %fn)
-                    call(['xsltproc', '-o', html_fn, 
-                        HOME+'/bin/mmtoxhtml.xsl', mm_fn])
-                    call(['tidy', '-asxhtml', '-utf8', 
+                    info('updating_mm %s' % fn)
+                    call(['xsltproc', '-o', html_fn,
+                         HOME+'/bin/mmtoxhtml.xsl', mm_fn])
+                    call(['tidy', '-asxhtml', '-utf8',
                           '-w', '0', '-m', html_fn])
-                    p3 = Popen(['tail', '-n', '+2', html_fn], 
-                        stdout=PIPE)
-                    p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0', 
-                                '-o', html_fn],
-                         stdin=p3.stdout)
+                    p3 = Popen(['tail', '-n', '+2', html_fn], stdout=PIPE)
+                    p4 = Popen(['tidy', '-asxhtml', '-utf8', '-w', '0',
+                                '-o', html_fn], stdin=p3.stdout)
                     # if exists, update the syllabus.md that uses the MM's HTML
                     if 'readings' in mm_fn:
-                        md_syllabus_fn = fn.replace('readings', 
-                            'syllabus') + '.md'
+                        md_syllabus_fn = fn.replace(
+                            'readings', 'syllabus') + '.md'
                         if exists(md_syllabus_fn):
                             update_markdown(fn, md_syllabus_fn)
 
+
 def check_mm_tmp_html_files():
-    '''Freemind exports HTML to '/tmp/tmm543...72.html; find them and 
+    '''Freemind exports HTML to '/tmp/tmm543...72.html; find them and
     associate style sheet.'''
 
     files = locate('tmm*.html', '/tmp/')
     for html_fn in files:
-        html_fd = open(html_fn,"r")
+        html_fd = open(html_fn, "r")
         content = html_fd.read()
         content = content.replace('</title>', '''
             </title>\n\t\t<link href="/home/reagle/joseph/2005/01/mm-print.css"
             rel="stylesheet" type="text/css" />''')
-        html_fd = open(html_fn,"w")
+        html_fd = open(html_fn, "w")
         html_fd.write(content)
-         
+
+
 def log2work(done_tasks):
     '''
     Log completed zim tasks to work microblog
@@ -264,87 +282,100 @@ def log2work(done_tasks):
     # plan_tree = etree.fromstring(plan_content)
     # ul_found = plan_tree.xpath('''//div[@id='Done']/ul''')
     # if ul_found:
-        # ul_found[0].insert(0, etree.XML(''.join(log_items)))
-        # new_content = str(etree.tostring(plan_tree, pretty_print=True))
+    #     ul_found[0].insert(0, etree.XML(''.join(log_items)))
+    #     new_content = str(etree.tostring(plan_tree, pretty_print=True))
 
     insertion_regexp = re.compile('(<h2>Done Work</h2>\s*<ul>)')
 
-    new_content = insertion_regexp.sub('\\1 \n  %s' %
-           ''.join(log_items), plan_content, re.DOTALL|re.IGNORECASE)
+    new_content = insertion_regexp.sub(
+        '\\1 \n  %s' % ''.join(log_items), plan_content,
+        re.DOTALL | re.IGNORECASE)
     if new_content:
         fd = codecs.open(OUT_FILE, 'w', 'utf-8', 'replace')
         fd.write(new_content)
         fd.close()
     else:
         print("Sorry, XML insertion failed.")
-                         
-                         
+
+
 def retire_tasks(directory):
     '''
     Removes completed '[x]' zim tasks form zim
     '''
     if 'zim' in check_output(["ps", "axw"]).decode("utf-8"):
-        print("Zim is presently running; skipping task " +
-            "retirement and export.")
+        print("Zim is presently running; skipping task retirement and export.")
         return False
     else:
         zim_files = locate('*.txt', directory)
         for zim_fn in zim_files:
             # info(zim_fn)
-            done_tasks =[]
+            done_tasks = []
             activity = 'misc'
             new_wiki_page = []
             with open(zim_fn, 'r') as wiki_page:
                 for line in wiki_page:
                     label = re.search('@\w+', line)
-                    if label: # TODO: support multiple labels and remove from activity
+                    # TODO: support multiple labels and remove from activity
+                    if label:
                         activity = '#' + label.group(0).strip()[1:]
                     if '[x]' in line:
-                        item = line.split(']',1)[1].strip() # following checkbox
-                        info("found item %s" %item)
-                        info("activity = %s" %activity)
+                        # following checkbox
+                        item = line.split(']', 1)[1].strip()
+                        info("found item %s" % item)
+                        info("activity = %s" % activity)
                         done_tasks.append((activity, item))
                     else:
                         new_wiki_page.append(line)
             if done_tasks:
                 new_wiki_page_fd = open(zim_fn, 'w')
-                new_wiki_page_fd.writelines("%s" % line for line in new_wiki_page)
+                new_wiki_page_fd.writelines(
+                    "%s" % line for line in new_wiki_page)
                 new_wiki_page_fd.close()
                 log2work(done_tasks)
         return True
-                         
+
 if '__main__' == __name__:
-    import argparse # http://docs.python.org/dev/library/argparse.html
-    arg_parser = argparse.ArgumentParser(description="Build static HTML versions of various files")
-    arg_parser.add_argument("-l", "--launch",
-                    action="store_true", default=False,
-                    help="Open all check_markdown_files results in browser")
-    arg_parser.add_argument("-f", "--force-update",
-                    action="store_true", default=False,
-                    help="Force retire/update of Zim despite md5sums")
-    arg_parser.add_argument("-n", "--notes-handout",
-                    action="store_true", default=False,
-                    help="Force creation of notes handout even if not class slide")
-    arg_parser.add_argument('-L', '--log-to-file',
-                    action="store_true", default=False,
-                    help="log to file PROGRAM.log")
-    arg_parser.add_argument('-V', '--verbose', action='count', default=0,
+    import argparse  # http://docs.python.org/dev/library/argparse.html
+    arg_parser = argparse.ArgumentParser(
+        description="Build static HTML versions of various files")
+    arg_parser.add_argument(
+        "-l", "--launch",
+        action="store_true", default=False,
+        help="Open all check_markdown_files results in browser")
+    arg_parser.add_argument(
+        "-f", "--force-update",
+        action="store_true", default=False,
+        help="Force retire/update of Zim despite md5sums")
+    arg_parser.add_argument(
+        "-n", "--notes-handout",
+        action="store_true", default=False,
+        help="Force creation of notes handout even if not class slide")
+    arg_parser.add_argument(
+        '-L', '--log-to-file',
+        action="store_true", default=False,
+        help="log to file PROGRAM.log")
+    arg_parser.add_argument(
+        '-V', '--verbose', action='count', default=0,
         help="Increase verbosity (specify multiple times for more)")
-    arg_parser.add_argument('--version', action='version', version='TBD')
+    arg_parser.add_argument(
+        '--version', action='version', version='TBD')
     args = arg_parser.parse_args()
 
-    if args.verbose == 1: log_level = logging.CRITICAL
-    elif args.verbose == 2: log_level = logging.INFO
-    elif args.verbose >= 3: log_level = logging.DEBUG
+    if args.verbose == 1:
+        log_level = logging.CRITICAL
+    elif args.verbose == 2:
+        log_level = logging.INFO
+    elif args.verbose >= 3:
+        log_level = logging.DEBUG
     LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
     if args.log_to_file:
         logging.basicConfig(filename='wiki-update.log', filemode='w',
-            level=log_level, format = LOG_FORMAT)
+                            level=log_level, format=LOG_FORMAT)
     else:
-        logging.basicConfig(level=log_level, format = LOG_FORMAT)
+        logging.basicConfig(level=log_level, format=LOG_FORMAT)
 
-    ## Private files
-    
+    # # Private files
+
     # Zim: Joseph and Nora planning
     HOMEDIR = HOME+'/joseph/plan/joseph-nora/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
@@ -355,20 +386,20 @@ if '__main__' == __name__:
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         if retire_tasks(HOMEDIR + 'zim/'):
             export_zim(HOMEDIR)
-        
+
         HOME_FN = HOMEDIR + 'zwiki/Home.html'
         todos = grab_todos(HOME_FN)
-        
+
         PLAN_PAGE = HOMEDIR + 'plans/index.html'
         insert_todos(PLAN_PAGE, todos)
 
-    ## Public files
+    # # Public files
 
     # Zim: Public
     HOMEDIR = HOME+'/joseph/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
-    
+
     # Mindmaps: syllabi (1st as transcluded in markdown files)
     check_mm_files(HOMEDIR)
 
