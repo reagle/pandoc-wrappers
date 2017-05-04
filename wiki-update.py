@@ -208,8 +208,7 @@ def check_markdown_files(HOMEDIR):
                 info("%s %s > %s %s"
                      % (fn_md, getmtime(fn_md), fn_html, getmtime(fn_html)))
                 files_to_process.append((fn_bare, fn_md, fn_html))
-    if args.parallel:
-        # only useful for file sets > 10
+    if args.parallel or len(files_to_process) > 2:
         with futures.ProcessPoolExecutor() as executor:
             results = executor.map(update_markdown, files_to_process)
     else:
