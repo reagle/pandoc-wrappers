@@ -15,44 +15,55 @@ from os.path import expanduser
 HOME = expanduser("~")
 VISUAL = os.environ['VISUAL']
 DST_FILE = '/tmp/dtt.txt'
-BIBTEX_FILE = HOME+'/joseph/readings.bib'
+BIBTEX_FILE = HOME + '/joseph/readings.bib'
 
-opt_parser = optparse.OptionParser(usage="usage: %prog [options] URL\n\n"
+opt_parser = optparse.OptionParser(
+    usage="usage: %prog [options] URL\n\n"
     "Document transformation wrapper which (by default) converts HTML to txt")
-opt_parser.add_option("-p", "--pandoc",
+opt_parser.add_option(
+    "-p", "--pandoc",
     action="store_true", default=False,
     help="html2txt via pandoc (quite busy with links)")
-opt_parser.add_option("-y", "--lynx",
+opt_parser.add_option(
+    "-y", "--lynx",
     action="store_true", default=False,
     help="html2txt via lynx (nice formatting)")
-opt_parser.add_option("-i", "--links",
+opt_parser.add_option(
+    "-i", "--links",
     action="store_true", default=False,
     help="html2txt via links")
-opt_parser.add_option("-3", "--w3m",
+opt_parser.add_option(
+    "-3", "--w3m",
     action="store_true", default=False,
     help="html2txt via w3m")
-opt_parser.add_option("-a", "--antiword",
+opt_parser.add_option(
+    "-a", "--antiword",
     action="store_true", default=False,
     help="doc2txt  via antiword")
-opt_parser.add_option("-c", "--catdoc",
+opt_parser.add_option(
+    "-c", "--catdoc",
     action="store_true", default=False,
     help="doc2txt  via catdoc")
-opt_parser.add_option("-d", "--docx2txt",
+opt_parser.add_option(
+    "-d", "--docx2txt",
     action="store_true", default=False,
     help="docx2txt via docx2txt")
-opt_parser.add_option("-f", "--pdftohtml",
+opt_parser.add_option(
+    "-f", "--pdftohtml",
     action="store_true", default=False,
     help="pdf2html via pdftohtml")
-opt_parser.add_option("-w", "--wrap",
+opt_parser.add_option(
+    "-w", "--wrap",
     action="store_true", default=False,
     help="wrap text")
-opt_parser.add_option("-q", "--quote",
+opt_parser.add_option(
+    "-q", "--quote",
     action="store_true", default=False,
     help="prepend '>' quote marks to lines")
 opts, args = opt_parser.parse_args()
 
 url = args[0]
-print(("** url = %s" %url))
+print(("** url = %s" % url))
 content = None
 os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
 
@@ -73,31 +84,31 @@ elif opts.catdoc:
     wrap = '' if opts.wrap else '-w'
     command = ['catdoc', url]
 elif opts.docx2txt:
-    wrap = '' # maybe use fold instead?
+    wrap = ''  # maybe use fold instead?
     command = ['docx2txt', url, '-']
 elif opts.pdftohtml:
     wrap = ''
     command = ['pdftotext', '-layout', '-nopgbrk', url, '-']
-else: # fallback to pandoc
+else:  # fallback to pandoc
     content = urlopen(url).read()
     wrap = '' if opts.wrap else '--wrap=none'
-    command = ['pandoc', '-f', 'html', '-t', 'markdown', 
-                '--reference-links', '-o', DST_FILE]
+    command = ['pandoc', '-f', 'html', '-t', 'markdown',
+               '--reference-links', '-o', DST_FILE]
 
 command.extend(wrap.split())
-print(("** command = %s" %command))
+print(("** command = %s" % command))
 process = Popen(command, stdin=PIPE, stdout=open(DST_FILE, 'w'))
-process.communicate(input = content)
+process.communicate(input=content)
 
-if opts.wrap or opts.quote: 
+if opts.wrap or opts.quote:
     with open(DST_FILE) as f:
         new_content = []
         for line in f.readlines():
-            if opts.wrap and wrap == '': # wrap if no native wrap
+            if opts.wrap and wrap == '':  # wrap if no native wrap
                 print("WRAPPING")
                 line = textwrap.fill(line, 76).strip() + '\n'
             if opts.quote:
-                line = '> ' + line # .replace('\n', '\n> ')
+                line = '> ' + line  # .replace('\n', '\n> ')
             new_content.append(line)
         content = ''.join(new_content)
     with open(DST_FILE, 'w') as f:

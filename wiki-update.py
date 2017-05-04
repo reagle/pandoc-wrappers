@@ -28,7 +28,7 @@ import time
 HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = environ['BROWSER'] if 'BROWSER' in environ else None
 PANDOC_BIN = shutil.which("pandoc")
-MD_BIN = HOME+'/bin/pandoc-wrappers/md.py'
+MD_BIN = HOME + '/bin/pandoc-wrappers/md.py'
 ZIM_BIN = '/usr/local/bin/python %s/bin/zim-0.65/zim.py' % HOME
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
@@ -66,26 +66,26 @@ def locate(pattern, root):
 
 def has_dir_changed(directory):
 
-        info('dir   = %s' % directory)
-        checksum_file = directory + '.dirs.md5sum'
-        checksum = Popen(["ls -l -R %s | md5sum" % directory],
-                         shell=True, stdout=PIPE).communicate()[0]
-        checksum = checksum.split()[0].decode("utf-8")
-        if not exists(checksum_file):
-            open(checksum_file, 'w').write(checksum)
-            info('checksum created %s' % checksum)
-            return True
+    info('dir   = %s' % directory)
+    checksum_file = directory + '.dirs.md5sum'
+    checksum = Popen(["ls -l -R %s | md5sum" % directory],
+                     shell=True, stdout=PIPE).communicate()[0]
+    checksum = checksum.split()[0].decode("utf-8")
+    if not exists(checksum_file):
+        open(checksum_file, 'w').write(checksum)
+        info('checksum created %s' % checksum)
+        return True
+    else:
+        info("checksum_file = '%s'" % checksum_file)
+        state = open(checksum_file, 'r').read()
+        info('state = %s' % state)
+        if checksum == state:
+            info('checksum == state')
+            return False
         else:
-            info("checksum_file = '%s'" % checksum_file)
-            state = open(checksum_file, 'r').read()
-            info('state = %s' % state)
-            if checksum == state:
-                info('checksum == state')
-                return False
-            else:
-                open(checksum_file, 'w').write(checksum)
-                info('checksum updated')
-                return True
+            open(checksum_file, 'w').write(checksum)
+            info('checksum updated')
+            return True
 
 
 def chmod_recursive(path, dir_perms, file_perms):
@@ -112,7 +112,7 @@ def export_zim(zim_path):
     info(ZIM_CMD)
     results = Popen(
         (ZIM_CMD), stdout=PIPE, shell=True
-        ).communicate()[0].decode('utf8')
+    ).communicate()[0].decode('utf8')
     chmod_recursive('%szwiki' % zim_path, 0o755, 0o744)
     if results:
         print(results)
@@ -146,6 +146,8 @@ def insert_todos(plan_fn, todos):
     doc.write(plan_fn)
 
 # fn_bare, fn_md, fn_html
+
+
 def update_markdown(files_to_process):
     '''Convert markdown file'''
 
@@ -231,7 +233,7 @@ def check_mm_files(HOMEDIR):
                 if getmtime(mm_fn) > getmtime(fn_html):
                     info('updating_mm %s' % fn)
                     call(['xsltproc', '-o', fn_html,
-                         HOME+'/bin/mmtoxhtml.xsl', mm_fn])
+                          HOME + '/bin/mmtoxhtml.xsl', mm_fn])
                     call(['tidy', '-asxhtml', '-utf8',
                           '-w', '0', '-m', fn_html])
                     p3 = Popen(['tail', '-n', '+2', fn_html], stdout=PIPE)
@@ -278,7 +280,7 @@ def log2work(done_tasks):
             (uid, date_token, activity, task)
         log_items.append(log_item)
 
-    OUT_FILE = HOME+'/data/2web/reagle.org/joseph/plan/plans/index.html'
+    OUT_FILE = HOME + '/data/2web/reagle.org/joseph/plan/plans/index.html'
     plan_fd = codecs.open(OUT_FILE, 'r', 'utf-8', 'replace')
     plan_content = plan_fd.read()
     plan_fd.close()
@@ -340,6 +342,7 @@ def retire_tasks(directory):
                 log2work(done_tasks)
         return True
 
+
 if '__main__' == __name__:
     import argparse  # http://docs.python.org/dev/library/argparse.html
     arg_parser = argparse.ArgumentParser(
@@ -387,12 +390,12 @@ if '__main__' == __name__:
     # # Private files
 
     # Zim: Joseph and Nora planning
-    HOMEDIR = HOME+'/joseph/plan/joseph-nora/'
+    HOMEDIR = HOME + '/joseph/plan/joseph-nora/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
 
     # Zim: Work planning
-    HOMEDIR = HOME+'/joseph/plan/'
+    HOMEDIR = HOME + '/joseph/plan/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         if retire_tasks(HOMEDIR + 'zim/'):
             export_zim(HOMEDIR)
@@ -406,7 +409,7 @@ if '__main__' == __name__:
     # # Public files
 
     # Zim: Public
-    HOMEDIR = HOME+'/joseph/'
+    HOMEDIR = HOME + '/joseph/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
 

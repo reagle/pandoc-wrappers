@@ -5,6 +5,7 @@
 
 '''Like bd, but will build HTML using htlatex.'''
 
+import argparse  # http://docs.python.org/dev/library/argparse.html
 import codecs
 from glob import glob
 from optparse import OptionParser
@@ -18,30 +19,35 @@ import sys
 from os.path import expanduser
 HOME = expanduser("~")
 
-import argparse # http://docs.python.org/dev/library/argparse.html
-arg_parser = argparse.ArgumentParser(description=
-    'Build HTML from markdown')
+arg_parser = argparse.ArgumentParser(description='Build HTML from markdown')
 
 # positional arguments
 arg_parser.add_argument('files', nargs='+', metavar='FILE')
 
 # optional arguments
-arg_parser.add_argument("-k", "--keep-src-html", action="store_true", 
-    default=False, help="keep the source HTML file for examination or reuse")
-arg_parser.add_argument("-a", "--auto-notes", action="store_true", 
-    default=False, help="create auto-numbered notes for MS Word rather than manual notes")
-arg_parser.add_argument("-n", "--navigation", action="store_true", 
-    default=False, help="use navigation elements on header/footer of pages")
-arg_parser.add_argument("-o", "--online-URLs-only", action="store_true",
-    default=False, help="only include URLs that are exclusively online")
-arg_parser.add_argument("-l", "--long-URL",
-    action="store_true", default=False,
+arg_parser.add_argument(
+    "-k", "--keep-src-html", action="store_true", default=False,
+    help="keep the source HTML file for examination or reuse")
+arg_parser.add_argument(
+    "-a", "--auto-notes", action="store_true", default=False,
+    help="create auto-numbered notes for MS Word rather than manual notes")
+arg_parser.add_argument(
+    "-n", "--navigation", action="store_true", default=False,
+    help="use navigation elements on header/footer of pages")
+arg_parser.add_argument(
+    "-o", "--online-URLs-only", action="store_true", default=False,
+    help="only include URLs that are exclusively online")
+arg_parser.add_argument(
+    "-l", "--long-URL", action="store_true", default=False,
     help="use long URLs")
-arg_parser.add_argument("-p", "--paragraph-marks", action="store_true",
-    default=False, help="add name/ids for paragraphs")
-arg_parser.add_argument("-r", "--reuse", action="store_true", 
-    default=False, help="reuse existing HTML files, rather than a LaTeX rebuild")
-arg_parser.add_argument("-s", "--single-page", action="store_true", 
+arg_parser.add_argument(
+    "-p", "--paragraph-marks", action="store_true", default=False,
+    help="add name/ids for paragraphs")
+arg_parser.add_argument(
+    "-r", "--reuse", action="store_true", default=False,
+    help="reuse existing HTML files, rather than a LaTeX rebuild")
+arg_parser.add_argument(
+    "-s", "--single-page", action="store_true",
     default=False, help="create HTML as a single page")
 
 args = arg_parser.parse_args()
@@ -51,7 +57,8 @@ if args.online_URLs_only:
     fe_opts = '-co'
 else:
     fe_opts = '-c'
-if args.long_URL: fe_opts += 'l'
+if args.long_URL:
+    fe_opts += 'l'
 if args.reuse:
     shell_command = shutil.copy
 else:
@@ -62,25 +69,25 @@ else:
     htlatex_opts = '"html,2"'
 
 if not files:
-    files = [HOME+'/joseph/2010/faith']
+    files = [HOME + '/joseph/2010/faith']
 if '2010/faith' in files[0]:
     FILE_MAPPING = {
-        '0-book.html'    : 'title.html',
-        '0-bookch1.html' : 'foreward.html',
-        '0-bookch2.html' : 'preface-web.html',
-        '0-bookch3.html' : 'preface.html',
-        '0-bookch4.html' : 'chapter-1.html',
-        '0-bookch5.html' : 'chapter-2.html',
-        '0-bookch6.html' : 'chapter-3.html',
-        '0-bookch7.html' : 'chapter-4.html',
-        '0-bookch8.html' : 'chapter-5.html',
-        '0-bookch9.html' : 'chapter-6.html',
-        '0-bookch10.html' : 'chapter-7.html',
-        '0-bookch11.html' : 'chapter-8.html',
-        '0-bookch12.html' : 'references.html',
-        '0-bookli1.html' : 'toc.html',
-        '0-bookli2.html' : 'bibliography.html',
-        }
+        '0-book.html': 'title.html',
+        '0-bookch1.html': 'foreward.html',
+        '0-bookch2.html': 'preface-web.html',
+        '0-bookch3.html': 'preface.html',
+        '0-bookch4.html': 'chapter-1.html',
+        '0-bookch5.html': 'chapter-2.html',
+        '0-bookch6.html': 'chapter-3.html',
+        '0-bookch7.html': 'chapter-4.html',
+        '0-bookch8.html': 'chapter-5.html',
+        '0-bookch9.html': 'chapter-6.html',
+        '0-bookch10.html': 'chapter-7.html',
+        '0-bookch11.html': 'chapter-8.html',
+        '0-bookch12.html': 'references.html',
+        '0-bookli1.html': 'toc.html',
+        '0-bookli2.html': 'bibliography.html',
+    }
 else:
     FILE_MAPPING = {}
 
@@ -96,7 +103,7 @@ else:
     src_dir = path.realpath(file) + '/'
     project = path.split(src_dir[:-1])[1]
     files = [path.basename(file) for file in
-        sorted(glob(src_dir +'[!~]*.doc') + glob(src_dir +'[!~]*.md'))]
+             sorted(glob(src_dir + '[!~]*.doc') + glob(src_dir + '[!~]*.md'))]
     dst_dir = src_dir + 'latex-' + project[:3] + '/'
     base_file_name = '0-book'
     build_file_base = dst_dir + base_file_name
@@ -106,26 +113,27 @@ html_file = build_file_base + '.html'
 tmp_html_file = html_file + '.tmp'
 
 print("************")
-print("src_dir = %s " %src_dir)
-print("dst_dir = %s " %dst_dir)
-print("build_file_base = %s " %build_file_base)
+print("src_dir = %s " % src_dir)
+print("dst_dir = %s " % dst_dir)
+print("build_file_base = %s " % build_file_base)
 
-#----------------------------
+########################
 # Build
-#----------------------------
+########################
 
 os.chdir(dst_dir)
 
 if not args.reuse:
     print("** calling fe, biber, and htlatex")
-    call(['fe', fe_opts], stdout=open(HOME+'/joseph/readings.bib', 'w'))
+    call(['fe', fe_opts], stdout=open(HOME + '/joseph/readings.bib', 'w'))
     print((' '.join(['biber', base_file_name])))
     call(['biber', base_file_name])
     print((' '.join(['*** htlatex', build_file_base, htlatex_opts])))
     call(['htlatex', build_file_base, htlatex_opts])
-    #args.keep_src_html = True
+    # args.keep_src_html = True
 print("** copying files to html dir")
-[os.remove(old_file) for old_file in glob('html/*.html')] # remove html files from prev build
+# remove html files from prev build
+[os.remove(old_file) for old_file in glob('html/*.html')]
 [shutil.copy(html_file, html_dir) for html_file in glob('0-*.html')]
 if not args.keep_src_html:
     [os.remove(html_file) for html_file in glob('0-*.html')]
@@ -140,45 +148,46 @@ if FILE_MAPPING:
         print("**** old, new", old, new)
         os.rename(old, new)
 
-#----------------------------
+########################
 # Process files
-#----------------------------
+########################
 
-toc_heading_map = {} # map between htlatex toc generated ids and my ids
+toc_heading_map = {}  # map between htlatex toc generated ids and my ids
 
 for html_file in sorted(glob('*.html')):
     print('\n' + html_file + ': ')
 
     data = codecs.open(html_file, 'r', 'iso-8859-1').read()
 
-    data = data[data.find('<!DOCTYPE'):] # remove spurious spans at start
-    
+    data = data[data.find('<!DOCTYPE'):]  # remove spurious spans at start
+
     print("** rewriting links to files")
     if FILE_MAPPING:
         for old, new in list(FILE_MAPPING.items()):
             data = data.replace(old, new)
 
-    #----------------------------
+    #################
     # XML parser cleanup
-    #----------------------------
+    #################
 
     print("** load lxml soup")
     from lxml.etree import *
     from lxml.html import tostring
     from io import StringIO
-    parser = HTMLParser(remove_comments = True, remove_blank_text = True)
+    parser = HTMLParser(remove_comments=True, remove_blank_text=True)
 
     print("** parse without comments")
     doc = parse(StringIO(data), parser)
 
     print("** upgrade each heading number")
     for num in 2, 3, 4:
-        for h in doc.xpath("//h%d" %num):
+        for h in doc.xpath("//h%d" % num):
             h.tag = 'h' + str(num - 1)
 
     print("** add charset UTF-8")
     head = doc.xpath("/html/head")[0]
-    meta_charset = SubElement(head, "meta", content="application/xhtml+xml; charset=UTF-8")
+    meta_charset = SubElement(
+        head, "meta", content="application/xhtml+xml; charset=UTF-8")
     meta_charset.set('http-equiv', 'content-type')
 
     print("** add specific styles")
@@ -240,34 +249,39 @@ for html_file in sorted(glob('*.html')):
             if biblio_fn in file_cache:
                 biblio_doc = file_cache[biblio_fn]
             else:
-                biblio_parser = HTMLParser(remove_comments = True)
+                biblio_parser = HTMLParser(remove_comments=True)
                 biblio_doc = parse(biblio_fn, biblio_parser)
                 file_cache[biblio_fn] = biblio_doc
             p_of_ref = biblio_doc.xpath("//a[@id='%s']/parent::p" % ennote)[0]
             if p_of_ref:
-                ref_txt = tostring(p_of_ref, method="text", encoding=str).strip()
+                ref_txt = tostring(p_of_ref, method="text",
+                                   encoding=str).strip()
                 if len(ref_txt) >= 250:
                     ref_txt = ref_txt[:250] + ' ...'
-                ref_txt = re.sub('\d+(.*)', r'\1', ref_txt, count=1) # , count=1
+                ref_txt = re.sub('\d+(.*)', r'\1', ref_txt,
+                                 count=1)  # , count=1
                 span_popup = SubElement(hyper, 'span')
                 span_popup.set('class', 'balloon')
                 span_popup.text = ref_txt
 
-
     if args.paragraph_marks:
         if html_file.startswith('chapter') or html_file.startswith('reference'):
             print("** add heading marks")
-            headings = doc.xpath("//*[name()='h1' or name()='h2' or name()='h3' or name()='h4']")
+            headings = doc.xpath(
+                "//*[name()='h1' or name()='h2' or name()='h3' or name()='h4']")
             heading_num = 1
             for heading in headings:
-                span = Element("span") # prepare span element for section #
+                span = Element("span")  # prepare span element for section #
                 span.set('class', 'headingnum')
                 heading_a = heading.xpath('a[position()=1]')[0]
-                htlatex_id = heading_a.get('id')  # grab id of existing a element
+                # grab id of existing a element
+                htlatex_id = heading_a.get('id')
                 span.tail = heading_a.tail
-                heading.remove(heading_a) # delete 'a' element as I'm replacing it with span
+                # delete 'a' element as I'm replacing it with span
+                heading.remove(heading_a)
                 a_id = 's' + str(heading_num)
-                a = SubElement(span, 'a', id=a_id, name=a_id, href='#%s' % a_id)
+                a = SubElement(span, 'a', id=a_id,
+                               name=a_id, href='#%s' % a_id)
                 a.text = '§' + str(heading_num)
                 heading.append(span)
                 toc_heading_map[htlatex_id] = a_id
@@ -278,55 +292,46 @@ for html_file in sorted(glob('*.html')):
             paras = doc.xpath('//p[not(parent::div[@class="crosslinks"])]')
             para_num = 1
             for para in paras:
-                if para != None and not para.text.isspace():
+                if para is not None and not para.text.isspace():
                     span = Element("span")
                     span.set('class', 'paranum')
                     span.tail = para.text
                     a_id = 'p' + str(para_num)
-                    a = SubElement(span, 'a', id=a_id, name=a_id, href='#%s' % a_id)
+                    a = SubElement(span, 'a', id=a_id,
+                                   name=a_id, href='#%s' % a_id)
                     a.text = '¶' + str(para_num)
                     para.text = None
-                    para.insert(0, span) # insert span at beginning of parent
+                    para.insert(0, span)  # insert span at beginning of parent
                     para_num += 1
 
     print("** remove unnecesssary chapter cruft in Notes")
     for p in doc.xpath("//div[@class='center']/p[@class='noindent']"):
         spans = p.xpath("span")
         if len(spans) == 3:
-            if not spans[1].text.strip().isdigit(): # remove "Chapter 8" from Ch1 notes
+            # remove "Chapter 8" from Ch1 notes
+            if not spans[1].text.strip().isdigit():
                 div = spans[1].getparent().getparent()
                 div_parent = div.getparent()
                 div_parent.remove(div)
-            else: # remove extra non-hypertextual chapter numbered
+            else:  # remove extra non-hypertextual chapter numbered
                 spans[1].text = ''
-            p.tag = 'h3' # made it into a subheading
+            p.tag = 'h3'  # made it into a subheading
             p.text = tostring(p, method="text", encoding=str).strip()
-            [p.remove(span) for span in p] # rm its erroneous span and href
+            [p.remove(span) for span in p]  # rm its erroneous span and href
 
-    ##------------------------
-    ## Manual notes
-    ##------------------------
-    #if not args.auto_notes:
-        #print "** remove endnote superscripts",
-        #spans = doc.xpath("//sup/span[@class='cmr-8']")
-        #for span in spans:
-            #span.text = span.text + '. '
-            #sup = span.getparent()
-            #grandparent = sup.getparent()
-            #grandparent.replace(sup, span)
-    #------------------------
+    ######################
     # Manual notes
-    #------------------------
+    ######################
     if not args.auto_notes:
         print("** pretty up endnotes")
         a_note_nums = doc.xpath("//span[@class='footnote-mark']/a")
         for note_number in a_note_nums:
             if note_number.text:
                 note_number.text = note_number.text + ' '
-    #------------------------
+    ######################
     # MS Word notes
-    #------------------------
-    else: # footnotes for MS Word
+    ######################
+    else:  # footnotes for MS Word
         if doc.xpath('//h2[text() = "Notes"]'):
             print("** creating MS Word sections")
             body = doc.xpath('body')[0]
@@ -346,7 +351,6 @@ for html_file in sorted(glob('*.html')):
             if 'edn' not in hyper.get('href'):
                 del hyper.attrib['href']
 
-
         ms_ftn_txt = '''<sup><a style="mso-endnote-id:edn%d" href="#_edn%d" name="_ednref%d" title=""><span class="MsoEndnoteReference"><span style='mso-special-character:footnote'></span></span></a></sup>'''
 
         print("** convert inline notes to MS Word")
@@ -360,8 +364,7 @@ for html_file in sorted(glob('*.html')):
             ms_ftn.tail = sup.tail
             grandparent.replace(sup, ms_ftn)
 
-
-        ms_endnote_txt= '''<div style="mso-element:endnote" id="edn%d"><p class="MsoEndnoteText"><a style="mso-endnote-id:edn%d" href="#_ednref%d" name="_edn%d" title=""><span class="MsoEndnoteReference"><span style="vertical-align: baseline; mso-special-character: footnote"></span></span></a>. <span class="GramE"> %s</span></p></div>'''
+        ms_endnote_txt = '''<div style="mso-element:endnote" id="edn%d"><p class="MsoEndnoteText"><a style="mso-endnote-id:edn%d" href="#_ednref%d" name="_edn%d" title=""><span class="MsoEndnoteReference"><span style="vertical-align: baseline; mso-special-character: footnote"></span></span></a>. <span class="GramE"> %s</span></p></div>'''
 
         print("** convert end notes to MS Word")
         spans = doc.xpath("//sup/span[@class='cmr-8']")
@@ -371,18 +374,19 @@ for html_file in sorted(glob('*.html')):
             a = sup.getparent()
             p = a.getparent()
             prenote = a.tail if a.tail else ''
-            reference_txt = prenote + ''.join([tostring(node) for node in p[1:]])
+            reference_txt = prenote + \
+                ''.join([tostring(node) for node in p[1:]])
             ancestor = p.getparent()
             ms_endnote = XML(ms_endnote_txt % (number, number, number, number,
-                reference_txt))
+                                               reference_txt))
             ancestor.replace(p, ms_endnote)
 
-
-    #----------------------------
+    #################
     # String manipulations
-    #----------------------------
+    #################
 
-    new_data = tostring(doc, method='html', include_meta_content_type=False, encoding=str)
+    new_data = tostring(doc, method='html',
+                        include_meta_content_type=False, encoding=str)
 
     print("** replace indent with tab")
     new_data = new_data.replace('<p class="indent">       ', '<p>&#09;')\
@@ -397,10 +401,9 @@ for html_file in sorted(glob('*.html')):
         for htlatex_id, a_id in list(toc_heading_map.items()):
             new_data = new_data.replace(htlatex_id, a_id)
 
-    #----------------------------
+    #################
     # File manipulations
-    #----------------------------
-
+    #################
 
     tmp_html_fd = codecs.open(tmp_html_file, "w", "UTF-8", "replace")
     tmp_html_fd.write(new_data)
@@ -408,9 +411,9 @@ for html_file in sorted(glob('*.html')):
 
     print("** tidying 1")
     call(['tidy', '-modify', '-quiet', '-utf8',
-         #'--hide-comments', 'True','-numeric',
-         #'--clean', ' --merge-divs',  '--merge-spans',
-        tmp_html_file])
+          # '--hide-comments', 'True','-numeric',
+          # '--clean', ' --merge-divs',  '--merge-spans',
+          tmp_html_file])
 
     print("** validating")
     p = Popen(['validate', tmp_html_file], stdout=PIPE)
