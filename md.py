@@ -477,7 +477,7 @@ def process(args):
 if __name__ == "__main__":
     import argparse # http://docs.python.org/dev/library/argparse.html
     arg_parser = argparse.ArgumentParser(description='Markdown wrapper with slide and bibliographic options')
-    arg_parser.add_argument('files', nargs='+',  metavar='FILE')
+    arg_parser.add_argument('files', nargs='+', metavar='FILE')
     arg_parser.add_argument("-b", "--bibliography",
                     action="store_true", default=False,
                     help="turn citations into hypertext w/out CSL")
