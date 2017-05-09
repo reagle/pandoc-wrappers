@@ -3,7 +3,7 @@
 # (c) Copyright 2011-2014 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-"""Extract a subset of bibliographic keys from BIB_FILE 
+"""Extract a subset of bibliographic keys from BIB_FILE
 using those keys found in a markdown file or specified
 in argument."""
 
@@ -18,7 +18,7 @@ import sys
 
 HOME = environ['HOME']
 
-log_level = 100 # default
+log_level = 100  # default
 critical = logging.critical
 info = logging.info
 dbg = logging.debug
@@ -34,17 +34,19 @@ def chunk_yaml(text):
     key = None
 
     for line in text[1:]:           # skip first two lines of YAML
-        if line.strip() == '...' : continue # skip last line
+        if line.strip() == '...':
+            continue  # skip last line
         if line.startswith('- id: '):
             if chunk and key:
-                entries[key] = ''.join(chunk) # store previous chunk
+                entries[key] = ''.join(chunk)  # store previous chunk
             key = line[6:].strip()
             chunk = [line]
         else:
             chunk.append(line)
-    entries[key] = ''.join(chunk) # final chunk
-    
+    entries[key] = ''.join(chunk)  # final chunk
+
     return entries
+
 
 def emit_yaml_subset(entries, outfd):
     """Emit a YAML file."""
@@ -54,7 +56,8 @@ def emit_yaml_subset(entries, outfd):
         outfd.write(chunk.strip())
         outfd.write('\n')
     outfd.write('''\n...\n''')
-        
+
+
 def subset_yaml(entries, keys):
     """Emit a susbet of a YAML file based on keys."""
 
@@ -70,7 +73,7 @@ def subset_yaml(entries, keys):
 
 def parse_bibtex(text):
     '''Return a dictionary of entry dictionaries, each with a field/value.
-    The parser is simple/fast *and* inflexible, unlike the proper but 
+    The parser is simple/fast *and* inflexible, unlike the proper but
     slow parsers bibstuff and pyparsing-based parsers.'''
 
     entries = OrderedDict()
@@ -92,14 +95,14 @@ def parse_bibtex(text):
 
 def emit_bibtex_entry(identifier, values, outfd):
     """Emit a single bibtex entry."""
-    
+
     info("writing entry")
     outfd.write('@%s{%s,\n' % (values['entry_type'], identifier))
     for field, value in values.items():
         if field != 'entry_type':
             outfd.write('   %s = {%s},\n' % (field, value))
     outfd.write("}\n")
-    
+
 
 def emit_bibtex_subset(entries, outfd):
     """Emit a biblatex file."""
@@ -107,7 +110,7 @@ def emit_bibtex_subset(entries, outfd):
     for identifier, values in entries.items():
         emit_bibtex_entry(identifier, values, outfd)
 
-        
+
 def subset_bibtex(entries, keys):
     """Emit a susbet of a biblatex file based on keys."""
 
@@ -119,66 +122,78 @@ def subset_bibtex(entries, keys):
             critical("%s not in entries" % key)
             pass
     return subset
-        
+
+
 def get_keys_from_md(filename):
     """Return a list of keys used in a markdown document"""
 
-    info("filename = '%s'" %filename)
+    info("filename = '%s'" % filename)
     text = open(filename, 'r').read()
     text = text.split('***END OF FILE***')[0]
     finds = re.findall('@(.*?)[\.,:;\] ]', text)
     return finds
-        
+
+
 if '__main__' == __name__:
-    import argparse # http://docs.python.org/dev/library/argparse.html
+    import argparse  # http://docs.python.org/dev/library/argparse.html
     arg_parser = argparse.ArgumentParser(
-            description='Extract a subset of bibliographic keys '
-            'from BIB_FILE using those keys found in a markdown file '
-            'or specified in argument.')
-    arg_parser.add_argument('files', nargs='?',  metavar='BIB_FILE')
-    arg_parser.add_argument("-f", "--find-keys", 
-            nargs=1, metavar='FILE',
-            help="find keys in markdown file")
-    arg_parser.add_argument("-k", "--keys", nargs=1,
-            help="use specified KEYS")
-    arg_parser.add_argument('-L', '--log-to-file',
-            action="store_true", default=False,
-            help="log to file %(prog)s.log")
-    arg_parser.add_argument("-o", "--out-filename",
-            help="output results to filename", metavar="FILE")
-    arg_parser.add_argument("-y", "--YAML",
-            action="store_true", default=False,
-            help="use YAML instead of bibtex")
-    arg_parser.add_argument('-V', '--verbose', action='count', default=0,
-            help="Increase verbosity (specify multiple times for more)")
-    arg_parser.add_argument('--version', action='version', version='TBD')
+        description='Extract a subset of bibliographic keys '
+        'from BIB_FILE using those keys found in a markdown file '
+        'or specified in argument.')
+    arg_parser.add_argument(
+        'files', nargs='?', metavar='BIB_FILE')
+    arg_parser.add_argument(
+        "-f", "--find-keys",
+        nargs=1, metavar='FILE',
+        help="find keys in markdown file")
+    arg_parser.add_argument(
+        "-k", "--keys", nargs=1,
+        help="use specified KEYS")
+    arg_parser.add_argument(
+        '-L', '--log-to-file',
+        action="store_true", default=False,
+        help="log to file %(prog)s.log")
+    arg_parser.add_argument(
+        "-o", "--out-filename",
+        help="output results to filename", metavar="FILE")
+    arg_parser.add_argument(
+        "-y", "--YAML",
+        action="store_true", default=False,
+        help="use YAML instead of bibtex")
+    arg_parser.add_argument(
+        '-V', '--verbose', action='count', default=0,
+        help="Increase verbosity (specify multiple times for more)")
+    arg_parser.add_argument(
+        '--version', action='version', version='TBD')
     args = arg_parser.parse_args()
 
-    if args.verbose == 1: log_level = logging.CRITICAL
-    elif args.verbose == 2: log_level = logging.INFO
-    elif args.verbose >= 3: log_level = logging.DEBUG
+    if args.verbose == 1:
+        log_level = logging.CRITICAL
+    elif args.verbose == 2:
+        log_level = logging.INFO
+    elif args.verbose >= 3:
+        log_level = logging.DEBUG
     LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
     if args.log_to_file:
         logging.basicConfig(filename='md2bib.log', filemode='w',
-            level=log_level, format = LOG_FORMAT)
+                            level=log_level, format=LOG_FORMAT)
     else:
-        logging.basicConfig(level=log_level, format = LOG_FORMAT)
+        logging.basicConfig(level=log_level, format=LOG_FORMAT)
 
     if args.out_filename:
         outfd = open(args.out_filename, 'w')
     else:
         outfd = sys.stdout
 
-        
     if args.YAML:
         BIB_FILE = HOME + '/joseph/readings.yaml'
         chunk_func = chunk_yaml
     else:
         BIB_FILE = HOME + '/joseph/readings.bib'
         chunk_func = parse_bibtex
-    if args.files: # override default file if specified
+    if args.files:  # override default file if specified
         BIB_FILE = args.files[0]
-        
+
     entries = chunk_func(open(BIB_FILE, 'r').readlines())
 
     if args.keys:
@@ -197,4 +212,3 @@ if '__main__' == __name__:
     else:
         subset = subset_bibtex(entries, keys)
         emit_bibtex_subset(subset, outfd)
-        
