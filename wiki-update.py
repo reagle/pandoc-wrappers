@@ -208,12 +208,12 @@ def check_markdown_files(HOMEDIR):
                 info("%s %s > %s %s"
                      % (fn_md, getmtime(fn_md), fn_html, getmtime(fn_html)))
                 files_to_process.append((fn_bare, fn_md, fn_html))
-    if args.parallel or len(files_to_process) > 2:
-        with futures.ProcessPoolExecutor() as executor:
-            results = executor.map(update_markdown, files_to_process)
-    else:
+    if args.sequential or len(files_to_process) < 3:
         # in python 3, map is lazy and won't do anything until iterated
         list(map(update_markdown, files_to_process))
+    else:
+        with futures.ProcessPoolExecutor() as executor:
+            results = executor.map(update_markdown, files_to_process)
 
 
 def check_mm_files(HOMEDIR):
@@ -359,9 +359,10 @@ if '__main__' == __name__:
         action="store_true", default=False,
         help="Force creation of notes handout even if not class slide")
     arg_parser.add_argument(
-        "-p", "--parallel",
+        "-s", "--sequential",
         action="store_true", default=False,
-        help="Executes instances of pandoc in parallel")
+        help="Forces sequential invocation of pandoc, rather than default"
+        " behavior which is often parallel")
     arg_parser.add_argument(
         '-L', '--log-to-file',
         action="store_true", default=False,
