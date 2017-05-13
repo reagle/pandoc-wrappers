@@ -280,6 +280,7 @@ def process(args):
     if args.bibliography:
         bib_fn = HOME + '/joseph/readings.yaml'
         bib_chunked = md2bib.chunk_yaml(open(bib_fn, 'r').readlines())
+        info("bib_chunked = %s" % (bib_chunked))
 
     info("args.files = '%s'" % args.files)
     for in_file in args.files:
