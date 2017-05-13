@@ -25,26 +25,25 @@ dbg = logging.debug
 
 
 def chunk_yaml(text):
-    '''Return a dictionary of YAML chunks. This does *not* parse the YAML but
-    chunks syntactically constrained YAML for speed.'''
+    '''Return a dictionary of entry dictionaries, each with a field/value.
+    YAML line chunking isn't as easy as bibtex because of nested multi-line
+    items like author and date.
+    Presently, I only support 'title-short' and 'url'.
+    '''
 
     entries = OrderedDict()
-    am_chunking = False
     chunk = []
     key = None
 
-    for line in text[1:]:           # skip first two lines of YAML
-        if line.strip() == '...':
-            continue  # skip last line
+    for line in text[1:-1]:           # skip first two and last lines of YAML
         if line.startswith('- id: '):
-            if chunk and key:
-                entries[key] = ''.join(chunk)  # store previous chunk
             key = line[6:].strip()
-            chunk = [line]
-        else:
-            chunk.append(line)
-    entries[key] = ''.join(chunk)  # final chunk
-
+            entries[key] = {}
+            title_short = url = None
+        elif line.startswith('  URL: '):
+            entries[key]['url'] = line[8:-1]  # remove quotes too
+        elif line.startswith('  title-short: '):
+            entries[key]['title-short'] = line[16:-1]
     return entries
 
 
