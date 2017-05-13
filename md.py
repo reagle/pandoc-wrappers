@@ -50,7 +50,7 @@ error = logging.error
 excpt = logging.exception
 
 
-def link_citations(line, bibtex_parsed):
+def link_citations(line, biblio_parsed):
     """
     Turn pandoc/markdown citations into links within parenthesis.
     Used only with citations in presentations.
@@ -68,7 +68,7 @@ def link_citations(line, bibtex_parsed):
         citation = cite_match.group(0)
         key = citation.split('@', 1)[1]
         info("**   processing key: %s" % key)
-        reference = bibtex_parsed.get(key)
+        reference = biblio_parsed.get(key)
         info(reference)
         if reference is None:
             print("WARNING: key %s not found" % key)
@@ -279,7 +279,7 @@ def process(args):
 
     if args.bibliography:
         BIB_FILE = HOME + '/joseph/readings.bib'
-        bibtex_parsed = md2bib.parse_bibtex(open(BIB_FILE, 'r').readlines())
+        biblio_parsed = md2bib.parse_bibtex(open(BIB_FILE, 'r').readlines())
 
     info("args.files = '%s'" % args.files)
     for in_file in args.files:
@@ -405,7 +405,7 @@ def process(args):
             # TODO: encode ampersands in URLs
             line = process_commented_citations(line)
             if args.bibliography:  # create hypertext refs from bibtex db
-                line = link_citations(line, bibtex_parsed)
+                line = link_citations(line, biblio_parsed)
                 # info("\n** line is now %s" % line)
             if args.presentation:  # color some revealjs top of column slides
                 if line.startswith('# ') and '{data-' not in line:
