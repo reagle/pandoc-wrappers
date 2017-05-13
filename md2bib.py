@@ -143,6 +143,10 @@ if '__main__' == __name__:
     arg_parser.add_argument(
         'filename', nargs='?', metavar='BIB_FILE')
     arg_parser.add_argument(
+        "-b", "--BIBTEX",
+        action="store_true", default=False,
+        help="use BIBTEX instead of default yaml")
+    arg_parser.add_argument(
         "-f", "--find-keys",
         nargs=1, metavar='MD_FILE',
         help="find keys in markdown file")
@@ -156,10 +160,6 @@ if '__main__' == __name__:
     arg_parser.add_argument(
         "-o", "--out-filename",
         help="output results to filename", metavar="OUT_FILE")
-    arg_parser.add_argument(
-        "-y", "--YAML",
-        action="store_true", default=False,
-        help="use YAML instead of bibtex")
     arg_parser.add_argument(
         '-V', '--verbose', action='count', default=0,
         help="Increase verbosity (specify multiple times for more)")
@@ -187,18 +187,20 @@ if '__main__' == __name__:
 
     # info("args.filename = %s" % (args.filename))
     if not args.filename:
-        if args.YAML:
-            args.filename = HOME + '/joseph/readings.yaml'
-            chunk_func = chunk_yaml
-        else:
+        if args.BIBTEX:
             args.filename = HOME + '/joseph/readings.bib'
             chunk_func = chunk_bibtex
+        else:
+            args.filename = HOME + '/joseph/readings.yaml'
+            chunk_func = chunk_yaml
     else:
         fn, ext = splitext(args.filename)
         info("ext = %s" % (ext))
-        if ext == '.yaml':
+        if ext == '.bib':
+            chunk_func = chunk_bibtex
+            args.BIBTEX = True
+        else:
             chunk_func = chunk_yaml
-            args.YAML = True
 
     info("args.filename = %s" % (args.filename))
     info("chunk_func = %s" % (chunk_func))
@@ -214,9 +216,9 @@ if '__main__' == __name__:
         print("No keys given")
         sys.exit()
 
-    if args.YAML:
-        subset = subset_yaml(entries, keys)
-        emit_yaml_subset(subset, outfd)
-    else:
+    if args.BIBTEX:
         subset = subset_bibtex(entries, keys)
         emit_bibtex_subset(subset, outfd)
+    else:
+        subset = subset_yaml(entries, keys)
+        emit_yaml_subset(subset, outfd)
