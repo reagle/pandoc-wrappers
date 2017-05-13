@@ -50,7 +50,7 @@ error = logging.error
 excpt = logging.exception
 
 
-def link_citations(line, biblio_parsed):
+def link_citations(line, bib_chunked):
     """
     Turn pandoc/markdown citations into links within parenthesis.
     Used only with citations in presentations.
@@ -68,7 +68,7 @@ def link_citations(line, biblio_parsed):
         citation = cite_match.group(0)
         key = citation.split('@', 1)[1]
         info("**   processing key: %s" % key)
-        reference = biblio_parsed.get(key)
+        reference = bib_chunked.get(key)
         info(reference)
         if reference is None:
             print("WARNING: key %s not found" % key)
@@ -278,8 +278,8 @@ def number_elements(content):
 def process(args):
 
     if args.bibliography:
-        BIB_FILE = HOME + '/joseph/readings.bib'
-        biblio_parsed = md2bib.parse_bibtex(open(BIB_FILE, 'r').readlines())
+        bib_fn = HOME + '/joseph/readings.yaml'
+        bib_chunked = md2bib.chunk_yaml(open(bib_fn, 'r').readlines())
 
     info("args.files = '%s'" % args.files)
     for in_file in args.files:
@@ -357,13 +357,13 @@ def process(args):
 
         if args.style_csl:
             if args.bibtex:
-                BIB_FILE = HOME + '/joseph/readings.bib'
+                bib_fn = HOME + '/joseph/readings.bib'
                 bib_ext = '.bib'
                 parse_func = md2bib.parse_bibtex
                 subset_func = md2bib.subset_bibtex
                 emit_subset_func = md2bib.emit_bibtex_subset
             else:
-                BIB_FILE = HOME + '/joseph/readings.yaml'
+                bib_fn = HOME + '/joseph/readings.yaml'
                 bib_ext = '.yaml'
                 parse_func = md2bib.chunk_yaml
                 subset_func = md2bib.subset_yaml
@@ -376,7 +376,7 @@ def process(args):
             keys = md2bib.get_keys_from_md(abs_fn)
             info("keys = %s" % keys)
             if keys:
-                entries = parse_func(open(BIB_FILE, 'r').readlines())
+                entries = parse_func(open(bib_fn, 'r').readlines())
                 subset = subset_func(entries, keys)
                 emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
                 # deprecate for YAML workaround: bug https://github.com/jgm/pandoc-citeproc/issues/272
@@ -405,7 +405,7 @@ def process(args):
             # TODO: encode ampersands in URLs
             line = process_commented_citations(line)
             if args.bibliography:  # create hypertext refs from bibtex db
-                line = link_citations(line, biblio_parsed)
+                line = link_citations(line, bib_chunked)
                 # info("\n** line is now %s" % line)
             if args.presentation:  # color some revealjs top of column slides
                 if line.startswith('# ') and '{data-' not in line:
