@@ -12,11 +12,11 @@ from collections import OrderedDict
 import locale
 import logging
 from os import chdir, environ, mkdir, rename
-from os.path import abspath, exists, splitext
+from os.path import abspath, exists, expanduser, splitext
 import re
 import sys
 
-HOME = environ['HOME']
+HOME = expanduser("~") if exists(expanduser("~")) else None
 
 log_level = 100  # default
 critical = logging.critical
@@ -71,7 +71,7 @@ def subset_yaml(entries, keys):
     return subset
 
 
-def parse_bibtex(text):
+def chunk_bibtex(text):
     '''Return a dictionary of entry dictionaries, each with a field/value.
     The parser is simple/fast *and* inflexible, unlike the proper but
     slow parsers bibstuff and pyparsing-based parsers.'''
@@ -138,13 +138,13 @@ if '__main__' == __name__:
     import argparse  # http://docs.python.org/dev/library/argparse.html
     arg_parser = argparse.ArgumentParser(
         description='Extract a subset of bibliographic keys '
-        'from BIB_FILE using those keys found in a markdown file '
-        'or specified in argument.')
+        'from BIB_FILE (bib or yaml) using those keys found '
+        'in a markdown file or specified in argument.')
     arg_parser.add_argument(
-        'files', nargs='?', metavar='BIB_FILE')
+        'filename', nargs='?', metavar='BIB_FILE')
     arg_parser.add_argument(
         "-f", "--find-keys",
-        nargs=1, metavar='FILE',
+        nargs=1, metavar='MD_FILE',
         help="find keys in markdown file")
     arg_parser.add_argument(
         "-k", "--keys", nargs=1,
@@ -155,7 +155,7 @@ if '__main__' == __name__:
         help="log to file %(prog)s.log")
     arg_parser.add_argument(
         "-o", "--out-filename",
-        help="output results to filename", metavar="FILE")
+        help="output results to filename", metavar="OUT_FILE")
     arg_parser.add_argument(
         "-y", "--YAML",
         action="store_true", default=False,
@@ -185,16 +185,24 @@ if '__main__' == __name__:
     else:
         outfd = sys.stdout
 
-    if args.YAML:
-        BIB_FILE = HOME + '/joseph/readings.yaml'
-        chunk_func = chunk_yaml
+    # info("args.filename = %s" % (args.filename))
+    if not args.filename:
+        if args.YAML:
+            args.filename = HOME + '/joseph/readings.yaml'
+            chunk_func = chunk_yaml
+        else:
+            args.filename = HOME + '/joseph/readings.bib'
+            chunk_func = chunk_bibtex
     else:
-        BIB_FILE = HOME + '/joseph/readings.bib'
-        chunk_func = parse_bibtex
-    if args.files:  # override default file if specified
-        BIB_FILE = args.files[0]
+        fn, ext = splitext(args.filename)
+        info("ext = %s" % (ext))
+        if ext == '.yaml':
+            chunk_func = chunk_yaml
+            args.YAML = True
 
-    entries = chunk_func(open(BIB_FILE, 'r').readlines())
+    info("args.filename = %s" % (args.filename))
+    info("chunk_func = %s" % (chunk_func))
+    entries = chunk_func(open(args.filename, 'r').readlines())
 
     if args.keys:
         keys = args.keys[0].split(',')
