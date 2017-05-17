@@ -23,28 +23,39 @@ critical = logging.critical
 info = logging.info
 dbg = logging.debug
 
-
 def chunk_yaml(text):
-    '''Return a dictionary of entry dictionaries, each with a field/value.
-    YAML line chunking isn't as easy as bibtex because of nested multi-line
-    items like author and date.
-    Presently, I only support 'title-short' and 'url'.
-    # TODO: only returning this creates problems for subsetting
+    '''Return a dictionary of YAML chunks. This does *not* parse the YAML
+    but chunks syntactically constrained YAML for speed.
+    entries dict only supports the keys 'url' and 'title-short' for lookups
+    and '_yaml_block' for quick subsetting/emitting.
+
     '''
 
     entries = OrderedDict()
-    chunk = []
+    yaml_block = []
     key = None
 
-    for line in text[1:-1]:           # skip first two and last lines of YAML
+    for line in text[1:]:           # skip first two lines of YAML
+        info("line = %s" % (line))
+        if line.strip() == '...':   # last line
+            # final chunk
+            entries[key]['_yaml_block'] = ''.join(yaml_block).strip()  
+            break
         if line.startswith('- id: '):
+            if yaml_block and key:
+                # store previous yaml_block
+                entries[key]['_yaml_block'] = ''.join(yaml_block).strip()
+                # create new key and entry
             key = line[6:].strip()
             entries[key] = {}
+            yaml_block = [line]
             title_short = url = None
-        elif line.startswith('  URL: '):
-            entries[key]['url'] = line[8:-1]  # remove quotes too
-        elif line.startswith('  title-short: '):
-            entries[key]['title-short'] = line[16:-1]
+        else:
+            yaml_block.append(line)
+            if line.startswith('  URL: '):
+                entries[key]['url'] = line[8:-1]  # remove quotes too
+            elif line.startswith('  title-short: '):
+                entries[key]['title-short'] = line[16:-1]
     return entries
 
 
@@ -52,9 +63,9 @@ def emit_yaml_subset(entries, outfd):
     """Emit a YAML file."""
 
     outfd.write('''---\nreferences:\n''')
-    for identifier, chunk in entries.items():
-        info("identifier = %s, chunk = %s" % (identifier, str(chunk)))
-        outfd.write(chunk.strip())
+    for identifier in entries:
+        info("identifier = '%s'" % (identifier))
+        outfd.write(entries[identifier]['_yaml_block'])
         outfd.write('\n')
     outfd.write('''\n...\n''')
 
