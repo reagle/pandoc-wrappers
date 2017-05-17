@@ -29,6 +29,7 @@ def chunk_yaml(text):
     YAML line chunking isn't as easy as bibtex because of nested multi-line
     items like author and date.
     Presently, I only support 'title-short' and 'url'.
+    # TODO: only returning this creates problems for subsetting
     '''
 
     entries = OrderedDict()
@@ -52,6 +53,7 @@ def emit_yaml_subset(entries, outfd):
 
     outfd.write('''---\nreferences:\n''')
     for identifier, chunk in entries.items():
+        info("identifier = %s, chunk = %s" % (identifier, str(chunk)))
         outfd.write(chunk.strip())
         outfd.write('\n')
     outfd.write('''\n...\n''')
