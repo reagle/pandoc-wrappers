@@ -36,16 +36,16 @@ def chunk_yaml(text):
     key = None
 
     for line in text[1:]:           # skip first two lines of YAML
-        line = line.strip()
-        info("line = %s" % (line))
+        line = line.rstrip()
+        # info("line = %s" % (line))
         if line == '...':   # last line
             # final chunk
-            entries[key]['_yaml_block'] = ''.join(yaml_block)
+            entries[key]['_yaml_block'] = '\n'.join(yaml_block)
             break
         if line.startswith('- id: '):
             if yaml_block and key:
                 # store previous yaml_block
-                entries[key]['_yaml_block'] = ''.join(yaml_block)
+                entries[key]['_yaml_block'] = '\n'.join(yaml_block)
                 # create new key and entry
             key = line[6:]
             entries[key] = {}
@@ -53,10 +53,11 @@ def chunk_yaml(text):
             title_short = url = None
         else:
             yaml_block.append(line)
-            if line.startswith('URL: '):
-                entries[key]['url'] = line[6:-1]  # remove quotes too
-            elif line.startswith('title-short: '):
-                entries[key]['title-short'] = line[14:-1]
+            if line.startswith('  URL: '):
+                entries[key]['url'] = line[8:-1]  # remove quotes too
+            elif line.startswith('  title-short: '):
+                entries[key]['title-short'] = line[10:-1]
+    info("entries = '%s'" % (entries))
     return entries
 
 
