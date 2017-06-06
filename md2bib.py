@@ -23,6 +23,7 @@ critical = logging.critical
 info = logging.info
 dbg = logging.debug
 
+
 def chunk_yaml(text):
     '''Return a dictionary of YAML chunks. This does *not* parse the YAML
     but chunks syntactically constrained YAML for speed.
