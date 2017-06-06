@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 """Document transformation wrapper"""
 
-from md import link_citations
-from md2bib import parse_bibtex
 import optparse
 import os
 import shutil
