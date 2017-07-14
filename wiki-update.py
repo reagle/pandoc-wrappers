@@ -151,7 +151,7 @@ def insert_todos(plan_fn, todos):
 def update_markdown(files_to_process):
     '''Convert markdown file'''
 
-    fn_bare, fn_md, fn_html = files_to_process
+    fn_bare, fn_md, fn_out = files_to_process
     dbg('updating fn_md %s' % fn_md)
     content = open(fn_md, "r").read()
     md_cmd = [MD_BIN]
@@ -191,12 +191,13 @@ def update_markdown(files_to_process):
     if tmp_body_fn:
         remove(tmp_body_fn)
     if args.launch:
-        # webbrowser.open(fn_html)
-        call(["google-chrome", fn_html])
+        # webbrowser.open(fn_out)
+        call(["google-chrome", fn_out])
 
 
 def check_markdown_files(HOMEDIR):
     '''Convert any markdown file whose HTML file is older than it.'''
+    # TODO: convert this to generic output, to work with docx or odt
 
     files_bare = [splitext(fn_md)[0] for fn_md in locate('*.md', HOMEDIR)]
     files_to_process = []
