@@ -408,9 +408,9 @@ if '__main__' == __name__:
         insert_todos(PLAN_PAGE, todos)
 
     # # Public files
+    HOMEDIR = HOME + '/joseph/'
 
     # Zim: Public
-    HOMEDIR = HOME + '/joseph/'
     if has_dir_changed(HOMEDIR + 'zim/') or args.force_update:
         export_zim(HOMEDIR)
 
@@ -419,6 +419,12 @@ if '__main__' == __name__:
 
     # Mindmaps HTML exports
     check_mm_tmp_html_files()
+
+    # Markdown (2nd)
+    check_markdown_files(HOMEDIR)
+
+    # # Private files
+    HOMEDIR = HOME + '/data/1work/'
 
     # Markdown (2nd)
     check_markdown_files(HOMEDIR)
