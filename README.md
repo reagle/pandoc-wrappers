@@ -13,14 +13,6 @@ A wrapper script for pandoc that handles my own issues:
 2. can replace [@key] with hypertext'd refs from bibtex database.
 3. can create partial handouts for students for slides
 
-## bd.py
-
-Build a PDF (article or book) by converting from markdown to LaTeX.
-
-## bdh.py
-
-Like `bd`, but will build HTML using [htlatex](http://www.tug.org/applications/tex4ht/mn-commands.html).
-
 ## dtt.py
 
 Wraps many tools for converting HTML to text.
