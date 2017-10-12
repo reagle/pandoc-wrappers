@@ -70,7 +70,7 @@ if opts.lynx:
     wrap = '-width 76' if opts.wrap else '-width 1024'
     command = ['lynx', '-dump', '-nonumbers', '-display_charset=utf-8', url]
 elif opts.links:
-    wrap = '-width 76' if opts.wrap else ''
+    wrap = '-width 76' if opts.wrap else '-width 512'
     command = ['links', '-dump', url]
 elif opts.w3m:
     wrap = '-cols 76' if opts.wrap else ''
