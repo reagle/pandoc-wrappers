@@ -297,7 +297,7 @@ def process(args):
         # if args.write == 'markdown-citations':
         #     pandoc_opts.extend(['--csl=sage-harvard.csl',
         #         '--bibliography=/home/reagle/joseph/readings.yaml'])
-        pandoc_opts.extend(['-s', '--smart', '--tab-stop', '4',
+        pandoc_opts.extend(['-s', '--tab-stop', '4',
                             '--email-obfuscation=references'])
 
         if args.presentation:
@@ -423,7 +423,7 @@ def process(args):
 
         pandoc_cmd = [
             PANDOC_BIN, '-f', 'markdown+mmd_title_block+yaml_metadata_block'
-            '+implicit_header_references' '+superscript+subscript'
+            '+smart+implicit_header_references' '+superscript+subscript'
             '+tex_math_dollars' '+autolink_bare_uris']
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
