@@ -223,7 +223,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
             else:
                 handout_f.write(line)
         handout_f.close()
-        md_cmd = ['md', '--divs', '-c',
+        md_cmd = ['md', '--divs', '-w', 'html', '-c',
                   'http://reagle.org/joseph/talks/_custom/class-handouts-201306.css',
                   handout_fn]
         info("md_cmd = %s" % ' '.join(md_cmd))
