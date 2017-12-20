@@ -2,115 +2,186 @@
 # -*- coding: utf-8 -*-
 """Document transformation wrapper"""
 
-import optparse
+import logging
 import os
+from os import chdir, environ, mkdir, path, rename, remove, walk
+from os.path import abspath, basename, dirname, exists, \
+    expanduser, getmtime, join, relpath, splitext
 import shutil
 from subprocess import call, Popen, PIPE
+import sys
 import textwrap
 from urllib.request import urlopen
 
-from os.path import expanduser
-HOME = expanduser("~")
-VISUAL = os.environ['VISUAL']
 DST_FILE = '/tmp/dtt.txt'
-BIBTEX_FILE = HOME + '/joseph/readings.bib'
+HOME = expanduser("~") if exists(expanduser("~")) else None
+PANDOC_BIN = shutil.which("pandoc")
+VISUAL = environ['VISUAL']
+if not all([HOME, VISUAL, PANDOC_BIN]):
+    raise FileNotFoundError("Your environment is not configured correctly")
 
-opt_parser = optparse.OptionParser(
-    usage="usage: %prog [options] URL\n\n"
-    "Document transformation wrapper which (by default) converts HTML to txt")
-opt_parser.add_option(
-    "-p", "--pandoc",
-    action="store_true", default=False,
-    help="html2txt via pandoc (quite busy with links)")
-opt_parser.add_option(
-    "-y", "--lynx",
-    action="store_true", default=False,
-    help="html2txt via lynx (nice formatting)")
-opt_parser.add_option(
-    "-i", "--links",
-    action="store_true", default=False,
-    help="html2txt via links")
-opt_parser.add_option(
-    "-3", "--w3m",
-    action="store_true", default=False,
-    help="html2txt via w3m")
-opt_parser.add_option(
-    "-a", "--antiword",
-    action="store_true", default=False,
-    help="doc2txt  via antiword")
-opt_parser.add_option(
-    "-c", "--catdoc",
-    action="store_true", default=False,
-    help="doc2txt  via catdoc")
-opt_parser.add_option(
-    "-d", "--docx2txt",
-    action="store_true", default=False,
-    help="docx2txt via docx2txt")
-opt_parser.add_option(
-    "-f", "--pdftohtml",
-    action="store_true", default=False,
-    help="pdf2html via pdftohtml")
-opt_parser.add_option(
-    "-w", "--wrap",
-    action="store_true", default=False,
-    help="wrap text")
-opt_parser.add_option(
-    "-q", "--quote",
-    action="store_true", default=False,
-    help="prepend '>' quote marks to lines")
-opts, args = opt_parser.parse_args()
+log_level = 100  # default
+critical = logging.critical
+info = logging.info
+dbg = logging.debug
+warn = logging.warn
+error = logging.error
+excpt = logging.exception
 
-url = args[0]
-print(("** url = %s" % url))
-content = None
-os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
 
-# I prefer to use the programs native wrap if possible
-if opts.lynx:
-    wrap = '-width 76' if opts.wrap else '-width 1024'
-    command = ['lynx', '-dump', '-nonumbers', '-display_charset=utf-8', url]
-elif opts.links:
-    wrap = '-width 76' if opts.wrap else '-width 512'
-    command = ['links', '-dump', url]
-elif opts.w3m:
-    wrap = '-cols 76' if opts.wrap else ''
-    command = ['w3m', '-dump', '-cols', '76', url]
-elif opts.antiword:
-    wrap = '' if opts.wrap else '-w 0'
-    command = ['antiword', url]
-elif opts.catdoc:
-    wrap = '' if opts.wrap else '-w'
-    command = ['catdoc', url]
-elif opts.docx2txt:
-    wrap = ''  # maybe use fold instead?
-    command = ['docx2txt', url, '-']
-elif opts.pdftohtml:
-    wrap = ''
-    command = ['pdftotext', '-layout', '-nopgbrk', url, '-']
-else:  # fallback to pandoc
-    content = urlopen(url).read()
-    wrap = '' if opts.wrap else '--wrap=none'
-    command = ['pandoc', '-f', 'html', '-t', 'markdown',
-               '--reference-links', '-o', DST_FILE]
+if __name__ == "__main__":
+    import argparse  # http://docs.python.org/dev/library/argparse.html
+    arg_parser = argparse.ArgumentParser(
+        description='Document transformation wrapper which '
+        '(by default) converts HTML to text')
+    arg_parser.add_argument(
+        'filename', nargs=1, metavar='SOURCE FILE')
+    arg_parser.add_argument(
+        "-m", "--markdown",
+        action="store_true", default=False,
+        help="html2mdn via pandoc (quite busy with links)")
+    arg_parser.add_argument(
+        "-p", "--plain",
+        action="store_true", default=False,
+        help="html2txt via pandoc")
+    arg_parser.add_argument(
+        "-y", "--lynx",
+        action="store_true", default=False,
+        help="html2txt via lynx (nice formatting)")
+    arg_parser.add_argument(
+        "-i", "--links",
+        action="store_true", default=False,
+        help="html2txt via links")
+    arg_parser.add_argument(
+        "-3", "--w3m",
+        action="store_true", default=False,
+        help="html2txt via w3m")
+    arg_parser.add_argument(
+        "-a", "--antiword",
+        action="store_true", default=False,
+        help="doc2txt  via antiword")
+    arg_parser.add_argument(
+        "-c", "--catdoc",
+        action="store_true", default=False,
+        help="doc2txt  via catdoc")
+    arg_parser.add_argument(
+        "-d", "--docx2txt",
+        action="store_true", default=False,
+        help="docx2txt via docx2txt")
+    arg_parser.add_argument(
+        "-f", "--pdftohtml",
+        action="store_true", default=False,
+        help="pdf2html via pdftohtml")
+    arg_parser.add_argument(
+        "-w", "--wrap",
+        action="store_true", default=False,
+        help="wrap text")
+    arg_parser.add_argument(
+        "-q", "--quote",
+        action="store_true", default=False,
+        help="prepend '>' quote marks to lines")
+    arg_parser.add_argument(
+        '-L', '--log-to-file',
+        action="store_true", default=False,
+        help="log to file PROGRAM.log")
+    arg_parser.add_argument(
+        '-V', '--verbose', action='count', default=0,
+        help="Increase verbosity (specify multiple times for more)")
+    arg_parser.add_argument('--version', action='version', version='TBD')
 
-command.extend(wrap.split())
-print(("** command = %s" % command))
-process = Popen(command, stdin=PIPE, stdout=open(DST_FILE, 'w'))
-process.communicate(input=content)
+    args = arg_parser.parse_args()
+    info(args)
 
-if opts.wrap or opts.quote:
-    with open(DST_FILE) as f:
-        new_content = []
-        for line in f.readlines():
-            if opts.wrap and wrap == '':  # wrap if no native wrap
-                print("WRAPPING")
-                line = textwrap.fill(line, 76).strip() + '\n'
-            if opts.quote:
-                line = '> ' + line  # .replace('\n', '\n> ')
-            new_content.append(line)
-        content = ''.join(new_content)
-    with open(DST_FILE, 'w') as f:
-        f.write(content)
+    if args.verbose == 1:
+        log_level = logging.CRITICAL
+    elif args.verbose == 2:
+        log_level = logging.INFO
+    elif args.verbose >= 3:
+        log_level = logging.DEBUG
+    LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
+    if args.log_to_file:
+        logging.basicConfig(filename='wiki-update.log', filemode='w',
+                            level=log_level, format=LOG_FORMAT)
+    else:
+        logging.basicConfig(level=log_level, format=LOG_FORMAT)
 
-os.chmod(DST_FILE, 0o600)
-call([VISUAL, DST_FILE])
+    source = args.filename[0]
+    info(f"** source = {source}")
+    if source.startswith('http'):
+        url = source
+    else:
+        if os.path.exists(source):
+            path = os.path.abspath(source)
+            info(f"path = {path}")
+            url = f"file://{path}"
+        else:
+            print(f"ERROR: Cannot find {source}")
+            sys.exit()
+    info(f"** url = {url}")
+
+    content = None
+    os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
+
+    # default is lynx
+    if not any((args.lynx, args.plain, args.markdown, args.links, args.w3m,
+               args.antiword, args.catdoc, args.docx2txt, args.pdftohtml)):
+        args.lynx = True
+
+    # I prefer to use the programs native wrap if possible
+    if args.markdown:
+        content = urlopen(url).read()
+        wrap = '' if args.wrap else '--wrap=none'
+        command = [PANDOC_BIN, '-f', 'html', '-t', 'markdown',
+                   '--reference-links', '-o', DST_FILE]
+    elif args.plain:
+        content = urlopen(url).read()
+        wrap = '' if args.wrap else '--wrap=none'
+        command = [PANDOC_BIN, '-f', 'html', '-t', 'plain', '-o', DST_FILE]
+    elif args.lynx:
+        wrap = '-width 76' if args.wrap else '-width 1024'
+        command = ['lynx', '-dump', '-nonumbers',
+                   '-display_charset=utf-8', url]
+    elif args.links:
+        wrap = '-width 76' if args.wrap else '-width 512'
+        command = ['links', '-dump', url]
+    elif args.w3m:
+        wrap = '-cols 76' if args.wrap else ''
+        command = ['w3m', '-dump', '-cols', '76', url]
+    elif args.antiword:
+        wrap = '' if args.wrap else '-w 0'
+        command = ['antiword', url]
+    elif args.catdoc:
+        wrap = '' if args.wrap else '-w'
+        command = ['catdoc', url]
+    elif args.docx2txt:
+        wrap = ''  # maybe use fold instead?
+        command = ['docx2txt', url, '-']
+    elif args.pdftohtml:
+        wrap = ''
+        command = ['pdftotext', '-layout', '-nopgbrk', url, '-']
+    else:  # fallback to lynx
+        print("ERROR: no conversion program specified")
+
+    command.extend(wrap.split())
+    print(f"** command = {command} on {url}")
+    process = Popen(command, stdin=PIPE, stdout=open(DST_FILE, 'w'))
+    process.communicate(input=content)
+
+    if args.wrap or args.quote:
+        with open(DST_FILE) as f:
+            new_content = []
+            for line in f.readlines():
+                if line.isspace():
+                    line = '\n'
+                if args.wrap and wrap == '':  # wrap if no native wrap
+                    info("WRAPPING")
+                    line = textwrap.fill(line, 76).strip() + '\n'
+                if args.quote:
+                    line = '> ' + line  # .replace('\n', '\n> ')
+                new_content.append(line)
+            content = ''.join(new_content)
+        with open(DST_FILE, 'w') as f:
+            f.write(content)
+
+    os.chmod(DST_FILE, 0o600)
+    call([VISUAL, DST_FILE])
