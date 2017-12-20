@@ -313,8 +313,11 @@ def process(args):
                 '-V', 'history=true',
                 # '--no-highlight', # conflicts with reveal's highlight.js
             ])
-        if args.css:
+        if args.write == 'html' and args.css:
             pandoc_opts.extend(['-c', args.css])
+        elif args.write == 'docx':
+            pandoc_opts.extend(['--reference-doc',
+                                HOME + '/.pandoc/reference-mit-press.docx'])
         if args.condensed:
             pandoc_opts.extend(
                 ['-c', 'http://reagle.org/joseph/2003/papers-condensed.css'])
