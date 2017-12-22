@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     # default is lynx
     if not any((args.lynx, args.plain, args.markdown, args.links, args.w3m,
-               args.antiword, args.catdoc, args.docx2txt, args.pdftohtml)):
+                args.antiword, args.catdoc, args.docx2txt, args.pdftohtml)):
         args.lynx = True
 
     # I prefer to use the programs native wrap if possible
