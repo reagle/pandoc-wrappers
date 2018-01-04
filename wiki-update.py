@@ -169,7 +169,7 @@ def update_markdown(files_to_process):
         md_args.extend(['--quash'])
         # md_args.extend(['--keep-tmp'])
         md_args.extend(['--number-elements'])
-        md_args.extend(['--punctuation-inside'])
+        # md_args.extend(['--punctuation-inside'])  # removed from md.py
         # md_args.extend(['--style-csl', 'turabian-reagle.csl'])
         md_args.extend(['--style-csl', 'chicago-fullnote-nobib.csl'])
         # md_args.extend(['--odt'])
