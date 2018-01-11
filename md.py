@@ -311,6 +311,7 @@ def process(args):
                 '-V', 'theme=beige',
                 '-V', 'transition=linear',
                 '-V', 'history=true',
+                '-V', 'zoomKey=shift',
                 # '--no-highlight', # conflicts with reveal's highlight.js
             ])
         if args.write == 'html' and args.css:
