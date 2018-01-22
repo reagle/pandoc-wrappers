@@ -197,8 +197,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
             if args.partial_handout:
                 info("args.partial_handout = '%s'" % (args.partial_handout))
                 line = line.replace('### ', ' ')
+                # SKIP slides with '_' in heading
                 if line.startswith('# ') or line.startswith('## '):
-                    # slides to SKIP
                     if ' _' in line:
                         skip_to_next_header = True
                     # elif '# rev: ' in line:
@@ -207,9 +207,13 @@ def create_talk_handout(abs_fn, tmp2_fn):
                         skip_to_next_header = False
                     handout_f.write(line)
                 else:
-                    # REDACT some content in a slide
                     if not skip_to_next_header:
-                        if line.startswith('> *') or \
+                        # SKIP to next slide on break '. . .'
+                        if line.startswith('. . .'):
+                            skip_to_next_header = True
+                            continue
+                        # REDACT some content in a slide
+                        elif line.startswith('> *') or \
                                 line.startswith('> -') or \
                                 line.startswith('_'):
                             handout_f.write('\n')
