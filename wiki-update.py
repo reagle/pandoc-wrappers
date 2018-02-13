@@ -102,8 +102,8 @@ def chmod_recursive(path, dir_perms, file_perms):
 
 def export_zim(zim_path):
     # TODO: remove old wiki?
-    Popen('%s --index %s/zim' % (ZIM_BIN, zim_path),
-          stdout=PIPE, shell=True).communicate()[0].decode('utf8')
+    # Popen('%s --index %s/zim' % (ZIM_BIN, zim_path),
+    #       stdout=PIPE, shell=True).communicate()[0].decode('utf8')
     ZIM_CMD = (
         '%s --export --recursive --overwrite --output=%szwiki '
         '--format=html '
