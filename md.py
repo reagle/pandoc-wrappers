@@ -112,7 +112,7 @@ def link_citations(line, bib_chunked):
 
 def process_commented_citations(line):
 
-    P_BRACKET_PAIR = re.compile(r' \[[-#]?@[^\]]+\]')
+    P_BRACKET_PAIR = re.compile(r'[ |^]\[(.*?)[-#]?@[^\]]+\]')
 
     def quash(cite_match):
         """
@@ -121,25 +121,25 @@ def process_commented_citations(line):
         else uncomment
         """
         citation = cite_match.group(0)
-        # critical("citation = '%s'" %(citation))
+        critical("citation = '%s'" %(citation))
         chunks = citation[2:-1].split(';')  # isolate chunks from ' [' + ']'
-        # critical("chunks = %s" %(chunks))
+        critical("chunks = %s" %(chunks))
         citations_keep = []
         for chunk in chunks:
-            # critical("  chunk = '%s'" %(  chunk))
+            critical("  chunk = '%s'" %(  chunk))
             if '#@' in chunk:
                 if args.quash_citations:
                     pass
-                    # critical("  quashed")
+                    critical("  quashed")
                 else:
                     chunk = chunk.replace('#@', '@')
-                    # critical("  keeping chunk = '%s'" %(chunk))
+                    critical("  keeping chunk = '%s'" %(chunk))
                     citations_keep.append(chunk)
             else:
                 citations_keep.append(chunk)
 
         if citations_keep:
-            # critical("citations_keep = '%s'" %(citations_keep))
+            critical("citations_keep = '%s'" %(citations_keep))
             return ' [' + ';'.join(citations_keep) + ']'
         else:
             return ''
@@ -412,7 +412,11 @@ def process(args):
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
             # TODO: encode ampersands in URLs
+            if 'Gregg' in line:
+                critical("before = '%s'" % (line))
             line = process_commented_citations(line)
+            if 'Gregg' in line:
+                critical("after = '%s'" % (line))
             if args.bibliography:  # create hypertext refs from bibtex db
                 line = link_citations(line, bib_chunked)
                 # info("\n** line is now %s" % line)
