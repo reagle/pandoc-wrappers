@@ -24,10 +24,6 @@ log_level = 100  # default
 critical = logging.critical
 info = logging.info
 dbg = logging.debug
-warn = logging.warn
-error = logging.error
-excpt = logging.exception
-
 
 if __name__ == "__main__":
     import argparse  # http://docs.python.org/dev/library/argparse.html
@@ -69,6 +65,10 @@ if __name__ == "__main__":
         action="store_true", default=False,
         help="docx2txt via docx2txt")
     arg_parser.add_argument(
+        "-x", "--docx2plain",
+        action="store_true", default=False,
+        help="docx2plain via pandoc")
+    arg_parser.add_argument(
         "-f", "--pdftohtml",
         action="store_true", default=False,
         help="pdf2html via pdftohtml")
@@ -90,20 +90,17 @@ if __name__ == "__main__":
     arg_parser.add_argument('--version', action='version', version='TBD')
 
     args = arg_parser.parse_args()
-    info(args)
 
-    if args.verbose == 1:
-        log_level = logging.CRITICAL
-    elif args.verbose == 2:
-        log_level = logging.INFO
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG
+    if args.verbose == 1: log_level = logging.CRITICAL
+    elif args.verbose == 2: log_level = logging.INFO
+    elif args.verbose >= 3: log_level = logging.DEBUG
     LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
     if args.log_to_file:
-        logging.basicConfig(filename='wiki-update.log', filemode='w',
+        logging.basicConfig(filename='doi_query.log', filemode='w',
                             level=log_level, format=LOG_FORMAT)
     else:
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
+    info(args)
 
     source = args.filename[0]
     info(f"** source = {source}")
@@ -124,7 +121,8 @@ if __name__ == "__main__":
 
     # default is lynx
     if not any((args.lynx, args.plain, args.markdown, args.links, args.w3m,
-                args.antiword, args.catdoc, args.docx2txt, args.pdftohtml)):
+                args.antiword, args.catdoc, args.docx2txt, args.docx2plain,
+                args.pdftohtml)):
         args.lynx = True
 
     # I prefer to use the programs native wrap if possible
@@ -147,6 +145,11 @@ if __name__ == "__main__":
     elif args.w3m:
         wrap = '-cols 76' if args.wrap else ''
         command = ['w3m', '-dump', '-cols', '76', url]
+    elif args.docx2plain:
+        content = urlopen(url).read()
+        wrap = '' if args.wrap else '--wrap=none'
+        command = [PANDOC_BIN, '-f', 'docx', '-t', 'plain',
+                   '--reference-links', '-o', DST_FILE]
     elif args.antiword:
         wrap = '' if args.wrap else '-w 0'
         command = ['antiword', url]
@@ -155,11 +158,12 @@ if __name__ == "__main__":
         command = ['catdoc', url]
     elif args.docx2txt:
         wrap = ''  # maybe use fold instead?
-        command = ['docx2txt', url, '-']
+        url = url[7:]  # remove 'file://'
+        command = ['docx2txt.pl', url, '-']
     elif args.pdftohtml:
         wrap = ''
         command = ['pdftotext', '-layout', '-nopgbrk', url, '-']
-    else:  # fallback to lynx
+    else: 
         print("ERROR: no conversion program specified")
 
     command.extend(wrap.split())
@@ -173,13 +177,16 @@ if __name__ == "__main__":
             for line in f.readlines():
                 if line.isspace():
                     line = '\n'
-                if args.wrap and wrap == '':  # wrap if no native wrap
-                    info("WRAPPING")
+                if args.wrap and wrap != '':  # wrap if no native wrap
+                    # info("wrapping")
                     line = textwrap.fill(line, 76).strip() + '\n'
                 if args.quote:
-                    line = '> ' + line  # .replace('\n', '\n> ')
+                    # info("quoting")
+                    line = line.replace('\n', '\n> ')
                 new_content.append(line)
             content = ''.join(new_content)
+            if args.quote:
+                content = '> ' + content
         with open(DST_FILE, 'w') as f:
             f.write(content)
 
