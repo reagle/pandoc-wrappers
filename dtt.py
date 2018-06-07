@@ -5,8 +5,7 @@
 import logging
 import os
 from os import chdir, environ, mkdir, path, rename, remove, walk
-from os.path import abspath, basename, dirname, exists, \
-    expanduser, getmtime, join, relpath, splitext
+from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
 import shutil
 from subprocess import call, Popen, PIPE
 import sys
@@ -14,7 +13,7 @@ import textwrap
 from urllib.request import urlopen
 
 DST_FILE = '/tmp/dtt.txt'
-HOME = expanduser("~") if exists(expanduser("~")) else None
+HOME = Path("~").expanduser()
 PANDOC_BIN = shutil.which("pandoc")
 VISUAL = environ['VISUAL']
 if not all([HOME, VISUAL, PANDOC_BIN]):
@@ -31,15 +30,15 @@ if __name__ == "__main__":
         description='Document transformation wrapper which '
         '(by default) converts HTML to text')
     arg_parser.add_argument(
-        'filename', nargs=1, metavar='SOURCE FILE')
+        'filename', nargs=1, metavar='FILE_NAME')
     arg_parser.add_argument(
         "-m", "--markdown",
         action="store_true", default=False,
-        help="html2mdn via pandoc (quite busy with links)")
+        help="file2mdn via pandoc (quite busy with links)")
     arg_parser.add_argument(
         "-p", "--plain",
         action="store_true", default=False,
-        help="html2txt via pandoc")
+        help="file2txt via pandoc")
     arg_parser.add_argument(
         "-y", "--lynx",
         action="store_true", default=False,
@@ -65,13 +64,9 @@ if __name__ == "__main__":
         action="store_true", default=False,
         help="docx2txt via docx2txt")
     arg_parser.add_argument(
-        "-x", "--docx2plain",
+        "-t", "--pdftotext",
         action="store_true", default=False,
-        help="docx2plain via pandoc")
-    arg_parser.add_argument(
-        "-f", "--pdftohtml",
-        action="store_true", default=False,
-        help="pdf2html via pdftohtml")
+        help="pdf2txt via pdftotext")
     arg_parser.add_argument(
         "-w", "--wrap",
         action="store_true", default=False,
@@ -102,17 +97,18 @@ if __name__ == "__main__":
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
     info(args)
 
-    source = args.filename[0]
-    info(f"** source = {source}")
-    if source.startswith('http'):
-        url = source
+    file_name = args.filename[0]
+    extension = Path(file_name).suffix[1:]
+    info(f"** file_name = {file_name}")
+    if file_name.startswith('http'):
+        url = file_name
     else:
-        if os.path.exists(source):
-            path = os.path.abspath(source)
+        if os.path.exists(file_name):
+            path = os.path.abspath(file_name)
             info(f"path = {path}")
             url = f"file://{path}"
         else:
-            print(f"ERROR: Cannot find {source}")
+            print(f"ERROR: Cannot find {file_name}")
             sys.exit()
     info(f"** url = {url}")
 
@@ -121,20 +117,20 @@ if __name__ == "__main__":
 
     # default is lynx
     if not any((args.lynx, args.plain, args.markdown, args.links, args.w3m,
-                args.antiword, args.catdoc, args.docx2txt, args.docx2plain,
-                args.pdftohtml)):
+                args.antiword, args.catdoc, args.docx2txt, args.pdftotext)):
         args.lynx = True
 
     # I prefer to use the programs native wrap if possible
     if args.markdown:
         content = urlopen(url).read()
         wrap = '' if args.wrap else '--wrap=none'
-        command = [PANDOC_BIN, '-f', 'html', '-t', 'markdown',
-                   '--reference-links', '-o', DST_FILE]
+        command = [PANDOC_BIN, '-f', f'{extension}', '-t', 'markdown',
+                   '--atx-headers', '--reference-links', '-o', DST_FILE]
     elif args.plain:
         content = urlopen(url).read()
         wrap = '' if args.wrap else '--wrap=none'
-        command = [PANDOC_BIN, '-f', 'html', '-t', 'plain', '-o', DST_FILE]
+        command = [PANDOC_BIN, '-f', f'{extension}', '-t', 'plain',
+                   '-o', DST_FILE]
     elif args.lynx:
         wrap = '-width 76' if args.wrap else '-width 1024'
         command = ['lynx', '-dump', '-nonumbers',
@@ -145,11 +141,6 @@ if __name__ == "__main__":
     elif args.w3m:
         wrap = '-cols 76' if args.wrap else ''
         command = ['w3m', '-dump', '-cols', '76', url]
-    elif args.docx2plain:
-        content = urlopen(url).read()
-        wrap = '' if args.wrap else '--wrap=none'
-        command = [PANDOC_BIN, '-f', 'docx', '-t', 'plain',
-                   '--reference-links', '-o', DST_FILE]
     elif args.antiword:
         wrap = '' if args.wrap else '-w 0'
         command = ['antiword', url]
@@ -158,12 +149,11 @@ if __name__ == "__main__":
         command = ['catdoc', url]
     elif args.docx2txt:
         wrap = ''  # maybe use fold instead?
-        url = url[7:]  # remove 'file://'
-        command = ['docx2txt.pl', url, '-']
-    elif args.pdftohtml:
+        command = ['docx2txt.pl', file_name, '-']
+    elif args.pdftotext:
         wrap = ''
-        command = ['pdftotext', '-layout', '-nopgbrk', url, '-']
-    else: 
+        command = ['pdftotext', '-layout', '-nopgbrk', file_name, '-']
+    else:
         print("ERROR: no conversion program specified")
 
     command.extend(wrap.split())
