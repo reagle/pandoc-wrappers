@@ -112,7 +112,9 @@ def link_citations(line, bib_chunked):
 
 def process_commented_citations(line):
 
-    P_BRACKET_PAIR = re.compile(r'[ |^]\[(.*?)[-#]?@[^\]]+\]')
+    # match stuff within a bracket (beginning with ' ' or '^') that
+    # has no other brackets within
+    P_BRACKET_PAIR = re.compile(r'[ |^]\[[^\[]+[-#]?@[^\]]+\]')
 
     def quash(cite_match):
         """
@@ -122,6 +124,7 @@ def process_commented_citations(line):
         """
         citation = cite_match.group(0)
         critical("citation = '%s'" %(citation))
+        prefix = '^' if citation[0] == '^' else ' '
         chunks = citation[2:-1].split(';')  # isolate chunks from ' [' + ']'
         critical("chunks = %s" %(chunks))
         citations_keep = []
@@ -140,7 +143,7 @@ def process_commented_citations(line):
 
         if citations_keep:
             critical("citations_keep = '%s'" %(citations_keep))
-            return ' [' + ';'.join(citations_keep) + ']'
+            return f'{prefix}[' + ';'.join(citations_keep) + ']'
         else:
             return ''
 
@@ -412,6 +415,7 @@ def process(args):
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
             # TODO: encode ampersands in URLs
+            # TODO: remove Gregg diagnostics
             if 'Gregg' in line:
                 critical("before = '%s'" % (line))
             line = process_commented_citations(line)
