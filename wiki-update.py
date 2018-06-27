@@ -174,7 +174,7 @@ def update_markdown(files_to_process):
         md_args.extend(['--style-csl', 'chicago-fullnote-nobib.csl'])
         # md_args.extend(['--odt'])
     else:
-        md_args.extend(['-c', 'http://reagle.org/joseph/2003/papers.css'])
+        md_args.extend(['-c', 'https://reagle.org/joseph/2003/papers.css'])
     # check for a multimarkdown metadata line with extra build options
     match_md_opts = re.search('^md_opts_: (.*)', content, re.MULTILINE)
     # md_args.extend(['--keep-tmp']) # for debugging
