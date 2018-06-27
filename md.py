@@ -123,26 +123,26 @@ def process_commented_citations(line):
         else uncomment
         """
         citation = cite_match.group(0)
-        critical("citation = '%s'" %(citation))
+        critical("citation = '%s'" % (citation))
         prefix = '^' if citation[0] == '^' else ' '
         chunks = citation[2:-1].split(';')  # isolate chunks from ' [' + ']'
-        critical("chunks = %s" %(chunks))
+        critical("chunks = %s" % (chunks))
         citations_keep = []
         for chunk in chunks:
-            critical("  chunk = '%s'" %(  chunk))
+            critical("  chunk = '%s'" % (chunk))
             if '#@' in chunk:
                 if args.quash_citations:
                     pass
                     critical("  quashed")
                 else:
                     chunk = chunk.replace('#@', '@')
-                    critical("  keeping chunk = '%s'" %(chunk))
+                    critical("  keeping chunk = '%s'" % (chunk))
                     citations_keep.append(chunk)
             else:
                 citations_keep.append(chunk)
 
         if citations_keep:
-            critical("citations_keep = '%s'" %(citations_keep))
+            critical("citations_keep = '%s'" % (citations_keep))
             return f'{prefix}[' + ';'.join(citations_keep) + ']'
         else:
             return ''
@@ -231,7 +231,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 handout_f.write(line)
         handout_f.close()
         md_cmd = ['md', '--divs', '--toc', '-w', 'html', '-c',
-                  'http://reagle.org/joseph/talks/_custom/class-handouts-201306.css',
+                  'https://reagle.org/joseph/talks/_custom/class-handouts-201306.css',
                   handout_fn]
         info("md_cmd = %s" % ' '.join(md_cmd))
         call(md_cmd)
@@ -328,7 +328,7 @@ def process(args):
                                 HOME + '/.pandoc/reference-mit-press.docx'])
         if args.condensed:
             pandoc_opts.extend(
-                ['-c', 'http://reagle.org/joseph/2003/papers-condensed.css'])
+                ['-c', 'https://reagle.org/joseph/2003/papers-condensed.css'])
         if args.toc:
             pandoc_opts.extend(['--toc'])
             if args.toc_depth:
@@ -534,7 +534,7 @@ if __name__ == "__main__":
         help="quash citations that begin with hash (#@Reagle2012foo)")
     arg_parser.add_argument(
         "-c", "--css",
-        default='http://reagle.org/joseph/2003/papers.css',
+        default='https://reagle.org/joseph/2003/papers.css',
         help="apply non-default CSS")
     arg_parser.add_argument(
         "--condensed",
