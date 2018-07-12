@@ -102,6 +102,8 @@ if __name__ == "__main__":
     info(f"** file_name = {file_name}")
     if file_name.startswith('http'):
         url = file_name
+        if 'docs.google.com' in url:
+            url = url.replace('/edit', '/export')
     else:
         if os.path.exists(file_name):
             path = os.path.abspath(file_name)
