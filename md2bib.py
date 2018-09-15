@@ -7,11 +7,8 @@
 using those keys found in a markdown file or specified
 in argument."""
 
-import codecs
 from collections import OrderedDict
-import locale
 import logging
-from os import chdir, environ, mkdir, rename
 from os.path import abspath, exists, expanduser, splitext
 import re
 import sys
