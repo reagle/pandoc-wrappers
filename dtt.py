@@ -126,23 +126,27 @@ if __name__ == "__main__":
     if args.markdown:
         content = urlopen(url).read()
         wrap = '' if args.wrap else '--wrap=none'
+        columns = 70
         command = [PANDOC_BIN, '-f', f'{extension}', '-t', 'markdown',
-                   '--atx-headers', '--reference-links', '-o', DST_FILE]
+                   '--atx-headers', '--reference-links',
+                   '--columns', f'{columns}', '-o', DST_FILE]
     elif args.plain:
         content = urlopen(url).read()
         wrap = '' if args.wrap else '--wrap=none'
+        columns = 70
         command = [PANDOC_BIN, '-f', f'{extension}', '-t', 'plain',
-                   '-o', DST_FILE]
+                   '--atx-headers',
+                   '--columns', f'{columns}', '-o', DST_FILE]
     elif args.lynx:
-        wrap = '-width 72' if args.wrap else '-width 1024'
+        wrap = '-width 70' if args.wrap else '-width 1024'
         command = ['lynx', '-dump', '-nonumbers',
                    '-display_charset=utf-8', url]
     elif args.links:
-        wrap = '-width 72' if args.wrap else '-width 512'
+        wrap = '-width 70' if args.wrap else '-width 512'
         command = ['links', '-dump', url]
     elif args.w3m:
-        wrap = '-cols 72' if args.wrap else ''
-        command = ['w3m', '-dump', '-cols', '72', url]
+        wrap = '-cols 70' if args.wrap else ''
+        command = ['w3m', '-dump', '-cols', '70', url]
     elif args.antiword:
         wrap = '' if args.wrap else '-w 0'
         command = ['antiword', url]
@@ -171,7 +175,7 @@ if __name__ == "__main__":
                     line = '\n'
                 if args.wrap and wrap != '':  # wrap if no native wrap
                     # info("wrapping")
-                    line = textwrap.fill(line, 72).strip() + '\n'
+                    line = textwrap.fill(line, 70).strip() + '\n'
                 if args.quote:
                     # info("quoting")
                     line = line.replace('\n', '\n> ')
