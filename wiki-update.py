@@ -28,7 +28,7 @@ HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = environ['BROWSER'] if 'BROWSER' in environ else None
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME + '/bin/pandoc-wrappers/md.py'
-ZIM_BIN = 'python2 %s/bin/zim-0.68/zim.py' % HOME
+ZIM_BIN = '/usr/local/bin/zim'
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
@@ -109,12 +109,15 @@ def export_zim(zim_path):
         '--template=~/.local/share/zim/templates/html/codex-default.html %szim '
         '--format=html --index-page index ' % (ZIM_BIN, zim_path, zim_path))
     info(ZIM_CMD)
+    print(f"exporting {zim_path}")
     results = Popen(
-        (ZIM_CMD), stdout=PIPE, shell=True
-    ).communicate()[0].decode('utf8')
+        (ZIM_CMD),
+        stdout=PIPE, stderr=PIPE, shell=True, text=True
+        )  #.communicate()[0].decode('utf8')
     chmod_recursive('%szwiki' % zim_path, 0o755, 0o744)
-    if results:
-        print(results)
+    results_out, results_sdterr = results.communicate()
+    if "WARNING" not in results_sdterr:
+        print(f"results_sdterr\n{results_sdterr}")
 
 
 def grab_todos(filename):
