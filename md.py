@@ -159,9 +159,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
     '''If talks and handouts exists, create (partial) handout'''
 
     info("starting handout")
-    # http://www.farside.org.uk/200804/osjam/markdown2.py
-    # ast_bullet_re = re.compile(r'^(\s*)(\* )') # what does this do?
-    em_re = re.compile(r'(?<! _)_([^_]+?)_ ')
+    EM_RE = re.compile(r'(?<! _)_([^_]+?)_\W')
 
     def em_mask(matchobj):
         """replace emphasis with underscores"""
@@ -194,36 +192,23 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 skip_to_next_header = True
                 info("skipping line = '%s'" % line)
                 continue
-            # if line.startswith('----'):
-                # line = line.replace('----', '# &nbsp;')
-            # slide to SKIP
             if args.partial_handout:
                 info("args.partial_handout = '%s'" % (args.partial_handout))
                 line = line.replace('### ', ' ')
-                # SKIP slides with '_' in heading
+                # skip slides with underscore in heading
                 if line.startswith('# ') or line.startswith('## '):
                     if ' _' in line:
                         skip_to_next_header = True
-                    # elif '# rev: ' in line:
-                        # skip_to_next_header = True
                     else:
                         skip_to_next_header = False
                     handout_f.write(line)
                 else:
                     if not skip_to_next_header:
-                        # SKIP to next slide on break '. . .'
-                        if line.startswith('. . .'):
-                            skip_to_next_header = True
-                            continue
-                        # REDACT some content in a slide
-                        elif line.startswith('> *') or \
-                                line.startswith('> -') or \
-                                line.startswith('_'):
-                            handout_f.write('\n')
-                            continue
+                        # eg: if line.startswith('> *'): continue
                         info("entering em redaction")
-                        line = em_re.subn(em_mask, line)[
-                            0]  # replace empth w/ _
+                        # replace emph underscores  w/ literal '_'
+                        line = EM_RE.subn(em_mask, line)[0]
+                        info("line = '%s'" % (line))
                         handout_f.write(line)
                     else:
                         handout_f.write('\n')
