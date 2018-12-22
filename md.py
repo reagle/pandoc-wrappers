@@ -159,7 +159,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
     '''If talks and handouts exists, create (partial) handout'''
 
     info("starting handout")
-    EM_RE = re.compile(r'(?<! _)_([^_]+?)_\W')
+    EM_RE = re.compile(r'(?<! _)_([^_]+?)_ ')
 
     def em_mask(matchobj):
         """replace emphasis with underscores"""
