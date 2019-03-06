@@ -69,23 +69,24 @@ def link_citations(line, bib_chunked):
         key = citation.split('@', 1)[1]
         info("**   processing key: %s" % key)
         reference = bib_chunked.get(key)
-        info(reference)
         if reference is None:
             print("WARNING: key %s not found" % key)
             return key
+        else:
+            info(reference.keys())
         url = reference.get('url')
         title = reference.get('shorttitle')
         last_name, year, _ = re.split('(\d\d\d\d)', key)
 
-        if 'origdate' in reference:
-            year = reference['origdate']  # + "/" + year
+        if 'original-date' in reference:
+            year = f"{reference['original-date']}/{year}"
 
         if citation.startswith('-'):
             key_text = re.findall(r'\d\d\d\d.*', key)[0]  # year
         else:
             key_text = "%s %s" % (last_name, year)
 
-        # info("**   url = %s" % url)
+        dbg("**   url = %s" % url)
         if url:
             cite_replacement.append('[%s](%s)' % (key_text, url))
         else:
@@ -94,7 +95,7 @@ def link_citations(line, bib_chunked):
                 cite_replacement.append('%s, "%s"' % (key_text, title))
             else:
                 cite_replacement.append('%s' % key_text)
-        # info("**   using cite_replacement = %s" % cite_replacement)
+        dbg("**   using cite_replacement = %s" % cite_replacement)
         return ''.join(cite_replacement)
 
     P_BRACKET_PAIR = re.compile('\[[^\]]*[-#]?@[^\]]+\]')
@@ -272,7 +273,7 @@ def process(args):
     if args.bibliography:
         bib_fn = HOME + '/joseph/readings.yaml'
         bib_chunked = md2bib.chunk_yaml(open(bib_fn, 'r').readlines())
-        info("bib_chunked = %s" % (bib_chunked))
+        dbg("bib_chunked = %s" % (bib_chunked))
 
     info("args.files = '%s'" % args.files)
     for in_file in args.files:
@@ -408,11 +409,11 @@ def process(args):
                 critical("after = '%s'" % (line))
             if args.bibliography:  # create hypertext refs from bibtex db
                 line = link_citations(line, bib_chunked)
-                # info("\n** line is now %s" % line)
+                dbg("\n** line is now %s" % line)
             if args.presentation:  # color some revealjs top of column slides
                 if line.startswith('# ') and '{data-' not in line:
                     line = line.strip() + ' {data-background="LightBlue"}\n'
-            # info("END line: '%s'" % line)
+            dbg("END line: '%s'" % line)
             new_lines.append(line)
         f1.close()
         f2.write('\n'.join(new_lines))
