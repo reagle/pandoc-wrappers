@@ -33,7 +33,8 @@ def chunk_yaml(text):
     yaml_block = []
     key = None
 
-    for line in text[1:]:           # skip first two lines of YAML
+    lines = iter(text[1:])  # skip first two lines of YAML
+    for line in lines:
         line = line.rstrip()
         # info("line = %s" % (line))
         if line == '...':   # last line
@@ -55,7 +56,11 @@ def chunk_yaml(text):
                 entries[key]['url'] = line[8:-1]  # remove quotes too
             elif line.startswith('  title-short: '):
                 entries[key]['title-short'] = line[10:-1]
-    info("entries = '%s'" % (entries))
+            elif line.startswith('  original-date:'):
+                next_line = next(lines)  # year is on next line
+                if 'year' in next_line:
+                    entries[key]['original-date'] = next_line[10:-1]
+    dbg("entries = '%s'" % (entries))
     return entries
 
 
