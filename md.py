@@ -64,7 +64,7 @@ def link_citations(line, bib_chunked):
 
     def hyperize(cite_match):
         """
-        hyperize every non-oARENSverlapping occurrence
+        hyperize every non-overlapping occurrence
         and return to PARENS_KEY.sub
         """
         cite_replacement = []
@@ -122,9 +122,11 @@ def link_citations(line, bib_chunked):
 
 
 def process_commented_citations(line):
+    """
+    Match stuff within a bracket (beginning with ' ' or '^') that
+     has no other brackets within
+     """
 
-    # match stuff within a bracket (beginning with ' ' or '^') that
-    # has no other brackets within
     PARENS_BRACKET_PAIR = re.compile(r'[ |^]\[[^\[]+[-#]?@[^\]]+\]')
 
     def quash(cite_match):
