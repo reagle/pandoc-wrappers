@@ -56,12 +56,16 @@ def link_citations(line, bib_chunked):
     Used only with citations in presentations.
     """
 
-    P_KEY = re.compile(r'(-?@[\w|-]+)')  # -@Clark-Flory2010fpo
+    PARENS_KEY = re.compile(r'''
+        (-?@        # at-sign with optional negative
+        (?<!\\@)    # negative look behind for escape slash
+        [\w|-]+)    # one or more alhanumberics or hyphens
+        ''', re.VERBOSE)  # -@Clark-Flory2010fpo
 
     def hyperize(cite_match):
         """
-        hyperize every non-overlapping occurrence
-        and return to P_KEY.sub
+        hyperize every non-oARENSverlapping occurrence
+        and return to PARENS_KEY.sub
         """
         cite_replacement = []
         url = None
@@ -76,7 +80,7 @@ def link_citations(line, bib_chunked):
             info(reference.keys())
         url = reference.get('url')
         title = reference.get('shorttitle')
-        last_name, year, _ = re.split('(\d\d\d\d)', key)
+        last_name, year, _ = re.split(r'(\d\d\d\d)', key)
 
         if 'original-date' in reference:
             year = f"{reference['original-date']}/{year}"
@@ -98,7 +102,11 @@ def link_citations(line, bib_chunked):
         dbg("**   using cite_replacement = %s" % cite_replacement)
         return ''.join(cite_replacement)
 
-    P_BRACKET_PAIR = re.compile('\[[^\]]*[-#]?@[^\]]+\]')
+    PARENS_BRACKET_PAIR = re.compile(r'''
+        \[[^\]]*    # opening bracket follow by 0 or more non-closing bracket
+        [-#\\]?@    # at-sign preceded by optional hyphen or pound or escape
+        [^\]]+\]    # chars up to closing bracket
+        ''', re.VERBOSE)
 
     def make_parens(cite_match):
         """
@@ -106,8 +114,10 @@ def link_citations(line, bib_chunked):
         """
         return '(' + cite_match.group(0)[1:-1] + ')'
 
-    line = P_BRACKET_PAIR.sub(make_parens, line)
-    line = P_KEY.sub(hyperize, line)
+    line = PARENS_BRACKET_PAIR.sub(make_parens, line)
+    info(f"{line}")
+    line = PARENS_KEY.sub(hyperize, line)
+    info(f"{line}")
     return line
 
 
@@ -115,7 +125,7 @@ def process_commented_citations(line):
 
     # match stuff within a bracket (beginning with ' ' or '^') that
     # has no other brackets within
-    P_BRACKET_PAIR = re.compile(r'[ |^]\[[^\[]+[-#]?@[^\]]+\]')
+    PARENS_BRACKET_PAIR = re.compile(r'[ |^]\[[^\[]+[-#]?@[^\]]+\]')
 
     def quash(cite_match):
         """
@@ -148,7 +158,7 @@ def process_commented_citations(line):
         else:
             return ''
 
-    new_line = P_BRACKET_PAIR.subn(quash, line)[0]
+    new_line = PARENS_BRACKET_PAIR.subn(quash, line)[0]
     # if I quashed a citation completely, I might have a period after a quote
     if args.quash_citations:
         if '].' in line and '".' in new_line:  # imperfect test
