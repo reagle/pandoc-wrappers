@@ -114,7 +114,7 @@ def export_zim(zim_path):
     results = Popen(
         (ZIM_CMD),
         stdout=PIPE, stderr=PIPE, shell=True, text=True
-        )  #.communicate()[0].decode('utf8')
+        )
     chmod_recursive('%szwiki' % zim_path, 0o755, 0o744)
     results_out, results_sdterr = results.communicate()
     if "WARNING" not in results_sdterr:
@@ -273,8 +273,8 @@ def log2work(done_tasks):
     log_items = []
     for activity, task in done_tasks:
         # zim syntax for href/em to HTML
-        task = re.sub('\[\[(.*?)\|(.*)\]\]', r'<a href="\1">\2</a>', task)
-        task = re.sub('\/\/(.*?)\/\/', r'<em>\1</em>', task)
+        task = re.sub(r'\[\[(.*?)\|(.*)\]\]', r'<a href="\1">\2</a>', task)
+        task = re.sub(r'\/\/(.*?)\/\/', r'<em>\1</em>', task)
 
         date_token = get_Now_YMD()
         digest = hashlib.md5(task.encode('utf-8', 'replace')).hexdigest()
@@ -296,7 +296,7 @@ def log2work(done_tasks):
     #     ul_found[0].insert(0, etree.XML(''.join(log_items)))
     #     new_content = str(etree.tostring(plan_tree, pretty_print=True))
 
-    insertion_regexp = re.compile('(<h2>Done Work</h2>\s*<ul>)')
+    insertion_regexp = re.compile(r'(<h2>Done Work</h2>\s*<ul>)')
 
     new_content = insertion_regexp.sub(
         '\\1 \n  %s' % ''.join(log_items), plan_content,
@@ -325,7 +325,7 @@ def retire_tasks(directory):
             new_wiki_page = []
             with open(zim_fn, 'r') as wiki_page:
                 for line in wiki_page:
-                    label = re.search('@\w+', line)
+                    label = re.search(r'@\w+', line)
                     # TODO: support multiple labels and remove from activity
                     if label:
                         activity = '#' + label.group(0).strip()[1:]
