@@ -413,12 +413,6 @@ def process(args):
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
             # TODO: encode ampersands in URLs
-            # TODO: remove Gregg diagnostics
-            if 'Gregg' in line:
-                critical("before = '%s'" % (line))
-            line = process_commented_citations(line)
-            if 'Gregg' in line:
-                critical("after = '%s'" % (line))
             if args.bibliography:  # create hypertext refs from bibtex db
                 line = link_citations(line, bib_chunked)
                 dbg("\n** line is now %s" % line)
