@@ -124,8 +124,8 @@ def link_citations(line, bib_chunked):
 def process_commented_citations(line):
     """
     Match stuff within a bracket (beginning with ' ' or '^') that
-     has no other brackets within
-     """
+    has no other brackets within
+    """
 
     PARENS_BRACKET_PAIR = re.compile(r'[ |^]\[[^\[]+[-#]?@[^\]]+\]')
 
