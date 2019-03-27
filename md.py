@@ -103,7 +103,7 @@ def link_citations(line, bib_chunked):
         return ''.join(cite_replacement)
 
     PARENS_BRACKET_PAIR = re.compile(r'''
-        \[[^\]]*    # opening bracket follow by 0 or more non-closing bracket
+        \[[^\]]*    # opening bracket follow by 0+ non-closing bracket
         [-#\\]?@    # at-sign preceded by optional hyphen or pound or escape
         [^\]]+\]    # chars up to closing bracket
         ''', re.VERBOSE)
@@ -127,7 +127,12 @@ def process_commented_citations(line):
     has no other brackets within
     """
 
-    PARENS_BRACKET_PAIR = re.compile(r'[ |^]\[[^\[]+[-#]?@[^\]]+\]')
+    PARENS_BRACKET_PAIR = re.compile(r'''
+        [ |^]       # space or caret
+        \[[^\[]+    # open_bracket followed by 1+ non-open_brackets
+        [-#]?@      # at-sign preceded by optional hyphen or pound
+        [^\]]+\]    # 1+ non-closing-brackets, closing bracket
+        ''', re.VERBOSE)
 
     def quash(cite_match):
         """
@@ -136,31 +141,33 @@ def process_commented_citations(line):
         else uncomment
         """
         citation = cite_match.group(0)
-        critical("citation = '%s'" % (citation))
+        critical(f"citation = '{citation}'")
         prefix = '^' if citation[0] == '^' else ' '
         chunks = citation[2:-1].split(';')  # isolate chunks from ' [' + ']'
-        critical("chunks = %s" % (chunks))
+        critical(f"chunks = {chunks}")
         citations_keep = []
         for chunk in chunks:
-            critical("  chunk = '%s'" % (chunk))
+            critical(f"  chunk = '{chunk}'")
             if '#@' in chunk:
                 if args.quash_citations:
                     pass
-                    critical("  quashed")
+                    critical(f"  quashed")
                 else:
                     chunk = chunk.replace('#@', '@')
-                    critical("  keeping chunk = '%s'" % (chunk))
+                    critical(f"  keeping chunk = '{chunk}'")
                     citations_keep.append(chunk)
             else:
                 citations_keep.append(chunk)
 
         if citations_keep:
-            critical("citations_keep = '%s'" % (citations_keep))
+            critical(f"citations_keep = '{citation_keep}'")
             return f'{prefix}[' + ';'.join(citations_keep) + ']'
         else:
             return ''
 
+    info(f"old_line = {line}")
     new_line = PARENS_BRACKET_PAIR.subn(quash, line)[0]
+    info(f"new_line = {new_line}")
     # if I quashed a citation completely, I might have a period after a quote
     if args.quash_citations:
         if '].' in line and '".' in new_line:  # imperfect test
