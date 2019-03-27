@@ -160,7 +160,7 @@ def process_commented_citations(line):
                 citations_keep.append(chunk)
 
         if citations_keep:
-            critical(f"citations_keep = '{citation_keep}'")
+            critical(f"citations_keep = '{citations_keep}'")
             return f'{prefix}[' + ';'.join(citations_keep) + ']'
         else:
             return ''
@@ -420,6 +420,7 @@ def process(args):
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
             # TODO: encode ampersands in URLs
+            line = process_commented_citations(line)
             if args.bibliography:  # create hypertext refs from bibtex db
                 line = link_citations(line, bib_chunked)
                 dbg("\n** line is now %s" % line)
