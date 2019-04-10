@@ -22,6 +22,7 @@ import re
 from shutil import copy, rmtree, move
 from subprocess import call, check_output, Popen, PIPE
 import shutil
+import sys
 import time
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
