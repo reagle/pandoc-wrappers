@@ -49,7 +49,6 @@ warn = logging.warn
 error = logging.error
 excpt = logging.exception
 
-
 def link_citations(line, bib_chunked):
     """
     Turn pandoc/markdown citations into links within parenthesis.
@@ -120,7 +119,6 @@ def link_citations(line, bib_chunked):
     info(f"{line}")
     return line
 
-
 def process_commented_citations(line):
     """
     Match stuff within a bracket (beginning with ' ' or '^') that
@@ -174,7 +172,6 @@ def process_commented_citations(line):
             new_line = new_line.replace('".', '."')
     return new_line
 
-
 def create_talk_handout(abs_fn, tmp2_fn):
     '''If talks and handouts exists, create (partial) handout'''
 
@@ -208,10 +205,10 @@ def create_talk_handout(abs_fn, tmp2_fn):
         content = content.replace('="media/', '="%s/media/' % media_relpath)
         lines = [line + '\n' for line in content.split('\n')]
         for line in lines:
-            if line.startswith('<details'):  # skip rules
-                skip_to_next_header = True
-                info("skipping line = '%s'" % line)
-                continue
+            # if line.startswith('<details'):  # skip rules
+            #     skip_to_next_header = True
+            #     info("skipping line = '%s'" % line)
+            #     continue
             if args.partial_handout:
                 info("args.partial_handout = '%s'" % (args.partial_handout))
                 line = line.replace('### ', ' ')
@@ -243,7 +240,6 @@ def create_talk_handout(abs_fn, tmp2_fn):
         if not args.keep_tmp:
             remove(handout_fn)
     info("done handout")
-
 
 def number_elements(content):
     "add section and paragraph marks to content which is parsed as HTML"
@@ -285,7 +281,6 @@ def number_elements(content):
                        include_meta_content_type=True).decode('utf-8')
 
     return content
-
 
 def process(args):
 
@@ -508,7 +503,6 @@ def process(args):
             for cleanup_fn in cleanup_tmp_fns:
                 if exists(cleanup_fn):
                     remove(cleanup_fn)
-
 
 if __name__ == "__main__":
     import argparse  # http://docs.python.org/dev/library/argparse.html
