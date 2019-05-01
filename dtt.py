@@ -122,6 +122,9 @@ if __name__ == "__main__":
                 args.antiword, args.catdoc, args.docx2txt, args.pdftotext)):
         args.lynx = True
 
+    if extension == 'md':
+        extension = 'markdown'
+
     # I prefer to use the programs native wrap if possible
     if args.markdown:
         content = urlopen(url).read()
