@@ -55,10 +55,10 @@ if __name__ == "__main__":
         "-a", "--antiword",
         action="store_true", default=False,
         help="doc2txt  via antiword")
-    arg_parser.add_argument(
-        "-c", "--catdoc",
-        action="store_true", default=False,
-        help="doc2txt  via catdoc")
+    # arg_parser.add_argument(  # deprecated, not on homebrew
+    #     "-c", "--catdoc",
+    #     action="store_true", default=False,
+    #     help="doc2txt  via catdoc")
     arg_parser.add_argument(
         "-d", "--docx2txt",
         action="store_true", default=False,
@@ -117,9 +117,9 @@ if __name__ == "__main__":
     content = None
     os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
 
-    # default is lynx
+    # default is lynx; args.catdoc now removed
     if not any((args.lynx, args.plain, args.markdown, args.links, args.w3m,
-                args.antiword, args.catdoc, args.docx2txt, args.pdftotext)):
+                args.antiword, args.docx2txt, args.pdftotext)):
         args.lynx = True
 
     if extension == 'md':
@@ -151,11 +151,12 @@ if __name__ == "__main__":
         wrap = '-cols 70' if args.wrap else ''
         command = ['w3m', '-dump', '-cols', '70', url]
     elif args.antiword:
-        wrap = '' if args.wrap else '-w 0'
+        wrap = '-w 70' if args.wrap else '-w 0'
+        url = url[7:]  # remove 'file://'
         command = ['antiword', url]
-    elif args.catdoc:
-        wrap = '' if args.wrap else '-w'
-        command = ['catdoc', url]
+    # elif args.catdoc:  # now deprecated, not available on homebrew
+    #     wrap = '' if args.wrap else '-w'
+    #     command = ['catdoc', url]
     elif args.docx2txt:
         wrap = ''  # maybe use fold instead?
         command = ['docx2txt.pl', file_name, '-']
@@ -165,7 +166,7 @@ if __name__ == "__main__":
     else:
         print("ERROR: no conversion program specified")
 
-    command.extend(wrap.split())
+    command[1:1] = wrap.split()  # insert wrap args after command
     print(f"** command = {command} on {url}")
     process = Popen(command, stdin=PIPE, stdout=open(DST_FILE, 'w'))
     process.communicate(input=content)
