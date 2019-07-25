@@ -100,6 +100,7 @@ if __name__ == "__main__":
     file_name = args.filename[0]
     extension = Path(file_name).suffix[1:]
     info(f"** file_name = {file_name}")
+    info(f"** extension = {extension}")
     if file_name.startswith('http'):
         url = file_name
         if 'docs.google.com' in url:
@@ -124,6 +125,8 @@ if __name__ == "__main__":
 
     if extension == 'md':
         extension = 'markdown'
+    extension = 'html' if not extension else extension
+    info(f"** extension = {extension}")
 
     # I prefer to use the programs native wrap if possible
     if args.markdown:
