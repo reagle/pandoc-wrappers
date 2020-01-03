@@ -22,12 +22,12 @@ dbg = logging.debug
 
 
 def chunk_yaml(text):
-    '''Return a dictionary of YAML chunks. This does *not* parse the YAML
+    """Return a dictionary of YAML chunks. This does *not* parse the YAML
     but chunks syntactically constrained YAML for speed.
     entries dict only supports the keys 'url' and 'title-short' for lookups
     and '_yaml_block' for quick subsetting/emitting.
 
-    '''
+    """
 
     entries = OrderedDict()
     yaml_block = []
@@ -37,14 +37,14 @@ def chunk_yaml(text):
     for line in lines:
         line = line.rstrip()
         # info("line = %s" % (line))
-        if line == '...':   # last line
+        if line == "...":  # last line
             # final chunk
-            entries[key]['_yaml_block'] = '\n'.join(yaml_block)
+            entries[key]["_yaml_block"] = "\n".join(yaml_block)
             break
-        if line.startswith('- id: '):
+        if line.startswith("- id: "):
             if yaml_block and key:
                 # store previous yaml_block
-                entries[key]['_yaml_block'] = '\n'.join(yaml_block)
+                entries[key]["_yaml_block"] = "\n".join(yaml_block)
                 # create new key and entry
             key = line[6:]
             entries[key] = {}
@@ -52,14 +52,14 @@ def chunk_yaml(text):
             title_short = url = None
         else:
             yaml_block.append(line)
-            if line.startswith('  URL: '):
-                entries[key]['url'] = line[8:-1]  # remove quotes too
-            elif line.startswith('  title-short: '):
-                entries[key]['title-short'] = line[10:-1]
-            elif line.startswith('  original-date:'):
+            if line.startswith("  URL: "):
+                entries[key]["url"] = line[8:-1]  # remove quotes too
+            elif line.startswith("  title-short: "):
+                entries[key]["title-short"] = line[10:-1]
+            elif line.startswith("  original-date:"):
                 next_line = next(lines)  # year is on next line
-                if 'year' in next_line:
-                    entries[key]['original-date'] = next_line[10:-1]
+                if "year" in next_line:
+                    entries[key]["original-date"] = next_line[10:-1]
     dbg("entries = '%s'" % (entries))
     return entries
 
@@ -67,12 +67,12 @@ def chunk_yaml(text):
 def emit_yaml_subset(entries, outfd):
     """Emit a YAML file."""
 
-    outfd.write('''---\nreferences:\n''')
+    outfd.write("""---\nreferences:\n""")
     for identifier in entries:
         info("identifier = '%s'" % (identifier))
-        outfd.write(entries[identifier]['_yaml_block'])
-        outfd.write('\n')
-    outfd.write('''\n...\n''')
+        outfd.write(entries[identifier]["_yaml_block"])
+        outfd.write("\n")
+    outfd.write("""\n...\n""")
 
 
 def subset_yaml(entries, keys):
@@ -89,19 +89,19 @@ def subset_yaml(entries, keys):
 
 
 def chunk_bibtex(text):
-    '''Return a dictionary of entry dictionaries, each with a field/value.
+    """Return a dictionary of entry dictionaries, each with a field/value.
     The parser is simple/fast *and* inflexible, unlike the proper but
-    slow parsers bibstuff and pyparsing-based parsers.'''
+    slow parsers bibstuff and pyparsing-based parsers."""
 
     entries = OrderedDict()
-    key_pat = re.compile('@(\w+){(.*),')
-    value_pat = re.compile('[ ]*(\w+)[ ]*=[ ]*{(.*)},')
+    key_pat = re.compile("@(\w+){(.*),")
+    value_pat = re.compile("[ ]*(\w+)[ ]*=[ ]*{(.*)},")
     for line in text:
         key_match = key_pat.match(line)
         if key_match:
             entry_type = key_match.group(1)
             key = key_match.group(2)
-            entries[key] = OrderedDict({'entry_type': entry_type})
+            entries[key] = OrderedDict({"entry_type": entry_type})
             continue
         value_match = value_pat.match(line)
         if value_match:
@@ -114,10 +114,10 @@ def emit_bibtex_entry(identifier, values, outfd):
     """Emit a single bibtex entry."""
 
     info("writing entry")
-    outfd.write('@%s{%s,\n' % (values['entry_type'], identifier))
+    outfd.write("@%s{%s,\n" % (values["entry_type"], identifier))
     for field, value in values.items():
-        if field != 'entry_type':
-            outfd.write('   %s = {%s},\n' % (field, value))
+        if field != "entry_type":
+            outfd.write("   %s = {%s},\n" % (field, value))
     outfd.write("}\n")
 
 
@@ -145,43 +145,57 @@ def get_keys_from_md(filename):
     """Return a list of keys used in a markdown document"""
 
     info("filename = '%s'" % filename)
-    text = open(filename, 'r').read()
-    text = text.split('***END OF FILE***')[0]
-    finds = re.findall('@(.*?)[\.,:;\] ]', text)
+    text = open(filename, "r").read()
+    text = text.split("***END OF FILE***")[0]
+    finds = re.findall("@(.*?)[\.,:;\] ]", text)
     return finds
 
 
-if '__main__' == __name__:
+if "__main__" == __name__:
     import argparse  # http://docs.python.org/dev/library/argparse.html
+
     arg_parser = argparse.ArgumentParser(
-        description='Extract a subset of bibliographic keys '
-        'from BIB_FILE (bib or yaml) using those keys found '
-        'in a markdown file or specified in argument.')
+        description="Extract a subset of bibliographic keys "
+        "from BIB_FILE (bib or yaml) using those keys found "
+        "in a markdown file or specified in argument."
+    )
+    arg_parser.add_argument("filename", nargs="?", metavar="BIB_FILE")
     arg_parser.add_argument(
-        'filename', nargs='?', metavar='BIB_FILE')
+        "-b",
+        "--BIBTEX",
+        action="store_true",
+        default=False,
+        help="use BIBTEX instead of default yaml",
+    )
     arg_parser.add_argument(
-        "-b", "--BIBTEX",
-        action="store_true", default=False,
-        help="use BIBTEX instead of default yaml")
+        "-f",
+        "--find-keys",
+        nargs=1,
+        metavar="MD_FILE",
+        help="find keys in markdown file",
+    )
+    arg_parser.add_argument("-k", "--keys", nargs=1, help="use specified KEYS")
     arg_parser.add_argument(
-        "-f", "--find-keys",
-        nargs=1, metavar='MD_FILE',
-        help="find keys in markdown file")
+        "-L",
+        "--log-to-file",
+        action="store_true",
+        default=False,
+        help="log to file %(prog)s.log",
+    )
     arg_parser.add_argument(
-        "-k", "--keys", nargs=1,
-        help="use specified KEYS")
+        "-o",
+        "--out-filename",
+        help="output results to filename",
+        metavar="OUT_FILE",
+    )
     arg_parser.add_argument(
-        '-L', '--log-to-file',
-        action="store_true", default=False,
-        help="log to file %(prog)s.log")
-    arg_parser.add_argument(
-        "-o", "--out-filename",
-        help="output results to filename", metavar="OUT_FILE")
-    arg_parser.add_argument(
-        '-V', '--verbose', action='count', default=0,
-        help="Increase verbosity (specify multiple times for more)")
-    arg_parser.add_argument(
-        '--version', action='version', version='TBD')
+        "-V",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase verbosity (specify multiple times for more)",
+    )
+    arg_parser.add_argument("--version", action="version", version="TBD")
     args = arg_parser.parse_args()
 
     if args.verbose == 1:
@@ -192,28 +206,32 @@ if '__main__' == __name__:
         log_level = logging.DEBUG
     LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
     if args.log_to_file:
-        logging.basicConfig(filename='md2bib.log', filemode='w',
-                            level=log_level, format=LOG_FORMAT)
+        logging.basicConfig(
+            filename="md2bib.log",
+            filemode="w",
+            level=log_level,
+            format=LOG_FORMAT,
+        )
     else:
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
 
     if args.out_filename:
-        outfd = open(args.out_filename, 'w')
+        outfd = open(args.out_filename, "w")
     else:
         outfd = sys.stdout
 
     # info("args.filename = %s" % (args.filename))
     if not args.filename:
         if args.BIBTEX:
-            args.filename = HOME + '/joseph/readings.bib'
+            args.filename = HOME + "/joseph/readings.bib"
             chunk_func = chunk_bibtex
         else:
-            args.filename = HOME + '/joseph/readings.yaml'
+            args.filename = HOME + "/joseph/readings.yaml"
             chunk_func = chunk_yaml
     else:
         fn, ext = splitext(args.filename)
         info("ext = %s" % (ext))
-        if ext == '.bib':
+        if ext == ".bib":
             chunk_func = chunk_bibtex
             args.BIBTEX = True
         else:
@@ -221,10 +239,10 @@ if '__main__' == __name__:
 
     info("args.filename = %s" % (args.filename))
     info("chunk_func = %s" % (chunk_func))
-    entries = chunk_func(open(args.filename, 'r').readlines())
+    entries = chunk_func(open(args.filename, "r").readlines())
 
     if args.keys:
-        keys = args.keys[0].split(',')
+        keys = args.keys[0].split(",")
         info("arg keys = '%s'" % keys)
     elif args.find_keys:
         keys = get_keys_from_md(args.find_keys[0])

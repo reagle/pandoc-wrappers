@@ -3,11 +3,11 @@
 # (c) Copyright 2008-2012 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-'''A wrapper script for pandoc that handles my own issues:
+"""A wrapper script for pandoc that handles my own issues:
     1. associates the result with a particular style sheet.
     2. can replace [@key] with hypertext'd refs from bibtex database.
     3. makes use of reveal.js for presentations.
-'''
+"""
 
 # TODO:
 #     1. reduce redundant references: page only, if key already cited
@@ -25,18 +25,29 @@ import logging
 import md2bib
 import os
 from os import chdir, environ, mkdir, path, rename, remove, walk
-from os.path import abspath, basename, dirname, exists, \
-    expanduser, getmtime, join, relpath, splitext
+from os.path import (
+    abspath,
+    basename,
+    dirname,
+    exists,
+    expanduser,
+    getmtime,
+    join,
+    relpath,
+    splitext,
+)
 import re
 import shutil
+
 # from sh import chmod # http://amoffat.github.com/sh/
 import subprocess
 from subprocess import call, check_output, Popen
 import sys
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
-BROWSER = environ['BROWSER'].replace(
-    '*', ' ') if 'BROWSER' in environ else None
+BROWSER = (
+    environ["BROWSER"].replace("*", " ") if "BROWSER" in environ else None
+)
 PANDOC_BIN = shutil.which("pandoc")
 if not all([HOME, BROWSER, PANDOC_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
@@ -49,17 +60,21 @@ warn = logging.warn
 error = logging.error
 excpt = logging.exception
 
+
 def link_citations(line, bib_chunked):
     """
     Turn pandoc/markdown citations into links within parenthesis.
     Used only with citations in presentations.
     """
 
-    PARENS_KEY = re.compile(r'''
+    PARENS_KEY = re.compile(
+        r"""
         (-?@        # at-sign with optional negative
         (?<!\\@)    # negative look behind for escape slash
         [\w|-]+)    # one or more alhanumberics or hyphens
-        ''', re.VERBOSE)  # -@Clark-Flory2010fpo
+        """,
+        re.VERBOSE,
+    )  # -@Clark-Flory2010fpo
 
     def hyperize(cite_match):
         """
@@ -69,7 +84,7 @@ def link_citations(line, bib_chunked):
         cite_replacement = []
         url = None
         citation = cite_match.group(0)
-        key = citation.split('@', 1)[1]
+        key = citation.split("@", 1)[1]
         info("**   processing key: %s" % key)
         reference = bib_chunked.get(key)
         if reference is None:
@@ -77,41 +92,44 @@ def link_citations(line, bib_chunked):
             return key
         else:
             info(reference.keys())
-        url = reference.get('url')
-        title = reference.get('shorttitle')
-        last_name, year, _ = re.split(r'(\d\d\d\d)', key)
+        url = reference.get("url")
+        title = reference.get("shorttitle")
+        last_name, year, _ = re.split(r"(\d\d\d\d)", key)
 
-        if 'original-date' in reference:
+        if "original-date" in reference:
             year = f"{reference['original-date']}/{year}"
 
-        if citation.startswith('-'):
-            key_text = re.findall(r'\d\d\d\d.*', key)[0]  # year
+        if citation.startswith("-"):
+            key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
         else:
             key_text = "%s %s" % (last_name, year)
 
         dbg("**   url = %s" % url)
         if url:
-            cite_replacement.append('[%s](%s)' % (key_text, url))
+            cite_replacement.append("[%s](%s)" % (key_text, url))
         else:
             if title:
-                title = title.replace('{', '').replace('}', '')
+                title = title.replace("{", "").replace("}", "")
                 cite_replacement.append('%s, "%s"' % (key_text, title))
             else:
-                cite_replacement.append('%s' % key_text)
+                cite_replacement.append("%s" % key_text)
         dbg("**   using cite_replacement = %s" % cite_replacement)
-        return ''.join(cite_replacement)
+        return "".join(cite_replacement)
 
-    PARENS_BRACKET_PAIR = re.compile(r'''
+    PARENS_BRACKET_PAIR = re.compile(
+        r"""
         \[[^\]]*    # opening bracket follow by 0+ non-closing bracket
         [-#\\]?@    # at-sign preceded by optional hyphen or pound or escape
         [^\]]+\]    # chars up to closing bracket
-        ''', re.VERBOSE)
+        """,
+        re.VERBOSE,
+    )
 
     def make_parens(cite_match):
         """
         Convert to balanced parens
         """
-        return '(' + cite_match.group(0)[1:-1] + ')'
+        return "(" + cite_match.group(0)[1:-1] + ")"
 
     line = PARENS_BRACKET_PAIR.sub(make_parens, line)
     info(f"{line}")
@@ -119,18 +137,22 @@ def link_citations(line, bib_chunked):
     info(f"{line}")
     return line
 
+
 def process_commented_citations(line):
     """
     Match stuff within a bracket (beginning with ' ' or '^') that
     has no other brackets within
     """
 
-    PARENS_BRACKET_PAIR = re.compile(r'''
+    PARENS_BRACKET_PAIR = re.compile(
+        r"""
         [ |^]       # space or caret
         \[[^\[]+    # open_bracket followed by 1+ non-open_brackets
         [-#]?@      # at-sign preceded by optional hyphen or pound
         [^\]]+\]    # 1+ non-closing-brackets, closing bracket
-        ''', re.VERBOSE)
+        """,
+        re.VERBOSE,
+    )
 
     def quash(cite_match):
         """
@@ -140,18 +162,18 @@ def process_commented_citations(line):
         """
         citation = cite_match.group(0)
         critical(f"citation = '{citation}'")
-        prefix = '^' if citation[0] == '^' else ' '
-        chunks = citation[2:-1].split(';')  # isolate chunks from ' [' + ']'
+        prefix = "^" if citation[0] == "^" else " "
+        chunks = citation[2:-1].split(";")  # isolate chunks from ' [' + ']'
         critical(f"chunks = {chunks}")
         citations_keep = []
         for chunk in chunks:
             critical(f"  chunk = '{chunk}'")
-            if '#@' in chunk:
+            if "#@" in chunk:
                 if args.quash_citations:
                     pass
                     critical(f"  quashed")
                 else:
-                    chunk = chunk.replace('#@', '@')
+                    chunk = chunk.replace("#@", "@")
                     critical(f"  keeping chunk = '{chunk}'")
                     citations_keep.append(chunk)
             else:
@@ -159,51 +181,52 @@ def process_commented_citations(line):
 
         if citations_keep:
             critical(f"citations_keep = '{citations_keep}'")
-            return f'{prefix}[' + ';'.join(citations_keep) + ']'
+            return f"{prefix}[" + ";".join(citations_keep) + "]"
         else:
-            return ''
+            return ""
 
     info(f"old_line = {line}")
     new_line = PARENS_BRACKET_PAIR.subn(quash, line)[0]
     info(f"new_line = {new_line}")
     # if I quashed a citation completely, I might have a period after a quote
     if args.quash_citations:
-        if '].' in line and '".' in new_line:  # imperfect test
+        if "]." in line and '".' in new_line:  # imperfect test
             new_line = new_line.replace('".', '."')
     return new_line
 
+
 def create_talk_handout(abs_fn, tmp2_fn):
-    '''If talks and handouts exists, create (partial) handout'''
+    """If talks and handouts exists, create (partial) handout"""
 
     info("starting handout")
-    EM_RE = re.compile(r'(?<! _)_([^_]+?)_ ')
+    EM_RE = re.compile(r"(?<! _)_([^_]+?)_ ")
 
     def em_mask(matchobj):
         """replace emphasis with underscores"""
         info("return replace function")
         # underscore that pandoc will ignore
-        return '&#95;' * len(matchobj.group(0))
+        return "&#95;" * len(matchobj.group(0))
 
     info("abs_fn = '%s'" % (abs_fn))
     info("tmp2fn = '%s'" % (tmp2_fn))
     md_dir = dirname(abs_fn)
-    handout_fn = ''
-    if '/talks' in abs_fn:
-        handout_fn = abs_fn.replace('/talks/', '/handouts/')
+    handout_fn = ""
+    if "/talks" in abs_fn:
+        handout_fn = abs_fn.replace("/talks/", "/handouts/")
         handout_dir = dirname(handout_fn)
         info("handout_dir = '%s'" % (dirname(handout_fn)))
     if exists(dirname(handout_fn)):
         info("creating handout")
         skip_to_next_header = False
-        handout_f = open(handout_fn, 'w')
-        content = open(tmp2_fn, 'r').read()
+        handout_f = open(handout_fn, "w")
+        content = open(tmp2_fn, "r").read()
         info("md_dir = '%s', handout_dir = '%s'" % (md_dir, handout_dir))
         media_relpath = relpath(md_dir, handout_dir)
         info("media_relpath = '%s'" % (media_relpath))
-        content = content.replace(' data-src=', ' src=')
-        content = content.replace('](media/', '](%s/media/' % media_relpath)
+        content = content.replace(" data-src=", " src=")
+        content = content.replace("](media/", "](%s/media/" % media_relpath)
         content = content.replace('="media/', '="%s/media/' % media_relpath)
-        lines = [line + '\n' for line in content.split('\n')]
+        lines = [line + "\n" for line in content.split("\n")]
         for line in lines:
             # if line.startswith('<details'):  # skip rules
             #     skip_to_next_header = True
@@ -211,10 +234,10 @@ def create_talk_handout(abs_fn, tmp2_fn):
             #     continue
             if args.partial_handout:
                 info("args.partial_handout = '%s'" % (args.partial_handout))
-                line = line.replace('### ', ' ')
+                line = line.replace("### ", " ")
                 # skip slides with underscore in heading
-                if line.startswith('# ') or line.startswith('## '):
-                    if ' _' in line:
+                if line.startswith("# ") or line.startswith("## "):
+                    if " _" in line:
                         skip_to_next_header = True
                     else:
                         skip_to_next_header = False
@@ -228,18 +251,26 @@ def create_talk_handout(abs_fn, tmp2_fn):
                         info("line = '%s'" % (line))
                         handout_f.write(line)
                     else:
-                        handout_f.write('\n')
+                        handout_f.write("\n")
             else:
                 handout_f.write(line)
         handout_f.close()
-        md_cmd = ['md', '--divs', '--toc', '-w', 'html', '-c',
-                  'https://reagle.org/joseph/talks/_custom/class-handouts-201306.css',
-                  handout_fn]
-        info("md_cmd = %s" % ' '.join(md_cmd))
+        md_cmd = [
+            "md",
+            "--divs",
+            "--toc",
+            "-w",
+            "html",
+            "-c",
+            "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css",
+            handout_fn,
+        ]
+        info("md_cmd = %s" % " ".join(md_cmd))
         call(md_cmd)
         if not args.keep_tmp:
             remove(handout_fn)
     info("done handout")
+
 
 def number_elements(content):
     "add section and paragraph marks to content which is parsed as HTML"
@@ -253,40 +284,46 @@ def number_elements(content):
     heading_num = 1
     for heading in headings:
         span = Element("span")  # prepare span element for section #
-        span.set('class', 'headingnum')
-        h_id = heading.get('id')  # grab id of existing a element
+        span.set("class", "headingnum")
+        h_id = heading.get("id")  # grab id of existing a element
         span.tail = heading.text
-        a = SubElement(span, 'a', href='#%s' % h_id)
+        a = SubElement(span, "a", href="#%s" % h_id)
         heading.text = None  # this has become the tail of the span
-        a.text = '§' + str(heading_num) + u'\u00A0'  # &nbsp;
+        a.text = "§" + str(heading_num) + "\u00A0"  # &nbsp;
         heading.insert(0, span)  # insert span at beginning of parent
         heading_num += 1
 
     info("add paragraph marks")
-    paras = doc.xpath('/html/body/p | /html/body/blockquote')
+    paras = doc.xpath("/html/body/p | /html/body/blockquote")
     para_num = 1
     for para in paras:
-        para_num_str = '{:0>2}'.format(para_num)
+        para_num_str = "{:0>2}".format(para_num)
         span = Element("span")
-        span.set('class', 'paranum')
+        span.set("class", "paranum")
         span.tail = para.text
-        a_id = 'p' + str(para_num_str)
-        a = SubElement(span, 'a', id=a_id, name=a_id, href='#%s' % a_id)
-        a.text = 'p' + str(para_num_str) + u'\u00A0'  # &nbsp;
+        a_id = "p" + str(para_num_str)
+        a = SubElement(span, "a", id=a_id, name=a_id, href="#%s" % a_id)
+        a.text = "p" + str(para_num_str) + "\u00A0"  # &nbsp;
         para.text = None
         para.insert(0, span)
         para_num += 1
 
-    content = tostring(doc, method='xml', encoding='utf-8', pretty_print=True,
-                       include_meta_content_type=True).decode('utf-8')
+    content = tostring(
+        doc,
+        method="xml",
+        encoding="utf-8",
+        pretty_print=True,
+        include_meta_content_type=True,
+    ).decode("utf-8")
 
     return content
+
 
 def process(args):
 
     if args.bibliography:
-        bib_fn = HOME + '/joseph/readings.yaml'
-        bib_chunked = md2bib.chunk_yaml(open(bib_fn, 'r').readlines())
+        bib_fn = HOME + "/joseph/readings.yaml"
+        bib_chunked = md2bib.chunk_yaml(open(bib_fn, "r").readlines())
         dbg("bib_chunked = %s" % (bib_chunked))
 
     info("args.files = '%s'" % args.files)
@@ -300,48 +337,63 @@ def process(args):
         ##############################
 
         pandoc_inputs = []
-        pandoc_opts = ['-w', args.write]
+        pandoc_opts = ["-w", args.write]
         # if args.write == 'markdown-citations':
         #     pandoc_opts.extend(['--csl=sage-harvard.csl',
         #         '--bibliography=/home/reagle/joseph/readings.yaml'])
-        pandoc_opts.extend(['-s', '--tab-stop', '4',
-                            '--email-obfuscation=references'])
+        pandoc_opts.extend(
+            ["-s", "--tab-stop", "4", "--email-obfuscation=references"]
+        )
 
         if args.presentation:
             args.validate = False
             args.css = False
-            pandoc_opts.extend([
-                '-c', '../_custom/reveal3js.css',
-                '-c', '../_custom/Font-Awesome/css/font-awesome.min.css',
-                '-t', 'revealjs', '--slide-level=2',
-                '-V', 'revealjs-url=../_reveal3.js',
-                '-V', 'theme=beige',
-                '-V', 'transition=linear',
-                '-V', 'history=true',
-                '-V', 'zoomKey=shift',
-                # '--no-highlight', # conflicts with reveal's highlight.js
-            ])
-        if args.write == 'html' and args.css:
-            pandoc_opts.extend(['-c', args.css])
-        elif args.write == 'docx':
-            pandoc_opts.extend(['--reference-doc',
-                                HOME + '/.pandoc/reference-mit-press.docx'])
+            pandoc_opts.extend(
+                [
+                    "-c",
+                    "../_custom/reveal3js.css",
+                    "-c",
+                    "../_custom/Font-Awesome/css/font-awesome.min.css",
+                    "-t",
+                    "revealjs",
+                    "--slide-level=2",
+                    "-V",
+                    "revealjs-url=../_reveal3.js",
+                    "-V",
+                    "theme=beige",
+                    "-V",
+                    "transition=linear",
+                    "-V",
+                    "history=true",
+                    "-V",
+                    "zoomKey=shift",
+                    # '--no-highlight', # conflicts with reveal's highlight.js
+                ]
+            )
+        if args.write == "html" and args.css:
+            pandoc_opts.extend(["-c", args.css])
+        elif args.write == "docx":
+            pandoc_opts.extend(
+                ["--reference-doc", HOME + "/.pandoc/reference-mit-press.docx"]
+            )
         if args.condensed:
             pandoc_opts.extend(
-                ['-c', 'https://reagle.org/joseph/2003/papers-condensed.css'])
+                ["-c", "https://reagle.org/joseph/2003/papers-condensed.css"]
+            )
         if args.toc:
-            pandoc_opts.extend(['--toc'])
+            pandoc_opts.extend(["--toc"])
             if args.toc_depth:
-                pandoc_opts.extend(['--toc-depth=%s' % args.toc_depth[0]])
+                pandoc_opts.extend(["--toc-depth=%s" % args.toc_depth[0]])
         if args.self_contained:
-            pandoc_opts.extend(['--self-contained'])
+            pandoc_opts.extend(["--self-contained"])
         if args.divs:
-            pandoc_opts.extend(['--section-divs'])
+            pandoc_opts.extend(["--section-divs"])
         if args.include_after_body:
-            pandoc_opts.extend(['--include-after-body=%s' %
-                                args.include_after_body[0]])
+            pandoc_opts.extend(
+                ["--include-after-body=%s" % args.include_after_body[0]]
+            )
         if args.style_chicago:
-            args.style_csl = ['chicago-author-date.csl']
+            args.style_csl = ["chicago-author-date.csl"]
 
         ##############################
         # pre pandoc
@@ -361,53 +413,55 @@ def process(args):
         fn_tmp_1 = "%s-1%s" % (base_fn, base_ext)  # as read
         fn_tmp_2 = "%s-2%s" % (base_fn, base_ext)  # pre-pandoc
         fn_tmp_3 = "%s-3.%s" % (base_fn, args.write)  # post-pandoc copy
-        fn_result = base_fn + '.' + args.write
+        fn_result = base_fn + "." + args.write
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
 
-        pandoc_opts.extend(['-o', fn_result])
-        pandoc_opts.extend(['--mathjax'])
+        pandoc_opts.extend(["-o", fn_result])
+        pandoc_opts.extend(["--mathjax"])
 
         if args.style_csl:
             if args.bibtex:
-                bib_fn = HOME + '/joseph/readings.bib'
-                bib_ext = '.bib'
+                bib_fn = HOME + "/joseph/readings.bib"
+                bib_ext = ".bib"
                 parse_func = md2bib.parse_bibtex
                 subset_func = md2bib.subset_bibtex
                 emit_subset_func = md2bib.emit_bibtex_subset
             else:
-                bib_fn = HOME + '/joseph/readings.yaml'
-                bib_ext = '.yaml'
+                bib_fn = HOME + "/joseph/readings.yaml"
+                bib_ext = ".yaml"
                 parse_func = md2bib.chunk_yaml
                 subset_func = md2bib.subset_yaml
                 emit_subset_func = md2bib.emit_yaml_subset
 
-            pandoc_opts.extend(['--csl=%s' % args.style_csl[0]])
+            pandoc_opts.extend(["--csl=%s" % args.style_csl[0]])
             info("generate temporary subset bib for speed")
             bib_subset_tmp_fn = base_fn + bib_ext
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
             keys = md2bib.get_keys_from_md(abs_fn)
             info("keys = %s" % keys)
             if keys:
-                entries = parse_func(open(bib_fn, 'r').readlines())
+                entries = parse_func(open(bib_fn, "r").readlines())
                 subset = subset_func(entries, keys)
-                emit_subset_func(subset, open(bib_subset_tmp_fn, 'w'))
+                emit_subset_func(subset, open(bib_subset_tmp_fn, "w"))
                 # deprecate for YAML workaround: bug https://github.com/jgm/pandoc-citeproc/issues/272
                 # pandoc_opts.extend(['--bibliography=%s' % bib_subset_tmp_fn,])
-                pandoc_opts.extend(['--filter', 'pandoc-citeproc', ])
+                pandoc_opts.extend(
+                    ["--filter", "pandoc-citeproc",]
+                )
 
         print((abs_fn, fn_tmp_1))
         shutil.copyfile(abs_fn, fn_tmp_1)
-        f1 = codecs.open(fn_tmp_1, 'r', "UTF-8", "replace")
+        f1 = codecs.open(fn_tmp_1, "r", "UTF-8", "replace")
         content = f1.read()
-        if content[0] == codecs.BOM_UTF8.decode('utf8'):
+        if content[0] == codecs.BOM_UTF8.decode("utf8"):
             content = content[1:]
-        f2 = codecs.open(fn_tmp_2, 'w', "UTF-8", "replace")
+        f2 = codecs.open(fn_tmp_2, "w", "UTF-8", "replace")
 
         print("split(abs_fn) = %s, %s" % (os.path.split(abs_fn)))
 
         # content = content.replace(' --- ', '---') # what is this 20161215?
 
-        lines = content.split('\n')
+        lines = content.split("\n")
         new_lines = []
 
         for lineNo, line in enumerate(lines):
@@ -420,12 +474,12 @@ def process(args):
                 line = link_citations(line, bib_chunked)
                 dbg("\n** line is now %s" % line)
             if args.presentation:  # color some revealjs top of column slides
-                if line.startswith('# ') and '{data-' not in line:
+                if line.startswith("# ") and "{data-" not in line:
                     line = line.strip() + ' {data-background="LightBlue"}\n'
             dbg("END line: '%s'" % line)
             new_lines.append(line)
         f1.close()
-        f2.write('\n'.join(new_lines))
+        f2.write("\n".join(new_lines))
         f2.close()
 
         ##############################
@@ -433,9 +487,14 @@ def process(args):
         ##############################
 
         pandoc_cmd = [
-            PANDOC_BIN, '-f', 'markdown+mmd_title_block+yaml_metadata_block'
-            '+smart+implicit_header_references' '+superscript+subscript'
-            '+tex_math_dollars' '+autolink_bare_uris']
+            PANDOC_BIN,
+            "-f",
+            "markdown+mmd_title_block+yaml_metadata_block"
+            "+smart+implicit_header_references"
+            "+superscript+subscript"
+            "+tex_math_dollars"
+            "+autolink_bare_uris",
+        ]
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
@@ -443,7 +502,7 @@ def process(args):
         # https://github.com/jgm/pandoc-citeproc/issues/272
         if bib_subset_tmp_fn:
             pandoc_cmd.extend([bib_subset_tmp_fn])
-        print("joined pandoc_cmd: " + ' '.join(pandoc_cmd) + '\n')
+        print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
         call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
         info("done pandoc_cmd")
 
@@ -454,46 +513,61 @@ def process(args):
         # post pandoc content
         ##############################
 
-        if args.write == 'html':
+        if args.write == "html":
 
             # final tweaks html file
             shutil.copyfile(fn_result, fn_tmp_3)  # copy of html for debugging
-            content_html = open(fn_tmp_3, 'r').read()
+            content_html = open(fn_tmp_3, "r").read()
             if not content_html:
-                raise ValueError('post-pandoc content_html is empty')
+                raise ValueError("post-pandoc content_html is empty")
                 sys.exit()
 
             # text alterations
             if args.british_quotes:  # swap double/single quotes
-                content_html = content_html.replace(
-                    '"', '&ldquo;').replace('"', '&rdquo;')
+                content_html = content_html.replace('"', "&ldquo;").replace(
+                    '"', "&rdquo;"
+                )
                 single_quote_re = re.compile(r"(\W)'(.{2,40}?)'(\W)")
                 content_html = single_quote_re.sub(r'\1"\2"\3', content_html)
-                content_html = content_html.replace(
-                    '&ldquo;', r"'").replace('&rdquo;', "'")
+                content_html = content_html.replace("&ldquo;", r"'").replace(
+                    "&rdquo;", "'"
+                )
             # correct bibliography
-            content_html = content_html.replace(' Vs. ', ' vs. ')
+            content_html = content_html.replace(" Vs. ", " vs. ")
 
             if args.presentation:
                 # convert to data-src for lazy loading
                 lazy_elements_re = re.compile(
-                    r'''(\<img|<iframe|<video)(.*?) src=''')
+                    r"""(\<img|<iframe|<video)(.*?) src="""
+                )
                 content_html = lazy_elements_re.sub(
-                    r'\1\2 data-src=', content_html)
+                    r"\1\2 data-src=", content_html
+                )
 
             # HTML alterations
             if args.number_elements:
                 content_html = number_elements(content_html)
 
-            result_fn = '%s.html' % (base_fn)
+            result_fn = "%s.html" % (base_fn)
             info("result_fn = '%s'" % (result_fn))
             if args.output:
                 result_fn = args.output[0]
-            open(result_fn, 'w').write(content_html)
+            open(result_fn, "w").write(content_html)
 
             if args.validate:
-                call(['tidy', '-utf8', '-q', '-i', '-m', '-w', '0', '-asxhtml',
-                      result_fn])
+                call(
+                    [
+                        "tidy",
+                        "-utf8",
+                        "-q",
+                        "-i",
+                        "-m",
+                        "-w",
+                        "0",
+                        "-asxhtml",
+                        result_fn,
+                    ]
+                )
             if args.launch_browser:
                 info("launching %s" % result_fn)
                 Popen([BROWSER, result_fn])
@@ -504,101 +578,158 @@ def process(args):
                 if exists(cleanup_fn):
                     remove(cleanup_fn)
 
+
 if __name__ == "__main__":
     import argparse  # http://docs.python.org/dev/library/argparse.html
+
     arg_parser = argparse.ArgumentParser(
-        description='Markdown wrapper with slide and bibliographic options')
+        description="Markdown wrapper with slide and bibliographic options"
+    )
+    arg_parser.add_argument("files", nargs="+", metavar="FILE")
     arg_parser.add_argument(
-        'files', nargs='+', metavar='FILE')
-    arg_parser.add_argument(
-        "-b", "--bibliography",
-        action="store_true", default=False,
-        help="turn citations into hypertext w/out CSL")
+        "-b",
+        "--bibliography",
+        action="store_true",
+        default=False,
+        help="turn citations into hypertext w/out CSL",
+    )
     arg_parser.add_argument(
         "--bibtex",
-        action="store_true", default=False,
-        help="use .bib file instead of YAML bibliography")
+        action="store_true",
+        default=False,
+        help="use .bib file instead of YAML bibliography",
+    )
     arg_parser.add_argument(
-        "-B", "--british-quotes",
-        action="store_true", default=False,
-        help="swap single and double quotes")
+        "-B",
+        "--british-quotes",
+        action="store_true",
+        default=False,
+        help="swap single and double quotes",
+    )
     arg_parser.add_argument(
-        "-q", "--quash-citations",
-        action="store_true", default=False,
-        help="quash citations that begin with hash (#@Reagle2012foo)")
+        "-q",
+        "--quash-citations",
+        action="store_true",
+        default=False,
+        help="quash citations that begin with hash (#@Reagle2012foo)",
+    )
     arg_parser.add_argument(
-        "-c", "--css",
-        default='https://reagle.org/joseph/2003/papers.css',
-        help="apply non-default CSS")
+        "-c",
+        "--css",
+        default="https://reagle.org/joseph/2003/papers.css",
+        help="apply non-default CSS",
+    )
     arg_parser.add_argument(
         "--condensed",
-        action="store_true", default=False,
-        help="use condensed line spacing CSS")
+        action="store_true",
+        default=False,
+        help="use condensed line spacing CSS",
+    )
     arg_parser.add_argument(
-        "-d", "--divs",
-        action="store_true", default=False,
-        help="use pandoc's --section-divs")
+        "-d",
+        "--divs",
+        action="store_true",
+        default=False,
+        help="use pandoc's --section-divs",
+    )
     arg_parser.add_argument(
         "--include-after-body",
-        nargs=1, metavar='FILE',
-        help="include at end of body (pandoc pass-through)")
+        nargs=1,
+        metavar="FILE",
+        help="include at end of body (pandoc pass-through)",
+    )
     arg_parser.add_argument(
-        "-k", "--keep-tmp",
-        action="store_true", default=False,
-        help="keep temporary/intermediary files")
+        "-k",
+        "--keep-tmp",
+        action="store_true",
+        default=False,
+        help="keep temporary/intermediary files",
+    )
     arg_parser.add_argument(
-        "-l", "--launch-browser",
-        action="store_true", default=False,
-        help="launch browser to see results")
-    arg_parser.add_argument(
-        "-o", "--output", nargs=1,
-        help="output file path")
+        "-l",
+        "--launch-browser",
+        action="store_true",
+        default=False,
+        help="launch browser to see results",
+    )
+    arg_parser.add_argument("-o", "--output", nargs=1, help="output file path")
     arg_parser.add_argument(
         "--self-contained",
-        action="store_true", default=False,
-        help="incorporate links: scripts, images, and CSS")
+        action="store_true",
+        default=False,
+        help="incorporate links: scripts, images, and CSS",
+    )
     arg_parser.add_argument(
-        "-n", "--number-elements",
-        action="store_true", default=False,
-        help="number sections and paragraphs")
+        "-n",
+        "--number-elements",
+        action="store_true",
+        default=False,
+        help="number sections and paragraphs",
+    )
     arg_parser.add_argument(
-        "-s", "--style-chicago",
-        action="store_true", default=False,
-        help="use CSL bibliography style, default chicago-author-date.csl")
+        "-s",
+        "--style-chicago",
+        action="store_true",
+        default=False,
+        help="use CSL bibliography style, default chicago-author-date.csl",
+    )
     arg_parser.add_argument(
-        "-S", "--style-csl", nargs=1,
-        help="specify CSL style [chicago-fullnote-bibliography.csl, ...]")
+        "-S",
+        "--style-csl",
+        nargs=1,
+        help="specify CSL style [chicago-fullnote-bibliography.csl, ...]",
+    )
     arg_parser.add_argument(
-        "-t", "--toc",
-        action="store_true", default=False,
-        help="create table of contents")
+        "-t",
+        "--toc",
+        action="store_true",
+        default=False,
+        help="create table of contents",
+    )
     arg_parser.add_argument(
-        "--toc-depth", nargs=1,
-        help="table of contents depth")
+        "--toc-depth", nargs=1, help="table of contents depth"
+    )
     arg_parser.add_argument(
-        "-v", "--validate",
-        action="store_true", default=False,
-        help="validate and tidy HTML")
+        "-v",
+        "--validate",
+        action="store_true",
+        default=False,
+        help="validate and tidy HTML",
+    )
     arg_parser.add_argument(
-        "-p", "--presentation",
-        action="store_true", default=False,
-        help="create presentation with reveal.js")
+        "-p",
+        "--presentation",
+        action="store_true",
+        default=False,
+        help="create presentation with reveal.js",
+    )
     arg_parser.add_argument(
         "--partial-handout",
-        action="store_true", default=False,
-        help="presentation handout is partial/redacted")
+        action="store_true",
+        default=False,
+        help="presentation handout is partial/redacted",
+    )
     arg_parser.add_argument(
-        "-w", "--write",
-        default='html',
-        help="Write to format [html, markdown-citations,...]")
+        "-w",
+        "--write",
+        default="html",
+        help="Write to format [html, markdown-citations,...]",
+    )
     arg_parser.add_argument(
-        '-L', '--log-to-file',
-        action="store_true", default=False,
-        help="log to file PROGRAM.log")
+        "-L",
+        "--log-to-file",
+        action="store_true",
+        default=False,
+        help="log to file PROGRAM.log",
+    )
     arg_parser.add_argument(
-        '-V', '--verbose', action='count', default=0,
-        help="Increase verbosity (specify multiple times for more)")
-    arg_parser.add_argument('--version', action='version', version='TBD')
+        "-V",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase verbosity (specify multiple times for more)",
+    )
+    arg_parser.add_argument("--version", action="version", version="TBD")
 
     args = arg_parser.parse_args()
 
@@ -610,8 +741,12 @@ if __name__ == "__main__":
         log_level = logging.DEBUG
     LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
     if args.log_to_file:
-        logging.basicConfig(filename='wiki-update.log', filemode='w',
-                            level=log_level, format=LOG_FORMAT)
+        logging.basicConfig(
+            filename="wiki-update.log",
+            filemode="w",
+            level=log_level,
+            format=LOG_FORMAT,
+        )
     else:
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
 
