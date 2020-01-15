@@ -37,7 +37,7 @@ import time
 HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = environ["BROWSER"] if "BROWSER" in environ else None
 PANDOC_BIN = shutil.which("pandoc")
-MD_BIN = HOME + "/bin/pandoc-wrappers/md.py"
+MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
 # ZIM_BIN = '/usr/local/bin/zim'
 ZIM_BIN = "/usr/local/bin/python2 " + HOME + "/bin/zim-0.69.1/zim.py"
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
@@ -164,9 +164,6 @@ def insert_todos(plan_fn, todos):
     parent = div.getparent()
     parent.replace(div, todos)
     doc.write(plan_fn)
-
-
-# fn_bare, fn_md, fn_html
 
 
 def update_markdown(files_to_process):
