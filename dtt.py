@@ -12,8 +12,8 @@ import sys
 import textwrap
 from urllib.request import urlopen
 
-DST_FILE = "/tmp/dtt.txt"
-HOME = Path("~").expanduser()
+HOME = os.path.expanduser("~")
+DST_FILE = HOME + "/tmp/.pw/dt-result.txt"
 PANDOC_BIN = shutil.which("pandoc")
 VISUAL = environ["VISUAL"]
 if not all([HOME, VISUAL, PANDOC_BIN]):
@@ -23,6 +23,20 @@ log_level = 100  # default
 critical = logging.critical
 info = logging.info
 dbg = logging.debug
+
+
+def rotate_files(filename, max=5):
+    f"""create at most {max} rotating files"""
+
+    bare, ext = os.path.splitext(filename)
+    for counter in reversed(range(2, max + 1)):
+        old_filename = f"{bare}{counter-1}{ext}"
+        new_filename = f"{bare}{counter}{ext}"
+        if os.path.exists(old_filename):
+            os.rename(old_filename, new_filename)
+    if os.path.exists(filename):
+        os.rename(filename, f"{bare}1{ext}")
+
 
 if __name__ == "__main__":
     import argparse  # http://docs.python.org/dev/library/argparse.html
@@ -157,7 +171,8 @@ if __name__ == "__main__":
     info(f"** url = {url}")
 
     content = None
-    os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
+    rotate_files(DST_FILE)
+    # os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
 
     # default is lynx; args.catdoc now removed
     if not any(
