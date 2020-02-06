@@ -270,11 +270,11 @@ if __name__ == "__main__":
             for line in f.readlines():
                 if line.isspace():
                     line = "\n"
-                if args.wrap and wrap != "":  # wrap if no native wrap
-                    # info("wrapping")
+                if args.wrap and wrap == "":  # wrap if no native wrap
+                    info("wrapping")
                     line = textwrap.fill(line, 70).strip() + "\n"
                 if args.quote:
-                    # info("quoting")
+                    info("quoting")
                     line = line.replace("\n", "\n> ")
                 new_content.append(line)
             content = "".join(new_content)
