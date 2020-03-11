@@ -171,7 +171,7 @@ def insert_todos(plan_fn, todos):
 def update_markdown(files_to_process):
     """Convert markdown file"""
 
-    fn_bare, fn_md, fn_out = files_to_process
+    fn_bare, fn_md = files_to_process
     dbg("updating fn_md %s" % fn_md)
     content = open(fn_md, "r").read()
     md_cmd = [MD_BIN]
@@ -210,9 +210,6 @@ def update_markdown(files_to_process):
     call(md_cmd)
     if tmp_body_fn:
         remove(tmp_body_fn)
-    if args.launch:
-        # webbrowser.open(fn_out)
-        call(["google-chrome", fn_out])
 
 
 def check_markdown_files(HOMEDIR):
@@ -230,7 +227,7 @@ def check_markdown_files(HOMEDIR):
                 info(
                     f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}"
                 )
-                files_to_process.append((fn_bare, fn_md, fn_html))
+                files_to_process.append((fn_bare, fn_md))
     if args.sequential or len(files_to_process) < 3:
         # in python 3, map is lazy and won't do anything until iterated
         list(map(update_markdown, files_to_process))
@@ -399,13 +396,6 @@ if "__main__" == __name__:
 
     arg_parser = argparse.ArgumentParser(
         description="Build static HTML versions of various files"
-    )
-    arg_parser.add_argument(
-        "-l",
-        "--launch",
-        action="store_true",
-        default=False,
-        help="Open all check_markdown_files results in browser",
     )
     arg_parser.add_argument(
         "-f",
