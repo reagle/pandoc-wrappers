@@ -118,9 +118,7 @@ def chmod_recursive(path, dir_perms, file_perms):
 
 
 def export_zim(zim_path):
-    # TODO: remove old wiki?
-    # Popen('%s --index %s/zim' % (ZIM_BIN, zim_path),
-    #       stdout=PIPE, shell=True).communicate()[0].decode('utf8')
+
     ZIM_CMD = (
         "%s --export --recursive --overwrite --output=%szwiki "
         "--format=html "
@@ -214,20 +212,33 @@ def update_markdown(files_to_process):
 
 def check_markdown_files(HOMEDIR):
     """Convert any markdown file whose HTML file is older than it."""
-    # TODO: convert this to generic output, to work with docx or odt!!
+    # TODO: convert this to generic output, to work with html, docx, or odt!!
+    # 2020-03-11: attempted but difficult, need to:
+    #     - ignore when a docx was converted to html (impossible?)
+    #     - don't create outputs if they don't already exist
+    #     - don't update where docx is newer than md, but older than html?
 
     files_bare = [splitext(fn_md)[0] for fn_md in locate("*.md", HOMEDIR)]
     files_to_process = []
     for fn_bare in files_bare:
         fn_md = fn_bare + ".md"
         fn_html = fn_bare + ".html"
-        # fn_docx = fn_bare + ".docx"
         if exists(fn_html):
             if getmtime(fn_md) > getmtime(fn_html):
                 info(
                     f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}"
                 )
                 files_to_process.append((fn_bare, fn_md))
+        # Even this simple hack doesn't work, as it finds lots of files
+        # I'm not otherwise touching: I'd have to find files where the docx
+        # file is more recent than the md AND html file
+        # fn_docx = fn_bare + ".docx"
+        # if exists(fn_docx):
+        #     if getmtime(fn_md) > getmtime(fn_docx):
+        #         info(
+        #             f"{fn_md} {getmtime(fn_md)} > {fn_docx} {getmtime(fn_docx)}"
+        #         )
+        #         files_to_process.append((fn_bare, fn_md))
     if args.sequential or len(files_to_process) < 3:
         # in python 3, map is lazy and won't do anything until iterated
         list(map(update_markdown, files_to_process))
@@ -240,6 +251,7 @@ def check_mm_files(HOMEDIR):
     """Convert any Freeplane mindmap whose HTML file is older than it.
     NOTE: If the syllabus.md hasn't been updated it won't reflect
     the changes"""
+    # TODO: test, and if not using, remove 20200311
 
     INCLUDE_PATHS = {"syllabus", "readings", "concepts"}
 
@@ -485,11 +497,9 @@ if "__main__" == __name__:
     # Mindmaps HTML exports
     check_mm_tmp_html_files()
 
-    # Markdown (2nd)
+    # Markdown (public files)
     check_markdown_files(HOMEDIR)
 
     # # Private files
     HOMEDIR = HOME + "/data/1work/"
-
-    # Markdown (2nd)
     check_markdown_files(HOMEDIR)
