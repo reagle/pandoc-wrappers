@@ -71,6 +71,7 @@ def get_Now_YMD():
 def locate(pattern, root):
     """Locate all files matching supplied filename pattern in and below
     supplied root directory."""
+    # TODO: move RE instead of fnmatch?
     for path, dirs, files in walk(abspath(root)):
         for fn in fnmatch.filter(files, pattern):
             yield join(path, fn)
@@ -216,18 +217,18 @@ def update_markdown(files_to_process):
 
 def check_markdown_files(HOMEDIR):
     """Convert any markdown file whose HTML file is older than it."""
-    # TODO: convert this to generic output, to work with docx or odt
+    # TODO: convert this to generic output, to work with docx or odt!!
 
     files_bare = [splitext(fn_md)[0] for fn_md in locate("*.md", HOMEDIR)]
     files_to_process = []
     for fn_bare in files_bare:
         fn_md = fn_bare + ".md"
         fn_html = fn_bare + ".html"
+        # fn_docx = fn_bare + ".docx"
         if exists(fn_html):
             if getmtime(fn_md) > getmtime(fn_html):
                 info(
-                    "%s %s > %s %s"
-                    % (fn_md, getmtime(fn_md), fn_html, getmtime(fn_html))
+                    f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}"
                 )
                 files_to_process.append((fn_bare, fn_md, fn_html))
     if args.sequential or len(files_to_process) < 3:
