@@ -56,11 +56,13 @@ def chunk_yaml(text):
                 entries[key]["url"] = line[8:-1]  # remove quotes too
             elif line.startswith("  title-short: "):
                 entries[key]["title-short"] = line[10:-1]
-            elif line.startswith("  original-date:"):
-                next_line = next(lines)  # year is on next line
-                if "year" in next_line:
-                    entries[key]["original-date"] = next_line[10:-1]
-    dbg("entries = '%s'" % (entries))
+            # # 2020-03-24: not sure what this was doing, but it was
+            # #   causing problems
+            # elif line.startswith("  original-date:"):
+            #     next_line = next(lines)  # year is on next line
+            #     if "year" in next_line:
+            #         entries[key]["original-date"] = next_line[10:-1]
+    critical("entries = '%s'" % (entries))
     return entries
 
 
@@ -147,7 +149,7 @@ def get_keys_from_md(filename):
     info("filename = '%s'" % filename)
     text = open(filename, "r").read()
     text = text.split("***END OF FILE***")[0]
-    finds = re.findall("@(.*?)[\.,:;\] ]", text)
+    finds = re.findall(r"@(.*?)[\.,:;\] ]", text)
     return finds
 
 
