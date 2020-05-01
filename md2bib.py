@@ -15,10 +15,14 @@ import sys
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
 
-log_level = 100  # default
+log_level = logging.ERROR  # 40
+
+# function aliases
 critical = logging.critical
+error = logging.error
+warning = logging.warning
 info = logging.info
-dbg = logging.debug
+debug = logging.debug
 
 
 def chunk_yaml(text):
@@ -62,7 +66,7 @@ def chunk_yaml(text):
             #     next_line = next(lines)  # year is on next line
             #     if "year" in next_line:
             #         entries[key]["original-date"] = next_line[10:-1]
-    critical("entries = '%s'" % (entries))
+    debug("entries = '%s'" % (entries))
     return entries
 
 
@@ -200,13 +204,14 @@ if "__main__" == __name__:
     arg_parser.add_argument("--version", action="version", version="TBD")
     args = arg_parser.parse_args()
 
+    log_level = logging.ERROR  # 40
     if args.verbose == 1:
-        log_level = logging.CRITICAL
+        log_level = logging.WARNING  # 30
     elif args.verbose == 2:
-        log_level = logging.INFO
+        log_level = logging.INFO  # 20
     elif args.verbose >= 3:
-        log_level = logging.DEBUG
-    LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
+        log_level = logging.DEBUG  # 10
+    LOG_FORMAT = "%(module).5s %(levelname).3s %(funcName).5s: %(message)s"
     if args.log_to_file:
         logging.basicConfig(
             filename="md2bib.log",

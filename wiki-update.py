@@ -48,14 +48,14 @@ ZIM_BIN = (
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
-log_level = 100  # default
-critical = logging.critical
-info = logging.info
-dbg = logging.debug
-warn = logging.warn
-error = logging.error
-excpt = logging.exception
+log_level = logging.ERROR  # 40
 
+# function aliases
+critical = logging.critical
+error = logging.error
+warning = logging.warning
+info = logging.info
+debug = logging.debug
 
 #################################
 # Utility functions
@@ -175,7 +175,7 @@ def update_markdown(files_to_process):
     """Convert markdown file"""
 
     fn_bare, fn_md = files_to_process
-    dbg("updating fn_md %s" % fn_md)
+    debug("updating fn_md %s" % fn_md)
     content = open(fn_md, "r").read()
     md_cmd = [MD_BIN]
     md_args = []  # '-VV'
@@ -453,13 +453,14 @@ if "__main__" == __name__:
     arg_parser.add_argument("--version", action="version", version="TBD")
     args = arg_parser.parse_args()
 
+    log_level = logging.ERROR  # 40
     if args.verbose == 1:
-        log_level = logging.CRITICAL
+        log_level = logging.WARNING  # 30
     elif args.verbose == 2:
-        log_level = logging.INFO
+        log_level = logging.INFO  # 20
     elif args.verbose >= 3:
-        log_level = logging.DEBUG
-    LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
+        log_level = logging.DEBUG  # 10
+    LOG_FORMAT = "%(module).5s %(levelname).3s %(funcName).5s: %(message)s"
     if args.log_to_file:
         logging.basicConfig(
             filename="wiki-update.log",
