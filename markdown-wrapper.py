@@ -52,13 +52,14 @@ PANDOC_BIN = shutil.which("pandoc")
 if not all([HOME, BROWSER, PANDOC_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
-log_level = 100  # default
+log_level = logging.ERROR  # 40
+
+# function aliases
 critical = logging.critical
-info = logging.info
-dbg = logging.debug
-warn = logging.warn
 error = logging.error
-excpt = logging.exception
+warning = logging.warning
+info = logging.info
+debug = logging.debug
 
 
 def link_citations(line, bib_chunked):
@@ -104,7 +105,7 @@ def link_citations(line, bib_chunked):
         else:
             key_text = "%s %s" % (last_name, year)
 
-        dbg("**   url = %s" % url)
+        debug("**   url = %s" % url)
         if url:
             cite_replacement.append("[%s](%s)" % (key_text, url))
         else:
@@ -113,7 +114,7 @@ def link_citations(line, bib_chunked):
                 cite_replacement.append('%s, "%s"' % (key_text, title))
             else:
                 cite_replacement.append("%s" % key_text)
-        dbg("**   using cite_replacement = %s" % cite_replacement)
+        debug("**   using cite_replacement = %s" % cite_replacement)
         return "".join(cite_replacement)
 
     PARENS_BRACKET_PAIR = re.compile(
@@ -161,26 +162,26 @@ def process_commented_citations(line):
         else uncomment
         """
         citation = cite_match.group(0)
-        critical(f"citation = '{citation}'")
+        debug(f"citation = '{citation}'")
         prefix = "^" if citation[0] == "^" else " "
         chunks = citation[2:-1].split(";")  # isolate chunks from ' [' + ']'
-        critical(f"chunks = {chunks}")
+        debug(f"chunks = {chunks}")
         citations_keep = []
         for chunk in chunks:
-            critical(f"  chunk = '{chunk}'")
+            debug(f"  chunk = '{chunk}'")
             if "#@" in chunk:
                 if args.quash_citations:
                     pass
-                    critical(f"  quashed")
+                    debug(f"  quashed")
                 else:
                     chunk = chunk.replace("#@", "@")
-                    critical(f"  keeping chunk = '{chunk}'")
+                    debug(f"  keeping chunk = '{chunk}'")
                     citations_keep.append(chunk)
             else:
                 citations_keep.append(chunk)
 
         if citations_keep:
-            critical(f"citations_keep = '{citations_keep}'")
+            debug(f"citations_keep = '{citations_keep}'")
             return f"{prefix}[" + ";".join(citations_keep) + "]"
         else:
             return ""
@@ -324,7 +325,7 @@ def process(args):
     if args.bibliography:
         bib_fn = HOME + "/joseph/readings.yaml"
         bib_chunked = md2bib.chunk_yaml(open(bib_fn, "r").readlines())
-        dbg("bib_chunked = %s" % (bib_chunked))
+        debug("bib_chunked = %s" % (bib_chunked))
 
     info("args.files = '%s'" % args.files)
     for in_file in args.files:
@@ -472,11 +473,11 @@ def process(args):
             line = process_commented_citations(line)
             if args.bibliography:  # create hypertext refs from bibtex db
                 line = link_citations(line, bib_chunked)
-                dbg("\n** line is now %s" % line)
+                debug("\n** line is now %s" % line)
             if args.presentation:  # color some revealjs top of column slides
                 if line.startswith("# ") and "{data-" not in line:
                     line = line.strip() + ' {data-background="LightBlue"}\n'
-            dbg("END line: '%s'" % line)
+            debug("END line: '%s'" % line)
             new_lines.append(line)
         f1.close()
         f2.write("\n".join(new_lines))
@@ -730,19 +731,19 @@ if __name__ == "__main__":
         help="Increase verbosity (specify multiple times for more)",
     )
     arg_parser.add_argument("--version", action="version", version="TBD")
-
     args = arg_parser.parse_args()
 
+    log_level = logging.ERROR  # 40
     if args.verbose == 1:
-        log_level = logging.CRITICAL
+        log_level = logging.WARNING  # 30
     elif args.verbose == 2:
-        log_level = logging.INFO
+        log_level = logging.INFO  # 20
     elif args.verbose >= 3:
-        log_level = logging.DEBUG
-    LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
+        log_level = logging.DEBUG  # 10
+    LOG_FORMAT = "%(module).5s %(levelname).3s %(funcName).5s: %(message)s"
     if args.log_to_file:
         logging.basicConfig(
-            filename="wiki-update.log",
+            filename="markdown-wrapper.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
