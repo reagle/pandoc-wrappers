@@ -21,6 +21,6 @@ Wraps many tools for converting documents to text.
 
 Build the static portions of my website by looking for source files newer than existing HTML files.
 
-    *.mm (freemind)-> html
+    *.mm (freeplane)-> html
     *.md (pandoc)-> html
     zim/* (zim-wiki) -> html
