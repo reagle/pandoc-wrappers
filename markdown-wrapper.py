@@ -450,7 +450,6 @@ def process(args):
                     ["--filter", "pandoc-citeproc",]
                 )
 
-        print((abs_fn, fn_tmp_1))
         shutil.copyfile(abs_fn, fn_tmp_1)
         f1 = codecs.open(fn_tmp_1, "r", "UTF-8", "replace")
         content = f1.read()
@@ -458,7 +457,7 @@ def process(args):
             content = content[1:]
         f2 = codecs.open(fn_tmp_2, "w", "UTF-8", "replace")
 
-        print("split(abs_fn) = %s, %s" % (os.path.split(abs_fn)))
+        print(f"{abs_fn=}")
 
         # content = content.replace(' --- ', '---') # what is this 20161215?
 
