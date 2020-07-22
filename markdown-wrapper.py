@@ -352,14 +352,14 @@ def process(args):
             pandoc_opts.extend(
                 [
                     "-c",
-                    "../_custom/reveal3js.css",
+                    "../_custom/reveal4js.css",
                     "-c",
                     "../_custom/Font-Awesome/css/font-awesome.min.css",
                     "-t",
                     "revealjs",
                     "--slide-level=2",
                     "-V",
-                    "revealjs-url=../_reveal3.js",
+                    "revealjs-url=../_reveal4.js",
                     "-V",
                     "theme=beige",
                     "-V",
