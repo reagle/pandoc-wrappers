@@ -40,7 +40,7 @@ PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
 # ZIM_BIN = '/usr/local/bin/zim'
 ZIM_BIN = (
-    "/usr/local/opt/python@3.8/bin//python3 " + HOME + "/bin/zim-latest/zim.py"
+    "/usr/local/opt/python@3.8/bin/python3 " + HOME + "/bin/zim-latest/zim.py"
 )
 
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
@@ -82,7 +82,7 @@ def locate(pattern, root):
 
 def has_dir_changed(directory):
 
-    info("dir   = %s" % directory)
+    debug("dir   = %s" % directory)
     checksum_file = directory + ".dirs.md5sum"
     checksum = Popen(
         ["ls -l -R %s | md5sum" % directory], shell=True, stdout=PIPE
@@ -90,23 +90,23 @@ def has_dir_changed(directory):
     checksum = checksum.split()[0].decode("utf-8")
     if not exists(checksum_file):
         open(checksum_file, "w").write(checksum)
-        info("checksum created %s" % checksum)
+        debug("checksum created %s" % checksum)
         return True
     else:
-        info("checksum_file = '%s'" % checksum_file)
+        debug("checksum_file = '%s'" % checksum_file)
         state = open(checksum_file, "r").read()
-        info("state = %s" % state)
+        debug("state = %s" % state)
         if checksum == state:
-            info("checksum == state")
+            debug("checksum == state")
             return False
         else:
             open(checksum_file, "w").write(checksum)
-            info("checksum updated")
+            debug("checksum updated")
             return True
 
 
 def chmod_recursive(path, dir_perms, file_perms):
-    info(
+    debug(
         "changings perms to %o;%o on path = '%s'"
         % (dir_perms, file_perms, path)
     )
@@ -128,7 +128,7 @@ def export_zim(zim_path):
         "--template=~/.local/share/zim/templates/html/codex-default.html %szim "
         "--format=html --index-page index " % (ZIM_BIN, zim_path, zim_path)
     )
-    info(ZIM_CMD)
+    debug(ZIM_CMD)
     print(f"exporting {zim_path}")
     results = Popen((ZIM_CMD), stdout=PIPE, stderr=PIPE, shell=True, text=True)
     chmod_recursive("%szwiki" % zim_path, 0o755, 0o744)
@@ -140,7 +140,7 @@ def export_zim(zim_path):
 
 def grab_todos(filename):
 
-    info("grab_todos")
+    debug("grab_todos")
     html_parser = etree.HTMLParser(
         remove_comments=True, remove_blank_text=True
     )
@@ -158,7 +158,7 @@ def grab_todos(filename):
 
 def insert_todos(plan_fn, todos):
 
-    info("insert_todos")
+    debug("insert_todos")
     html_parser = etree.HTMLParser(
         remove_comments=True, remove_blank_text=True
     )
@@ -201,13 +201,13 @@ def update_markdown(files_to_process):
     # md_args.extend(['--keep-tmp']) # for debugging
     if match_md_opts:
         md_opts = match_md_opts.group(1).strip().split(" ")
-        info("md_opts = %s" % md_opts)
+        debug("md_opts = %s" % md_opts)
         md_args.extend(md_opts)
     md_cmd.extend(md_args)
     md_cmd.extend([fn_md])
     md_cmd = list(filter(None, md_cmd))  # remove any empty strings
-    info("md_cmd = '%s'" % md_cmd)
-    info("md_cmd = %s" % " ".join(md_cmd))
+    debug("md_cmd = '%s'" % md_cmd)
+    debug("md_cmd = %s" % " ".join(md_cmd))
     call(md_cmd)
     if tmp_body_fn:
         remove(tmp_body_fn)
@@ -228,7 +228,7 @@ def check_markdown_files(HOMEDIR):
         fn_html = fn_bare + ".html"
         if exists(fn_html):
             if getmtime(fn_md) > getmtime(fn_html):
-                info(
+                debug(
                     f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}"
                 )
                 files_to_process.append((fn_bare, fn_md))
@@ -238,7 +238,7 @@ def check_markdown_files(HOMEDIR):
         # fn_docx = fn_bare + ".docx"
         # if exists(fn_docx):
         #     if getmtime(fn_md) > getmtime(fn_docx):
-        #         info(
+        #         debug(
         #             f"{fn_md} {getmtime(fn_md)} > {fn_docx} {getmtime(fn_docx)}"
         #         )
         #         files_to_process.append((fn_bare, fn_md))
@@ -265,7 +265,7 @@ def check_mm_files(HOMEDIR):
             fn_html = fn + ".html"
             if exists(fn_html):
                 if getmtime(mm_fn) > getmtime(fn_html):
-                    info("updating_mm %s" % fn)
+                    debug("updating_mm %s" % fn)
                     call(
                         [
                             "xsltproc",
@@ -323,35 +323,29 @@ def log2work(done_tasks):
     Log completed zim tasks to work microblog
     """
 
+    RE_MARKUP = re.compile(
+        r"""(?P<link>\[\[(?P<url>.*?)\|(?P<text>.*?)\]\])"""
+    )
+
     log_items = []
     for activity, task in done_tasks:
-        # zim syntax for href/em to HTML
-        task = re.sub(r"\[\[(.*?)\|(.*)\]\]", r'<a href="\1">\2</a>', task)
-        task = re.sub(r"\/\/(.*?)\/\/", r"<em>\1</em>", task)
+
+        # convert zim wiki markup to HTML (hack)
+        task = re.sub(r"(?<!:)\/\/(.*?)\/\/", r"<em>\1</em>", task)  # italics
+        task = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", task)  # bold
+        task = RE_MARKUP.sub(r'<a href="\g<url>">\g<text></a>', task)  # link
 
         date_token = get_Now_YMD()
         digest = hashlib.md5(task.encode("utf-8", "replace")).hexdigest()
         uid = "e" + date_token + "-" + digest[:4]
-        log_item = '<li class="event" id="%s">%s: %s] %s</li>\n' % (
-            uid,
-            date_token,
-            activity,
-            task,
-        )
+        log_item = f'<li class="event" id="{uid}">{date_token}: {activity}] {task}</li>\n'
+        info(f"{log_item=}")
         log_items.append(log_item)
 
     OUT_FILE = HOME + "/data/2web/reagle.org/joseph/plan/plans/index.html"
     plan_fd = codecs.open(OUT_FILE, "r", "utf-8", "replace")
     plan_content = plan_fd.read()
     plan_fd.close()
-
-    # TODO: finish transition to xml - jr 20170222
-    #     I should also escape_XML plan_content
-    # plan_tree = etree.fromstring(plan_content)
-    # ul_found = plan_tree.xpath('''//div[@id='Done']/ul''')
-    # if ul_found:
-    #     ul_found[0].insert(0, etree.XML(''.join(log_items)))
-    #     new_content = str(etree.tostring(plan_tree, pretty_print=True))
 
     insertion_regexp = re.compile(r"(<h2>Done Work</h2>\s*<ul>)")
 
@@ -370,7 +364,7 @@ def log2work(done_tasks):
 
 def retire_tasks(directory):
     """
-    Removes completed '[x]' zim tasks form zim
+    Removes completed '[x]' zim tasks from zim
     """
     if "zim" in check_output(["ps", "axw"]).decode("utf-8"):
         print("Zim is presently running; skipping task retirement and export.")
@@ -378,7 +372,7 @@ def retire_tasks(directory):
     else:
         zim_files = locate("*.txt", directory)
         for zim_fn in zim_files:
-            # info(zim_fn)
+            debug(zim_fn)
             done_tasks = []
             activity = "misc"
             new_wiki_page = []
@@ -391,8 +385,8 @@ def retire_tasks(directory):
                     if "[x]" in line:
                         # following checkbox
                         item = line.split("]", 1)[1].strip()
-                        info("found item %s" % item)
-                        info("activity = %s" % activity)
+                        debug("found item %s" % item)
+                        debug("activity = %s" % activity)
                         done_tasks.append((activity, item))
                     else:
                         new_wiki_page.append(line)
