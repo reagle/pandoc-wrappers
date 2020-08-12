@@ -10,12 +10,15 @@ zim/* (zim-wiki) -> html
 """
 
 import codecs
-from concurrent import futures
 import fnmatch
 import hashlib
-from lxml import etree, html
 import logging
-from os import chdir, chmod, environ, mkdir, path, rename, remove, walk
+import re
+import shutil
+import sys
+import time
+from concurrent import futures
+from os import chdir, chmod, environ, mkdir, path, remove, rename, walk
 from os.path import (
     abspath,
     basename,
@@ -27,21 +30,17 @@ from os.path import (
     relpath,
     splitext,
 )
-import re
-from shutil import copy, rmtree, move
-from subprocess import call, check_output, Popen, PIPE
-import shutil
-import sys
-import time
+from shutil import copy, move, rmtree
+from subprocess import PIPE, Popen, call, check_output
+
+from lxml import etree, html
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = environ["BROWSER"] if "BROWSER" in environ else None
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
 # ZIM_BIN = '/usr/local/bin/zim'
-ZIM_BIN = (
-    "/usr/local/opt/python@3.8/bin/python3 " + HOME + "/bin/zim-latest/zim.py"
-)
+ZIM_BIN = "/usr/local/opt/python@3.8/bin/python3 " + HOME + "/bin/zim-latest/zim.py"
 
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
@@ -106,10 +105,7 @@ def has_dir_changed(directory):
 
 
 def chmod_recursive(path, dir_perms, file_perms):
-    debug(
-        "changings perms to %o;%o on path = '%s'"
-        % (dir_perms, file_perms, path)
-    )
+    debug("changings perms to %o;%o on path = '%s'" % (dir_perms, file_perms, path))
     for root, dirs, files in walk(path):
         for d in dirs:
             chmod(join(root, d), dir_perms)
@@ -141,17 +137,13 @@ def export_zim(zim_path):
 def grab_todos(filename):
 
     debug("grab_todos")
-    html_parser = etree.HTMLParser(
-        remove_comments=True, remove_blank_text=True
-    )
+    html_parser = etree.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = etree.parse(open(filename, "rb"), html_parser)
     div = doc.xpath('//div[@id="zim-content-body"]')[0]
     div.set("id", "Ongoing-todos")
     div_txt = etree.tostring(div).decode("utf-8")
     div_txt = div_txt.replace('href="./', 'href="../zwiki/')
-    div_txt = div_txt.replace(
-        'href="file:///Users/reagle/joseph/', 'href="../../'
-    )
+    div_txt = div_txt.replace('href="file:///Users/reagle/joseph/', 'href="../../')
     new_div = html.fragment_fromstring(div_txt)
     return new_div
 
@@ -159,9 +151,7 @@ def grab_todos(filename):
 def insert_todos(plan_fn, todos):
 
     debug("insert_todos")
-    html_parser = etree.HTMLParser(
-        remove_comments=True, remove_blank_text=True
-    )
+    html_parser = etree.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = etree.parse(open(plan_fn, "rb"), html_parser)
     div = doc.xpath('//div[@id="Ongoing-todos"]')[0]
     parent = div.getparent()
@@ -228,9 +218,7 @@ def check_markdown_files(HOMEDIR):
         fn_html = fn_bare + ".html"
         if exists(fn_html):
             if getmtime(fn_md) > getmtime(fn_html):
-                debug(
-                    f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}"
-                )
+                debug(f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}")
                 files_to_process.append((fn_bare, fn_md))
         # Even this simple hack doesn't work, as it finds lots of files
         # I'm not otherwise touching: I'd have to find files where the docx
@@ -267,35 +255,17 @@ def check_mm_files(HOMEDIR):
                 if getmtime(mm_fn) > getmtime(fn_html):
                     debug("updating_mm %s" % fn)
                     call(
-                        [
-                            "xsltproc",
-                            "-o",
-                            fn_html,
-                            HOME + "/bin/mmtoxhtml.xsl",
-                            mm_fn,
-                        ]
+                        ["xsltproc", "-o", fn_html, HOME + "/bin/mmtoxhtml.xsl", mm_fn,]
                     )
-                    call(
-                        ["tidy", "-asxhtml", "-utf8", "-w", "0", "-m", fn_html]
-                    )
+                    call(["tidy", "-asxhtml", "-utf8", "-w", "0", "-m", fn_html])
                     p3 = Popen(["tail", "-n", "+2", fn_html], stdout=PIPE)
                     p4 = Popen(
-                        [
-                            "tidy",
-                            "-asxhtml",
-                            "-utf8",
-                            "-w",
-                            "0",
-                            "-o",
-                            fn_html,
-                        ],
+                        ["tidy", "-asxhtml", "-utf8", "-w", "0", "-o", fn_html,],
                         stdin=p3.stdout,
                     )
                     # if exists, update the syllabus.md that uses the MM's HTML
                     if "readings" in mm_fn:
-                        md_syllabus_fn = (
-                            fn.replace("readings", "syllabus") + ".md"
-                        )
+                        md_syllabus_fn = fn.replace("readings", "syllabus") + ".md"
                         if exists(md_syllabus_fn):
                             update_markdown(fn, md_syllabus_fn)
 
@@ -323,9 +293,7 @@ def log2work(done_tasks):
     Log completed zim tasks to work microblog
     """
 
-    RE_MARKUP = re.compile(
-        r"""(?P<link>\[\[(?P<url>.*?)\|(?P<text>.*?)\]\])"""
-    )
+    RE_MARKUP = re.compile(r"""(?P<link>\[\[(?P<url>.*?)\|(?P<text>.*?)\]\])""")
 
     log_items = []
     for activity, task in done_tasks:
@@ -338,7 +306,9 @@ def log2work(done_tasks):
         date_token = get_Now_YMD()
         digest = hashlib.md5(task.encode("utf-8", "replace")).hexdigest()
         uid = "e" + date_token + "-" + digest[:4]
-        log_item = f'<li class="event" id="{uid}">{date_token}: {activity}] {task}</li>\n'
+        log_item = (
+            f'<li class="event" id="{uid}">{date_token}: {activity}] {task}</li>\n'
+        )
         info(f"{log_item=}")
         log_items.append(log_item)
 
@@ -350,9 +320,7 @@ def log2work(done_tasks):
     insertion_regexp = re.compile(r"(<h2>Done Work</h2>\s*<ul>)")
 
     new_content = insertion_regexp.sub(
-        "\\1 \n  %s" % "".join(log_items),
-        plan_content,
-        re.DOTALL | re.IGNORECASE,
+        "\\1 \n  %s" % "".join(log_items), plan_content, re.DOTALL | re.IGNORECASE,
     )
     if new_content:
         fd = codecs.open(OUT_FILE, "w", "utf-8", "replace")
@@ -392,9 +360,7 @@ def retire_tasks(directory):
                         new_wiki_page.append(line)
             if done_tasks:
                 new_wiki_page_fd = open(zim_fn, "w")
-                new_wiki_page_fd.writelines(
-                    "%s" % line for line in new_wiki_page
-                )
+                new_wiki_page_fd.writelines("%s" % line for line in new_wiki_page)
                 new_wiki_page_fd.close()
                 log2work(done_tasks)
         return True

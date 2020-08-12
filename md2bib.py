@@ -7,11 +7,11 @@
 using those keys found in a markdown file or specified
 in argument."""
 
-from collections import OrderedDict
 import logging
-from os.path import abspath, exists, expanduser, splitext
 import re
 import sys
+from collections import OrderedDict
+from os.path import abspath, exists, expanduser, splitext
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
 
@@ -189,10 +189,7 @@ if "__main__" == __name__:
         help="log to file %(prog)s.log",
     )
     arg_parser.add_argument(
-        "-o",
-        "--out-filename",
-        help="output results to filename",
-        metavar="OUT_FILE",
+        "-o", "--out-filename", help="output results to filename", metavar="OUT_FILE",
     )
     arg_parser.add_argument(
         "-V",
@@ -214,10 +211,7 @@ if "__main__" == __name__:
     LOG_FORMAT = "%(module).5s %(levelname).3s %(funcName).5s: %(message)s"
     if args.log_to_file:
         logging.basicConfig(
-            filename="md2bib.log",
-            filemode="w",
-            level=log_level,
-            format=LOG_FORMAT,
+            filename="md2bib.log", filemode="w", level=log_level, format=LOG_FORMAT,
         )
     else:
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
