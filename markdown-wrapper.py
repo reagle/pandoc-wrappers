@@ -18,13 +18,16 @@
 #         b. all styles: "Testes Testes Testes."
 
 import codecs
-from io import StringIO
-from lxml.etree import *
-from lxml.html import tostring
 import logging
-import md2bib
 import os
-from os import chdir, environ, mkdir, path, rename, remove, walk
+import re
+import shutil
+import subprocess
+import sys
+
+# from sh import chmod # http://amoffat.github.com/sh/
+from io import StringIO
+from os import chdir, environ, mkdir, path, remove, rename, walk
 from os.path import (
     abspath,
     basename,
@@ -36,13 +39,12 @@ from os.path import (
     relpath,
     splitext,
 )
-import re
-import shutil
+from subprocess import Popen, call, check_output
 
-# from sh import chmod # http://amoffat.github.com/sh/
-import subprocess
-from subprocess import call, check_output, Popen
-import sys
+from lxml.etree import *
+from lxml.html import tostring
+
+import md2bib
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = (
