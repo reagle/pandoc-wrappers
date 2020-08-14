@@ -440,7 +440,7 @@ def process(args):
             info("generate temporary subset bib for speed")
             bib_subset_tmp_fn = base_fn + bib_ext
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
-            keys = md2bib.get_keys_from_md(abs_fn)
+            keys = md2bib.get_keys_from_file(abs_fn)
             info("keys = %s" % keys)
             if keys:
                 entries = parse_func(open(bib_fn, "r").readlines())

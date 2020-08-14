@@ -11,6 +11,7 @@ import logging
 import re
 import sys
 from collections import OrderedDict
+from inspect import cleandoc  # better than dedent
 from os.path import abspath, exists, expanduser, splitext
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
@@ -100,8 +101,8 @@ def chunk_bibtex(text):
     slow parsers bibstuff and pyparsing-based parsers."""
 
     entries = OrderedDict()
-    key_pat = re.compile("@(\w+){(.*),")
-    value_pat = re.compile("[ ]*(\w+)[ ]*=[ ]*{(.*)},")
+    key_pat = re.compile(r"@(\w+){(.*),")
+    value_pat = re.compile(r"[ ]*(\w+)[ ]*=[ ]*{(.*)},")
     for line in text:
         key_match = key_pat.match(line)
         if key_match:
@@ -147,14 +148,76 @@ def subset_bibtex(entries, keys):
     return subset
 
 
-def get_keys_from_md(filename):
-    """Return a list of keys used in a markdown document"""
+def get_keys_from_file(filename):
+    """Return a list of keys used in a markdown file"""
 
     info("filename = '%s'" % filename)
     text = open(filename, "r").read()
-    text = text.split("***END OF FILE***")[0]
-    finds = re.findall(r"@(.*?)[\.,:;\] ]", text)
+    return get_keys_from_string(text)
+
+
+def get_keys_from_string(text):
+    """Return a list of keys from string"""
+
+    CITES_RE = re.compile(
+        r"""
+        @(\w{1,} # at-sign followed by author word_chars
+        -?\d{1,} # optional BCE minus and 1..4 digit date
+        \w{2,3}) # title suffix
+        [\.,:;\] ] # terminal token
+        """,
+        re.VERBOSE,
+    )
+
+    # bug: following expression matches '@ '
+    # finds = re.findall(r"@(.*?)[\.,:;\] ]", text)
+    finds = CITES_RE.findall(text)
     return finds
+
+
+TEST_IN = cleandoc(
+    """WP@20 (or WP @ 20) was edited by joseph@email.com and jackie@email.com
+
+    The ancients were smart [@A1-5tt5; @A1-6tt6; @A12001tt1; @A12002tt2; @A12003tt3; @A12004tt4].
+
+    Blah blah [see @vanHall1984te, pp. 33-35; also @Smith1113fe, chap. 1].
+
+    Blah blah [@doe1985te, pp. 33-35, 38-39 and *passim*].
+
+    Blah blah [@smith2020teh; @doe1984te].
+
+    Smith says blah [-@smith304jf].
+    You can also write an in-text citation, as follows:
+
+    @smith-304jf says blah.
+
+    @smith3bce [p. 33] says blah.
+
+    [@PhoebeC62Pretzels2009vk; @Thomas888bHaeB2011202]
+
+    @Statistician23andmestatistician23andme2014hmd.
+    """
+)
+
+TEST_OUT = [
+    "A1-5tt5",
+    "A1-6tt6",
+    "A12001tt1",
+    "A12002tt2",
+    "A12003tt3",
+    "A12004tt4",
+    "vanHall1984te",
+    "Smith1113fe",
+    "doe1985te",
+    "smith2020teh",
+    "doe1984te",
+    "smith304jf",
+    "smith-304jf",
+    "smith3bce",
+    "PhoebeC62Pretzels2009vk",
+    "Thomas888bHaeB2011202",
+    "Statistician23andmestatistician23andme2014hmd",
+]
 
 
 if "__main__" == __name__:
@@ -178,7 +241,7 @@ if "__main__" == __name__:
         "--find-keys",
         nargs=1,
         metavar="MD_FILE",
-        help="find keys in markdown file",
+        help="use citations in file",
     )
     arg_parser.add_argument("-k", "--keys", nargs=1, help="use specified KEYS")
     arg_parser.add_argument(
@@ -189,7 +252,17 @@ if "__main__" == __name__:
         help="log to file %(prog)s.log",
     )
     arg_parser.add_argument(
-        "-o", "--out-filename", help="output results to filename", metavar="OUT_FILE",
+        "-o",
+        "--out-filename",
+        help="output results to filename",
+        metavar="OUT_FILE",
+    )
+    arg_parser.add_argument(
+        "-T",
+        "--test",
+        action="store_true",
+        default=False,
+        help="test (using internal strings)",
     )
     arg_parser.add_argument(
         "-V",
@@ -211,10 +284,24 @@ if "__main__" == __name__:
     LOG_FORMAT = "%(module).5s %(levelname).3s %(funcName).5s: %(message)s"
     if args.log_to_file:
         logging.basicConfig(
-            filename="md2bib.log", filemode="w", level=log_level, format=LOG_FORMAT,
+            filename="md2bib.log",
+            filemode="w",
+            level=log_level,
+            format=LOG_FORMAT,
         )
     else:
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
+
+    if args.test:
+        results = get_keys_from_string(TEST_IN)
+        if results == TEST_OUT:
+            print(f"test passed")
+        else:
+            print(f"test failed")
+            print(f"{set(TEST_OUT)=}")
+            print(f"{set(results)=}")
+            print(f"difference: {set(TEST_OUT) ^ set(results)}")
+        sys.exit()
 
     if args.out_filename:
         outfd = open(args.out_filename, "w")
@@ -246,7 +333,7 @@ if "__main__" == __name__:
         keys = args.keys[0].split(",")
         info("arg keys = '%s'" % keys)
     elif args.find_keys:
-        keys = get_keys_from_md(args.find_keys[0])
+        keys = get_keys_from_file(args.find_keys[0])
         info("md  keys = '%s'" % keys)
     else:
         print("No keys given")
