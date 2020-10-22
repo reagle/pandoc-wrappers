@@ -82,6 +82,10 @@ def locate(pattern, root):
 
 
 def has_dir_changed(directory):
+    """Check is a directory has changed by m5dsumming the directory
+    listing and leaving a copy to compare with next run.
+    (Used for checking changes of Zim wiki.)
+    """
 
     debug("dir   = %s" % directory)
     checksum_file = directory + ".dirs.md5sum"
@@ -107,6 +111,8 @@ def has_dir_changed(directory):
 
 
 def chmod_recursive(path, dir_perms, file_perms):
+    """Fix permissions.
+    (Useful if an app like Zim creates weird permissions.)"""
     debug(
         "changings perms to %o;%o on path = '%s'"
         % (dir_perms, file_perms, path)
@@ -250,56 +256,6 @@ def check_markdown_files(HOMEDIR):
     else:
         with futures.ProcessPoolExecutor() as executor:
             results = executor.map(update_markdown, files_to_process)
-
-
-def check_mm_files(HOMEDIR):
-    """Convert any Freeplane mindmap whose HTML file is older than it.
-    NOTE: If the syllabus.md hasn't been updated it won't reflect
-    the changes"""
-    # TODO: test, and if not using, remove 20200311
-
-    INCLUDE_PATHS = {"syllabus", "readings", "concepts"}
-
-    files = locate("*.mm", HOMEDIR)
-    for mm_fn in files:
-        if any([included in mm_fn for included in INCLUDE_PATHS]):
-            fn = splitext(mm_fn)[0]
-            fn_html = fn + ".html"
-            if exists(fn_html):
-                if getmtime(mm_fn) > getmtime(fn_html):
-                    debug("updating_mm %s" % fn)
-                    call(
-                        [
-                            "xsltproc",
-                            "-o",
-                            fn_html,
-                            HOME + "/bin/mmtoxhtml.xsl",
-                            mm_fn,
-                        ]
-                    )
-                    call(
-                        ["tidy", "-asxhtml", "-utf8", "-w", "0", "-m", fn_html]
-                    )
-                    p3 = Popen(["tail", "-n", "+2", fn_html], stdout=PIPE)
-                    p4 = Popen(
-                        [
-                            "tidy",
-                            "-asxhtml",
-                            "-utf8",
-                            "-w",
-                            "0",
-                            "-o",
-                            fn_html,
-                        ],
-                        stdin=p3.stdout,
-                    )
-                    # if exists, update the syllabus.md that uses the MM's HTML
-                    if "readings" in mm_fn:
-                        md_syllabus_fn = (
-                            fn.replace("readings", "syllabus") + ".md"
-                        )
-                        if exists(md_syllabus_fn):
-                            update_markdown(fn, md_syllabus_fn)
 
 
 def check_mm_tmp_html_files():
@@ -490,9 +446,6 @@ if "__main__" == __name__:
     # Zim: Public
     if has_dir_changed(HOMEDIR + "zim/") or args.force_update:
         export_zim(HOMEDIR)
-
-    # Mindmaps: syllabi (1st as transcluded in markdown files)
-    check_mm_files(HOMEDIR)
 
     # Mindmaps HTML exports
     check_mm_tmp_html_files()
