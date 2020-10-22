@@ -447,10 +447,14 @@ def process(args):
                 subset = subset_func(entries, keys)
                 emit_subset_func(subset, open(bib_subset_tmp_fn, "w"))
                 pandoc_opts.extend(
-                    ["--bibliography=%s" % bib_subset_tmp_fn,]
+                    [
+                        "--bibliography=%s" % bib_subset_tmp_fn,
+                    ]
                 )
                 pandoc_opts.extend(
-                    ["--filter", "pandoc-citeproc",]
+                    [
+                        "--citeproc",
+                    ]
                 )
 
         shutil.copyfile(abs_fn, fn_tmp_1)
