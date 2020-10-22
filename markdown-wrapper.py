@@ -22,7 +22,6 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 import sys
 
 # from sh import chmod # http://amoffat.github.com/sh/
@@ -466,18 +465,16 @@ def process(args):
 
         print(f"{abs_fn=}")
 
-        # content = content.replace(' --- ', '---') # what is this 20161215?
-
         lines = content.split("\n")
         new_lines = []
 
         for lineNo, line in enumerate(lines):
-            # fix Wikicommons relative network-path references
+            # TODO: fix Wikicommons relative network-path references
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
             # TODO: encode ampersands in URLs
             line = process_commented_citations(line)
-            if args.bibliography:  # create hypertext refs from bibtex db
+            if args.bibliography:  # create hypertext refs from bib db
                 line = link_citations(line, bib_chunked)
                 debug("\n** line is now %s" % line)
             if args.presentation:  # color some revealjs top of column slides
