@@ -60,13 +60,12 @@ def chunk_yaml(text):
             if line.startswith("  URL: "):
                 entries[key]["url"] = line[8:-1]  # remove quotes too
             elif line.startswith("  title-short: "):
-                entries[key]["title-short"] = line[10:-1]
-            # # 2020-03-24: not sure what this was doing, but it was
-            # #   prevent year from showing up in subset
-            # elif line.startswith("  original-date:"):
-            #     next_line = next(lines)  # year is on next line
-            #     if "year" in next_line:
-            #         entries[key]["original-date"] = next_line[10:-1]
+                entries[key]["title-short"] = line[16:-1]
+            # grab the original-date as well # 20201102 buggy?
+            elif line.startswith("  original-date:"):
+                next_line = next(lines)  # year is on next line
+                if "year" in next_line:
+                    entries[key]["original-date"] = next_line[10:-1]
     debug("entries = '%s'" % (entries))
     return entries
 

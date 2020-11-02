@@ -95,12 +95,14 @@ def link_citations(line, bib_chunked):
         else:
             info(reference.keys())
         url = reference.get("url")
-        title = reference.get("shorttitle")
+        info(f"{url=}")
+        title = reference.get("title-short")
+        info(f"{title=}")
         last_name, year, _ = re.split(r"(\d\d\d\d)", key)
 
         if "original-date" in reference:
             year = f"{reference['original-date']}/{year}"
-
+            info(f"original-date!")
         if citation.startswith("-"):
             key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
         else:
@@ -134,9 +136,9 @@ def link_citations(line, bib_chunked):
         return "(" + cite_match.group(0)[1:-1] + ")"
 
     line = PARENS_BRACKET_PAIR.sub(make_parens, line)
-    info(f"{line}")
+    debug(f"{line}")
     line = PARENS_KEY.sub(hyperize, line)
-    info(f"{line}")
+    debug(f"{line}")
     return line
 
 
@@ -187,9 +189,9 @@ def process_commented_citations(line):
         else:
             return ""
 
-    info(f"old_line = {line}")
+    debug(f"old_line = {line}")
     new_line = PARENS_BRACKET_PAIR.subn(quash, line)[0]
-    info(f"new_line = {new_line}")
+    debug(f"new_line = {new_line}")
     # if I quashed a citation completely, I might have a period after a quote
     if args.quash_citations:
         if "]." in line and '".' in new_line:  # imperfect test
@@ -205,7 +207,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
 
     def em_mask(matchobj):
         """replace emphasis with underscores"""
-        info("return replace function")
+        debug("return replace function")
         # underscore that pandoc will ignore
         return "&#95;" * len(matchobj.group(0))
 
@@ -247,10 +249,10 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 else:
                     if not skip_to_next_header:
                         # eg: if line.startswith('> *'): continue
-                        info("entering em redaction")
+                        debug("entering em redaction")
                         # replace emph underscores  w/ literal '_'
                         line = EM_RE.subn(em_mask, line)[0]
-                        info("line = '%s'" % (line))
+                        debug("line = '%s'" % (line))
                         handout_f.write(line)
                     else:
                         handout_f.write("\n")
@@ -281,7 +283,7 @@ def number_elements(content):
     parser = HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = parse(StringIO(content), parser)
 
-    info("add heading marks")
+    debug("add heading marks")
     headings = doc.xpath("//*[name()='h2' or name()='h3' or name()='h4']")
     heading_num = 1
     for heading in headings:
@@ -295,7 +297,7 @@ def number_elements(content):
         heading.insert(0, span)  # insert span at beginning of parent
         heading_num += 1
 
-    info("add paragraph marks")
+    debug("add paragraph marks")
     paras = doc.xpath("/html/body/p | /html/body/blockquote")
     para_num = 1
     for para in paras:
@@ -440,7 +442,7 @@ def process(args):
             bib_subset_tmp_fn = base_fn + bib_ext
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
             keys = md2bib.get_keys_from_file(abs_fn)
-            info("keys = %s" % keys)
+            debug("keys = %s" % keys)
             if keys:
                 entries = parse_func(open(bib_fn, "r").readlines())
                 subset = subset_func(entries, keys)
