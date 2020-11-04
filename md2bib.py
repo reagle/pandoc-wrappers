@@ -41,7 +41,7 @@ def chunk_yaml(text):
     lines = iter(text[1:])  # skip first two lines of YAML
     for line in lines:
         line = line.rstrip()
-        # info("line = %s" % (line))
+        # debug("line = %s" % (line))
         if line == "...":  # last line
             # final chunk
             entries[key]["_yaml_block"] = "\n".join(yaml_block)
@@ -75,7 +75,7 @@ def emit_yaml_subset(entries, outfd):
 
     outfd.write("""---\nreferences:\n""")
     for identifier in entries:
-        info("identifier = '%s'" % (identifier))
+        debug("identifier = '%s'" % (identifier))
         outfd.write(entries[identifier]["_yaml_block"])
         outfd.write("\n")
     outfd.write("""\n...\n""")
@@ -119,7 +119,7 @@ def chunk_bibtex(text):
 def emit_bibtex_entry(identifier, values, outfd):
     """Emit a single bibtex entry."""
 
-    info("writing entry")
+    debug("writing entry")
     outfd.write("@%s{%s,\n" % (values["entry_type"], identifier))
     for field, value in values.items():
         if field != "entry_type":
@@ -150,7 +150,7 @@ def subset_bibtex(entries, keys):
 def get_keys_from_file(filename):
     """Return a list of keys used in a markdown file"""
 
-    info("filename = '%s'" % filename)
+    debug("filename = '%s'" % filename)
     text = open(filename, "r").read()
     return get_keys_from_string(text)
 
@@ -160,7 +160,7 @@ def get_keys_from_string(text):
 
     CITES_RE = re.compile(
         r"""
-        @(\w{1,} # at-sign followed by author word_chars
+        @([\w-]{1,} # at-sign followed by author word_chars
         -?\d{1,} # optional BCE minus and 1..4 digit date
         \w{2,3}) # title suffix
         [\.,:;\] ] # terminal token
@@ -307,7 +307,7 @@ if "__main__" == __name__:
     else:
         outfd = sys.stdout
 
-    # info("args.filename = %s" % (args.filename))
+    # debug("args.filename = %s" % (args.filename))
     if not args.filename:
         if args.BIBTEX:
             args.filename = HOME + "/joseph/readings.bib"
@@ -317,23 +317,23 @@ if "__main__" == __name__:
             chunk_func = chunk_yaml
     else:
         fn, ext = splitext(args.filename)
-        info("ext = %s" % (ext))
+        debug("ext = %s" % (ext))
         if ext == ".bib":
             chunk_func = chunk_bibtex
             args.BIBTEX = True
         else:
             chunk_func = chunk_yaml
 
-    info("args.filename = %s" % (args.filename))
-    info("chunk_func = %s" % (chunk_func))
+    debug("args.filename = %s" % (args.filename))
+    debug("chunk_func = %s" % (chunk_func))
     entries = chunk_func(open(args.filename, "r").readlines())
 
     if args.keys:
         keys = args.keys[0].split(",")
-        info("arg keys = '%s'" % keys)
+        debug("arg keys = '%s'" % keys)
     elif args.find_keys:
         keys = get_keys_from_file(args.find_keys[0])
-        info("md  keys = '%s'" % keys)
+        debug("md  keys = '%s'" % keys)
     else:
         print("No keys given")
         sys.exit()
