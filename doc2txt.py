@@ -54,7 +54,11 @@ if __name__ == "__main__":
         help="file2mdn via pandoc (quite busy with links)",
     )
     arg_parser.add_argument(
-        "-p", "--plain", action="store_true", default=False, help="file2txt via pandoc",
+        "-p",
+        "--plain",
+        action="store_true",
+        default=False,
+        help="file2txt via pandoc",
     )
     arg_parser.add_argument(
         "-y",
@@ -64,10 +68,18 @@ if __name__ == "__main__":
         help="html2txt via lynx (nice formatting)",
     )
     arg_parser.add_argument(
-        "-i", "--links", action="store_true", default=False, help="html2txt via links",
+        "-i",
+        "--links",
+        action="store_true",
+        default=False,
+        help="html2txt via links",
     )
     arg_parser.add_argument(
-        "-3", "--w3m", action="store_true", default=False, help="html2txt via w3m",
+        "-3",
+        "--w3m",
+        action="store_true",
+        default=False,
+        help="html2txt via w3m",
     )
     arg_parser.add_argument(
         "-a",
@@ -131,7 +143,10 @@ if __name__ == "__main__":
     LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
     if args.log_to_file:
         logging.basicConfig(
-            filename="doi_query.log", filemode="w", level=log_level, format=LOG_FORMAT,
+            filename="doi_query.log",
+            filemode="w",
+            level=log_level,
+            format=LOG_FORMAT,
         )
     else:
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
@@ -189,7 +204,7 @@ if __name__ == "__main__":
             "-f",
             f"{extension}",
             "-t",
-            "markdown",
+            "markdown-simple_tables-pipe_tables-multiline_tables",
             "--atx-headers",
             "--reference-links",
             "--columns",
