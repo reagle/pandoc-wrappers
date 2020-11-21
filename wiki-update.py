@@ -177,6 +177,7 @@ def insert_todos(plan_fn, todos):
 def update_markdown(files_to_process):
     """Convert markdown file"""
 
+    # TODO: add mermaid-filter processing for diagrams
     fn_bare, fn_md = files_to_process
     debug("updating fn_md %s" % fn_md)
     content = open(fn_md, "r").read()
@@ -193,12 +194,8 @@ def update_markdown(files_to_process):
             md_args.extend(["--bibliography"])
     elif "cc/" in fn_md:
         md_args.extend(["--quash"])
-        # md_args.extend(['--keep-tmp'])
         md_args.extend(["--number-elements"])
-        # md_args.extend(['--punctuation-inside'])  # removed from md.py
-        # md_args.extend(['--style-csl', 'turabian-reagle.csl'])
         md_args.extend(["--style-csl", "chicago-fullnote-nobib.csl"])
-        # md_args.extend(['--odt'])
     else:
         md_args.extend(["-c", "https://reagle.org/joseph/2003/papers.css"])
     # check for a multimarkdown metadata line with extra build options
