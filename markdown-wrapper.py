@@ -502,8 +502,8 @@ def process(args):
 
         pandoc_cmd = [
             PANDOC_BIN,
-            "-f",
-            "markdown" "+autolink_bare_uris" "+mmd_title_block",
+            "-r",
+            f"{args.read}",
         ]
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
@@ -589,7 +589,8 @@ if __name__ == "__main__":
     import argparse  # http://docs.python.org/dev/library/argparse.html
 
     arg_parser = argparse.ArgumentParser(
-        description="Markdown wrapper with slide and bibliographic options"
+        description="Markdown wrapper with slide and bibliographic options",
+        #  formatter_class=argparse.RawTextHelpFormatter,
     )
     arg_parser.add_argument("files", nargs="+", metavar="FILE")
     arg_parser.add_argument(
@@ -611,13 +612,6 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="swap single and double quotes",
-    )
-    arg_parser.add_argument(
-        "-q",
-        "--quash-citations",
-        action="store_true",
-        default=False,
-        help="quash citations that begin with hash (#@Reagle2012foo)",
     )
     arg_parser.add_argument(
         "-c",
@@ -660,47 +654,11 @@ if __name__ == "__main__":
     )
     arg_parser.add_argument("-o", "--output", nargs=1, help="output file path")
     arg_parser.add_argument(
-        "--self-contained",
-        action="store_true",
-        default=False,
-        help="incorporate links: scripts, images, and CSS",
-    )
-    arg_parser.add_argument(
         "-n",
         "--number-elements",
         action="store_true",
         default=False,
         help="number sections and paragraphs",
-    )
-    arg_parser.add_argument(
-        "-s",
-        "--style-chicago",
-        action="store_true",
-        default=False,
-        help="use CSL bibliography style, default chicago-author-date.csl",
-    )
-    arg_parser.add_argument(
-        "-S",
-        "--style-csl",
-        nargs=1,
-        help="specify CSL style [chicago-fullnote-bibliography.csl, ...]",
-    )
-    arg_parser.add_argument(
-        "-t",
-        "--toc",
-        action="store_true",
-        default=False,
-        help="create table of contents",
-    )
-    arg_parser.add_argument(
-        "--toc-depth", nargs=1, help="table of contents depth"
-    )
-    arg_parser.add_argument(
-        "-v",
-        "--validate",
-        action="store_true",
-        default=False,
-        help="validate and tidy HTML",
     )
     arg_parser.add_argument(
         "-p",
@@ -716,10 +674,64 @@ if __name__ == "__main__":
         help="presentation handout is partial/redacted",
     )
     arg_parser.add_argument(
+        "-q",
+        "--quash-citations",
+        action="store_true",
+        default=False,
+        help="quash citations that begin with hash, e.g., (#@Reagle2012foo)",
+    )
+    arg_parser.add_argument(
+        "-r",
+        "--read",
+        default="markdown+autolink_bare_uris+mmd_title_block",
+        help="reader format and extensions (default: %(default)s). "
+        "Use '=' to specify +/- extensions to default value "
+        "(e.g., '--read=-bracketed_spans)",
+    )
+    arg_parser.add_argument(
+        "-s",
+        "--style-chicago",
+        action="store_true",
+        default=False,
+        help="use CSL chicago-author-date.csl",
+    )
+    arg_parser.add_argument(
+        "-S",
+        "--style-csl",
+        nargs=1,
+        help="specify CSL style (e.g., chicago-fullnote-bibliography.csl)",
+    )
+    arg_parser.add_argument(
+        "--self-contained",
+        action="store_true",
+        default=False,
+        help="incorporate links: scripts, images, and CSS (pandoc pass-through)",
+    )
+    arg_parser.add_argument(
+        "--toc",
+        action="store_true",
+        default=False,
+        help="create table of contents (pandoc pass-through)",
+    )
+    arg_parser.add_argument(
+        "--toc-depth",
+        nargs=1,
+        help="table of contents depth (pandoc pass-through)",
+    )
+    arg_parser.add_argument(
+        "-v",
+        "--validate",
+        action="store_true",
+        default=False,
+        help="validate and tidy HTML",
+    )
+    arg_parser.add_argument(
         "-w",
         "--write",
         default="html",
-        help="Write to format [html, markdown-citations,...]",
+        help="write format and extensions (default: %(default)s). "
+        "Use '=' to specify +/- extensions to default value "
+        "(e.g., '--write=-bracketed_spans)",
     )
     arg_parser.add_argument(
         "-L",
@@ -733,10 +745,12 @@ if __name__ == "__main__":
         "--verbose",
         action="count",
         default=0,
-        help="Increase verbosity (specify multiple times for more)",
+        help="increase verbosity (specify multiple times for more)",
     )
     arg_parser.add_argument("--version", action="version", version="TBD")
     args = arg_parser.parse_args()
+    print(f"{args=}")
+    sys.exit()
 
     log_level = logging.ERROR  # 40
     if args.verbose == 1:
