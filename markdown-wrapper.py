@@ -503,11 +503,7 @@ def process(args):
         pandoc_cmd = [
             PANDOC_BIN,
             "-f",
-            "markdown+mmd_title_block+yaml_metadata_block"
-            "+smart+implicit_header_references"
-            "+superscript+subscript"
-            "+tex_math_dollars"
-            "+autolink_bare_uris",
+            "markdown" "+autolink_bare_uris" "+mmd_title_block",
         ]
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
