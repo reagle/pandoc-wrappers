@@ -5,7 +5,7 @@
 
 """A wrapper script for pandoc that handles my own issues:
     1. associates the result with a particular style sheet.
-    2. can replace [@key] with hypertext'd refs from bibtex database.
+    2. can replace [@key] with hypertext'd refs from bibliographic DB.
     3. makes use of reveal.js for presentations.
 """
 
