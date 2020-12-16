@@ -16,6 +16,14 @@
 #         move each of these periods to right of quotation mark:
 #         a. if using note style: "I do what I hate" [#@Paul2006r7].
 #         b. all styles: "Testes Testes Testes."
+# TODO 2020-12-16: support citations to links
+#   (perhaps as variation to --presentation)
+#   https://groups.google.com/g/pandoc-discuss/c/MTJDaCzjc0c
+#   1. md2bib.py: ability to output `[@key]: URL`
+#   2. markdown-wrapper.py:
+#       a. `-f` argument to disable citations
+#       b. append output of md2bib.py
+
 
 import codecs
 import logging
