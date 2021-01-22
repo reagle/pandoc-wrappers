@@ -353,8 +353,12 @@ def process(args):
         # if args.write == 'markdown-citations':
         #     pandoc_opts.extend(['--csl=sage-harvard.csl',
         #         '--bibliography=/home/reagle/joseph/readings.yaml'])
+
         pandoc_opts.extend(
-            ["-s", "--tab-stop", "4", "--email-obfuscation=references"]
+            [
+                "--defaults",
+                "base.yaml",  # include tab stop, lang, etc.
+            ]
         )
 
         if args.presentation:
@@ -382,9 +386,9 @@ def process(args):
                     # '--no-highlight', # conflicts with reveal's highlight.js
                 ]
             )
-        if args.write == "html" and args.css:
+        if args.write.startswith("html") and args.css:
             pandoc_opts.extend(["-c", args.css])
-        elif args.write == "docx":
+        elif args.write.startswith("docx"):
             pandoc_opts.extend(
                 ["--reference-doc", HOME + "/.pandoc/reference-mit-press.docx"]
             )
@@ -685,8 +689,10 @@ if __name__ == "__main__":
         "--read",
         default="markdown+autolink_bare_uris+mmd_title_block",
         help="reader format and extensions (default: %(default)s). "
-        "Use '=' to specify +/- extensions to default value "
-        "(e.g., '--read=-bracketed_spans)",
+        # TODO: for short _md_opts_, implement diff extension specification
+        # "Use '=' to specify +/- extensions to default value "
+        # "(e.g., '--read=-bracketed_spans)"
+        ,
     )
     arg_parser.add_argument(
         "-s",
@@ -730,8 +736,10 @@ if __name__ == "__main__":
         "--write",
         default="html",
         help="write format and extensions (default: %(default)s). "
-        "Use '=' to specify +/- extensions to default value "
-        "(e.g., '--write=-bracketed_spans)",
+        # TODO: for short _md_opts_, implement diff extension specification
+        # "Use '=' to specify +/- extensions to default value "
+        # "(e.g., '--write=-bracketed_spans)"
+        ,
     )
     arg_parser.add_argument(
         "-L",
@@ -749,8 +757,6 @@ if __name__ == "__main__":
     )
     arg_parser.add_argument("--version", action="version", version="TBD")
     args = arg_parser.parse_args()
-    print(f"{args=}")
-    sys.exit()
 
     log_level = logging.ERROR  # 40
     if args.verbose == 1:
