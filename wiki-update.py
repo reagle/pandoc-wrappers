@@ -179,7 +179,7 @@ def update_markdown(files_to_process):
 
     # TODO: add mermaid-filter processing for diagrams
     fn_bare, fn_md = files_to_process
-    debug("updating fn_md %s" % fn_md)
+    info("updating fn_md %s" % fn_md)
     content = open(fn_md, "r").read()
     md_cmd = [MD_BIN]
     md_args = []  # '-VV'
@@ -209,7 +209,7 @@ def update_markdown(files_to_process):
     md_cmd.extend([fn_md])
     md_cmd = list(filter(None, md_cmd))  # remove any empty strings
     debug("md_cmd = '%s'" % md_cmd)
-    debug("md_cmd = %s" % " ".join(md_cmd))
+    info("md_cmd = %s" % " ".join(md_cmd))
     call(md_cmd)
     if tmp_body_fn:
         remove(tmp_body_fn)
