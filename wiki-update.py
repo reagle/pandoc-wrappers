@@ -39,8 +39,8 @@ HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = environ["BROWSER"] if "BROWSER" in environ else None
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
-ZIM_BIN = "/usr/local/bin/zim"
-# ZIM_BIN = "/usr/local/bin/python3 " + HOME + "/bin/zim-latest/zim.py"
+# ZIM_BIN = "/usr/local/bin/zim"
+ZIM_BIN = "/usr/local/bin/python3 " + HOME + "/bin/zim-desktop-wiki/zim.py"
 
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
@@ -75,6 +75,7 @@ def locate(pattern, root):
     supplied root directory."""
     # TODO: move RE instead of fnmatch?
     for path, dirs, files in walk(abspath(root)):
+        info(f"{path=}")
         for fn in fnmatch.filter(files, pattern):
             yield join(path, fn)
 
