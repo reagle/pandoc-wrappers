@@ -54,7 +54,9 @@ from lxml.html import tostring
 import md2bib
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
-BROWSER = environ["BROWSER"].replace("*", " ") if "BROWSER" in environ else None
+BROWSER = (
+    environ["BROWSER"].replace("*", " ") if "BROWSER" in environ else None
+)
 PANDOC_BIN = shutil.which("pandoc")
 if not all([HOME, BROWSER, PANDOC_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
@@ -112,7 +114,7 @@ def link_citations(line, bib_chunked):
         if citation.startswith("-"):
             key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
         else:
-            key_text = "%s %s" % (last_name, year)
+            key_text = "%s (%s)" % (last_name, year)
 
         debug("**   url = %s" % url)
         if url:
@@ -403,7 +405,9 @@ def process(args):
         if args.divs:
             pandoc_opts.extend(["--section-divs"])
         if args.include_after_body:
-            pandoc_opts.extend(["--include-after-body=%s" % args.include_after_body[0]])
+            pandoc_opts.extend(
+                ["--include-after-body=%s" % args.include_after_body[0]]
+            )
         if args.style_chicago:
             args.style_csl = ["chicago-author-date.csl"]
 
@@ -543,8 +547,12 @@ def process(args):
 
             if args.presentation:
                 # convert to data-src for lazy loading
-                lazy_elements_re = re.compile(r"""(\<img|<iframe|<video)(.*?) src=""")
-                content_html = lazy_elements_re.sub(r"\1\2 data-src=", content_html)
+                lazy_elements_re = re.compile(
+                    r"""(\<img|<iframe|<video)(.*?) src="""
+                )
+                content_html = lazy_elements_re.sub(
+                    r"\1\2 data-src=", content_html
+                )
 
             # HTML alterations
             if args.number_elements:
