@@ -358,6 +358,8 @@ def process(args):
             [
                 "--defaults",
                 "base.yaml",  # include tab stop, lang, etc.
+                "--lua-filter",
+                "pandoc-quotes.lua",
             ]
         )
 
