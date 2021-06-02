@@ -340,7 +340,8 @@ def number_elements(content):
 def make_relpath(path_to, path_from=os.curdir):
     """return relative path that works on filesystem and server
 
-    >>> make_relpath('https://reagle.org/joseph/2003/papers.css', '/Users/reagle/joseph/2021/pc' ) # noqa: D301
+    >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
+    ... '/Users/reagle/joseph/2021/pc' )
     '../../2003/papers.css'
     """
 
