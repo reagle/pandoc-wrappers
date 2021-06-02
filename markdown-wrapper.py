@@ -34,7 +34,7 @@ import sys
 
 # from sh import chmod # http://amoffat.github.com/sh/
 from io import StringIO
-from os import chdir, environ, mkdir, path, remove, rename, walk
+from os import chdir, environ, getcwd, mkdir, remove, rename, walk
 from os.path import (
     abspath,
     basename,
@@ -43,17 +43,20 @@ from os.path import (
     expanduser,
     getmtime,
     join,
+    realpath,
     relpath,
     splitext,
 )
-from subprocess import Popen, call, check_output
 
+from subprocess import Popen, call, check_output
+from urllib.parse import urlparse
 from lxml.etree import *
 from lxml.html import tostring
 
 import md2bib
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
+WEBROOT = f"{HOME}/e/clear/data/2web/reagle.org"
 BROWSER = (
     environ["BROWSER"].replace("*", " ") if "BROWSER" in environ else None
 )
@@ -274,7 +277,10 @@ def create_talk_handout(abs_fn, tmp2_fn):
             "-w",
             "html",
             "-c",
-            "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css",
+            make_relpath(
+                "https://reagle.org/joseph/talks/_custom/"
+                "class-handouts-201306.css"
+            ),
             handout_fn,
         ]
         info("md_cmd = %s" % " ".join(md_cmd))
@@ -329,6 +335,24 @@ def number_elements(content):
     ).decode("utf-8")
 
     return content
+
+
+def make_relpath(path_to, path_from=os.curdir):
+    """return relative path that works on filesystem and server
+
+    >>> make_relpath('https://reagle.org/joseph/2003/papers.css', '/Users/reagle/joseph/2021/pc' ) # noqa: D301
+    '../../2003/papers.css'
+    """
+
+    info(f"{path_from=}")
+    path_from = realpath(path_from)
+    info(f"{path_from=}")
+    if path_to.startswith("http"):
+        path_to = f"{WEBROOT}{urlparse(path_to).path}"
+    info(f"{path_to=}")
+    result = relpath(path_to, path_from)
+    info(f"{result=}")
+    return result
 
 
 def process(args):
@@ -388,15 +412,21 @@ def process(args):
                     # '--no-highlight', # conflicts with reveal's highlight.js
                 ]
             )
+        # TODO, make this a relative URL rebased for working directory
         if args.write.startswith("html") and args.css:
-            pandoc_opts.extend(["-c", args.css])
+            pandoc_opts.extend(["-c", make_relpath(args.css)])
         elif args.write.startswith("docx"):
             pandoc_opts.extend(
                 ["--reference-doc", HOME + "/.pandoc/reference-mit-press.docx"]
             )
         if args.condensed:
             pandoc_opts.extend(
-                ["-c", "https://reagle.org/joseph/2003/papers-condensed.css"]
+                [
+                    "-c",
+                    make_relpath(
+                        "https://reagle.org/joseph/2003/papers-condensed.css"
+                    ),
+                ]
             )
         if args.toc:
             pandoc_opts.extend(["--toc"])
@@ -713,7 +743,7 @@ if __name__ == "__main__":
         "--self-contained",
         action="store_true",
         default=False,
-        help="incorporate links: scripts, images, and CSS (pandoc pass-through)",
+        help="incorporate links: scripts, images, & CSS (pandoc pass-through)",
     )
     arg_parser.add_argument(
         "--toc",
@@ -751,6 +781,9 @@ if __name__ == "__main__":
         help="log to file PROGRAM.log",
     )
     arg_parser.add_argument(
+        "-T", "--tests", action="store_true", default=False, help="run tests"
+    )
+    arg_parser.add_argument(
         "-V",
         "--verbose",
         action="count",
@@ -777,5 +810,9 @@ if __name__ == "__main__":
         )
     else:
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
+    if args.tests:
+        import doctest
 
+        doctest.testmod()
+        sys.exit()
     process(args)
