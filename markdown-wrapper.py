@@ -222,8 +222,10 @@ def create_talk_handout(abs_fn, tmp2_fn):
         # underscore that pandoc will ignore
         return "&#95;" * len(matchobj.group(0))
 
-    info("abs_fn = '%s'" % (abs_fn))
-    info("tmp2fn = '%s'" % (tmp2_fn))
+    fn_path = os.path.split(abs_fn)[0]
+    info(f"{fn_path=}")
+    info(f"{abs_fn=}")
+    info(f"{tmp2_fn=}")
     md_dir = dirname(abs_fn)
     handout_fn = ""
     if "/talks" in abs_fn:
@@ -405,7 +407,7 @@ def process(args):
                     "-c",
                     "../_custom/reveal4js.css",
                     "-c",
-                    "../_custom/Font-Awesome/css/font-awesome.min.css",
+                    "../_custom/font-awesome/css/fontawesome.min.css",
                     "-t",
                     "revealjs",
                     "--slide-level=2",
