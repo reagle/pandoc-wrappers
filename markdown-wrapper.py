@@ -396,6 +396,7 @@ def process(args):
                 "base.yaml",  # include tab stop, lang, etc.
                 "--lua-filter",
                 "pandoc-quotes.lua",
+                "--strip-comments",
             ]
         )
 
