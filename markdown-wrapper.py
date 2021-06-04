@@ -279,7 +279,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
             "-c",
             make_relpath(
                 "https://reagle.org/joseph/talks/_custom/"
-                "class-handouts-201306.css"
+                "class-handouts-201306.css",
+                fn_path,
             ),
             handout_fn,
         ]
@@ -368,6 +369,14 @@ def process(args):
         if not in_file:
             continue
         info("in_file = '%s'" % in_file)
+        abs_fn = abspath(in_file)
+        info("abs_fn = '%s'" % (abs_fn))
+
+        base_fn, base_ext = splitext(abs_fn)
+        info("base_fn = '%s'" % (base_fn))
+
+        fn_path = os.path.split(abs_fn)[0]
+        info("fn_path = '%s'" % (fn_path))
 
         ##############################
         # initial pandoc configuration based on arguments
@@ -415,7 +424,7 @@ def process(args):
             )
         # TODO, make this a relative URL rebased for working directory
         if args.write.startswith("html") and args.css:
-            pandoc_opts.extend(["-c", make_relpath(args.css)])
+            pandoc_opts.extend(["-c", make_relpath(args.css, fn_path)])
         elif args.write.startswith("docx"):
             pandoc_opts.extend(
                 ["--reference-doc", HOME + "/.pandoc/reference-mit-press.docx"]
@@ -425,7 +434,8 @@ def process(args):
                 [
                     "-c",
                     make_relpath(
-                        "https://reagle.org/joseph/2003/papers-condensed.css"
+                        "https://reagle.org/joseph/2003/papers-condensed.css",
+                        fn_path,
                     ),
                 ]
             )
@@ -447,16 +457,6 @@ def process(args):
         ##############################
         # pre pandoc
         ##############################
-
-        info("in_file = '%s'" % (in_file))
-        abs_fn = abspath(in_file)
-        info("abs_fn = '%s'" % (abs_fn))
-
-        base_fn, base_ext = splitext(abs_fn)
-        info("base_fn = '%s'" % (base_fn))
-
-        fn_path = os.path.split(abs_fn)[0]
-        info("fn_path = '%s'" % (fn_path))
 
         bib_subset_tmp_fn = None  # fn of subset of main biblio
         fn_tmp_1 = "%s-1%s" % (base_fn, base_ext)  # as read
