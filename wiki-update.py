@@ -75,7 +75,7 @@ def locate(pattern, root):
     supplied root directory."""
     # TODO: move RE instead of fnmatch?
     for path, dirs, files in walk(abspath(root)):
-        info(f"{path=}")
+        debug(f"{path=}")
         for fn in fnmatch.filter(files, pattern):
             yield join(path, fn)
 
@@ -112,7 +112,10 @@ def has_dir_changed(directory):
 def chmod_recursive(path, dir_perms, file_perms):
     """Fix permissions.
     (Useful if an app like Zim creates weird permissions.)"""
-    debug("changings perms to %o;%o on path = '%s'" % (dir_perms, file_perms, path))
+    debug(
+        "changings perms to %o;%o on path = '%s'"
+        % (dir_perms, file_perms, path)
+    )
     for root, dirs, files in walk(path):
         for d in dirs:
             chmod(join(root, d), dir_perms)
@@ -144,13 +147,17 @@ def export_zim(zim_path):
 def grab_todos(filename):
 
     debug("grab_todos")
-    html_parser = etree.HTMLParser(remove_comments=True, remove_blank_text=True)
+    html_parser = etree.HTMLParser(
+        remove_comments=True, remove_blank_text=True
+    )
     doc = etree.parse(open(filename, "rb"), html_parser)
     div = doc.xpath('//div[@id="zim-content-body"]')[0]
     div.set("id", "Ongoing-todos")
     div_txt = etree.tostring(div).decode("utf-8")
     div_txt = div_txt.replace('href="./', 'href="../zwiki/')
-    div_txt = div_txt.replace('href="file:///Users/reagle/joseph/', 'href="../../')
+    div_txt = div_txt.replace(
+        'href="file:///Users/reagle/joseph/', 'href="../../'
+    )
     new_div = html.fragment_fromstring(div_txt)
     return new_div
 
@@ -158,7 +165,9 @@ def grab_todos(filename):
 def insert_todos(plan_fn, todos):
 
     debug("insert_todos")
-    html_parser = etree.HTMLParser(remove_comments=True, remove_blank_text=True)
+    html_parser = etree.HTMLParser(
+        remove_comments=True, remove_blank_text=True
+    )
     doc = etree.parse(open(plan_fn, "rb"), html_parser)
     div = doc.xpath('//div[@id="Ongoing-todos"]')[0]
     parent = div.getparent()
@@ -223,7 +232,9 @@ def check_markdown_files(HOMEDIR):
         fn_html = fn_bare + ".html"
         if exists(fn_html):
             if getmtime(fn_md) > getmtime(fn_html):
-                debug(f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}")
+                debug(
+                    f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}"
+                )
                 files_to_process.append((fn_bare, fn_md))
         # Even this simple hack doesn't work, as it finds lots of files
         # I'm not otherwise touching: I'd have to find files where the docx
@@ -266,7 +277,9 @@ def log2work(done_tasks):
     Log completed zim tasks to work microblog
     """
 
-    RE_MARKUP = re.compile(r"""(?P<link>\[\[(?P<url>.*?)\|(?P<text>.*?)\]\])""")
+    RE_MARKUP = re.compile(
+        r"""(?P<link>\[\[(?P<url>.*?)\|(?P<text>.*?)\]\])"""
+    )
 
     log_items = []
     for activity, task in done_tasks:
@@ -279,9 +292,7 @@ def log2work(done_tasks):
         date_token = get_Now_YMD()
         digest = hashlib.md5(task.encode("utf-8", "replace")).hexdigest()
         uid = "e" + date_token + "-" + digest[:4]
-        log_item = (
-            f'<li class="event" id="{uid}">{date_token}: {activity}] {task}</li>\n'
-        )
+        log_item = f'<li class="event" id="{uid}">{date_token}: {activity}] {task}</li>\n'
         info(f"{log_item=}")
         log_items.append(log_item)
 
@@ -335,7 +346,9 @@ def retire_tasks(directory):
                         new_wiki_page.append(line)
             if done_tasks:
                 new_wiki_page_fd = open(zim_fn, "w")
-                new_wiki_page_fd.writelines("%s" % line for line in new_wiki_page)
+                new_wiki_page_fd.writelines(
+                    "%s" % line for line in new_wiki_page
+                )
                 new_wiki_page_fd.close()
                 log2work(done_tasks)
         return True
