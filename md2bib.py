@@ -160,17 +160,17 @@ def get_keys_from_string(text):
 
     CITES_RE = re.compile(
         r"""
-        @([\w-]{1,} # at-sign followed by author word_chars
-        -?\d{1,} # optional BCE minus and 1..4 digit date
-        \w{2,3}) # title suffix
-        [\.,:;\] ] # terminal token
+        @\{?        # at-sign followed by optional curly 
+        ([\w\-]{1,} # author word_chars
+        -?\d{1,}    # optional BCE minus and 1..4 digit date
+        \w{2,3})    # title suffix
+        [\.,:;\]\} ]  # terminal token
         """,
         re.VERBOSE,
     )
 
-    # bug: following expression matches '@ '
-    # finds = re.findall(r"@(.*?)[\.,:;\] ]", text)
     finds = CITES_RE.findall(text)
+    print(f"{finds=}")
     return finds
 
 
