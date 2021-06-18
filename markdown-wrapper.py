@@ -24,7 +24,6 @@
 #       a. `-f` argument to disable citations
 #       b. append output of md2bib.py
 
-
 import codecs
 import logging
 import os
@@ -158,6 +157,7 @@ def process_commented_citations(line):
     Match stuff within a bracket (beginning with ' ' or '^') that
     has no other brackets within
     """
+    # TODO 2021-06-18: replace this with a pandoc filter?
 
     PARENS_BRACKET_PAIR = re.compile(
         r"""
