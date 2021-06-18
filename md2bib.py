@@ -160,7 +160,7 @@ def get_keys_from_string(text):
 
     CITES_RE = re.compile(
         r"""
-        @\{?        # at-sign followed by optional curly 
+        @\{?        # at-sign followed by optional curly
         ([\w\-]{1,} # author word_chars
         -?\d{1,}    # optional BCE minus and 1..4 digit date
         \w{2,3})    # title suffix
@@ -170,7 +170,6 @@ def get_keys_from_string(text):
     )
 
     finds = CITES_RE.findall(text)
-    print(f"{finds=}")
     return finds
 
 
@@ -195,6 +194,8 @@ TEST_IN = cleandoc(
     [@PhoebeC62Pretzels2009vk; @Thomas888bHaeB2011202]
 
     @Statistician23andmestatistician23andme2014hmd.
+
+    Go {@forit2020bcr}.
     """
 )
 
@@ -216,6 +217,7 @@ TEST_OUT = [
     "PhoebeC62Pretzels2009vk",
     "Thomas888bHaeB2011202",
     "Statistician23andmestatistician23andme2014hmd",
+    "forit2020bcr",
 ]
 
 
