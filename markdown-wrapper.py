@@ -79,6 +79,7 @@ def link_citations(line, bib_chunked):
     Used only with citations in presentations.
     """
 
+    # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
     PARENS_KEY = re.compile(
         r"""
         (-?@        # at-sign with optional negative
@@ -130,6 +131,7 @@ def link_citations(line, bib_chunked):
         debug("**   using cite_replacement = %s" % cite_replacement)
         return "".join(cite_replacement)
 
+    # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
     PARENS_BRACKET_PAIR = re.compile(
         r"""
         \[[^\]]*    # opening bracket follow by 0+ non-closing bracket
@@ -159,6 +161,7 @@ def process_commented_citations(line):
     """
     # TODO 2021-06-18: replace this with a pandoc filter?
 
+    # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
     PARENS_BRACKET_PAIR = re.compile(
         r"""
         [ |^]       # space or caret

@@ -158,6 +158,7 @@ def get_keys_from_file(filename):
 def get_keys_from_string(text):
     """Return a list of keys from string"""
 
+    # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
     CITES_RE = re.compile(
         r"""
         @\{?        # at-sign followed by optional curly
