@@ -60,7 +60,8 @@ BROWSER = (
     environ["BROWSER"].replace("*", " ") if "BROWSER" in environ else None
 )
 PANDOC_BIN = shutil.which("pandoc")
-if not all([HOME, BROWSER, PANDOC_BIN]):
+MD_BIN = shutil.which("markdown-wrapper.py")
+if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
 log_level = logging.ERROR  # 40
@@ -276,7 +277,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 handout_f.write(line)
         handout_f.close()
         md_cmd = [
-            "md",
+            MD_BIN,
             "--divs",
             "--toc",
             "-w",
@@ -400,6 +401,11 @@ def process(args):
                 "--lua-filter",
                 "pandoc-quotes.lua",
                 "--strip-comments",
+                "-c",
+                make_relpath(
+                    "https://reagle.org/joseph/talks/_custom/font-awesome/css/fontawesome.min.css",
+                    fn_path,
+                ),
             ]
         )
 
@@ -410,8 +416,6 @@ def process(args):
                 [
                     "-c",
                     "../_custom/reveal4js.css",
-                    "-c",
-                    "../_custom/font-awesome/css/fontawesome.min.css",
                     "-t",
                     "revealjs",
                     "--slide-level=2",
