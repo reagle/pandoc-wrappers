@@ -33,23 +33,22 @@ import sys
 
 # from sh import chmod # http://amoffat.github.com/sh/
 from io import StringIO
-from os import chdir, environ, getcwd, mkdir, remove, rename, walk
+from os import environ, remove
 from os.path import (
     abspath,
-    basename,
     dirname,
     exists,
     expanduser,
-    getmtime,
-    join,
     realpath,
     relpath,
     splitext,
 )
 
-from subprocess import Popen, call, check_output
+from subprocess import Popen, call
 from urllib.parse import urlparse
-from lxml.etree import *
+
+# from lxml.etree import *
+import lxml.etree as et
 from lxml.html import tostring
 
 import md2bib
@@ -301,18 +300,18 @@ def number_elements(content):
     "add section and paragraph marks to content which is parsed as HTML"
 
     info("parsing without comments")
-    parser = HTMLParser(remove_comments=True, remove_blank_text=True)
-    doc = parse(StringIO(content), parser)
+    parser = et.HTMLParser(remove_comments=True, remove_blank_text=True)
+    doc = et.parse(StringIO(content), parser)
 
     debug("add heading marks")
     headings = doc.xpath("//*[name()='h2' or name()='h3' or name()='h4']")
     heading_num = 1
     for heading in headings:
-        span = Element("span")  # prepare span element for section #
+        span = et.Element("span")  # prepare span element for section #
         span.set("class", "headingnum")
         h_id = heading.get("id")  # grab id of existing a element
         span.tail = heading.text
-        a = SubElement(span, "a", href="#%s" % h_id)
+        a = et.SubElement(span, "a", href="#%s" % h_id)
         heading.text = None  # this has become the tail of the span
         a.text = "§" + str(heading_num) + "\u00A0"  # &nbsp;
         heading.insert(0, span)  # insert span at beginning of parent
@@ -323,11 +322,11 @@ def number_elements(content):
     para_num = 1
     for para in paras:
         para_num_str = "{:0>2}".format(para_num)
-        span = Element("span")
+        span = et.Element("span")
         span.set("class", "paranum")
         span.tail = para.text
         a_id = "p" + str(para_num_str)
-        a = SubElement(span, "a", id=a_id, name=a_id, href="#%s" % a_id)
+        a = et.SubElement(span, "a", id=a_id, name=a_id, href="#%s" % a_id)
         a.text = "p" + str(para_num_str) + "\u00A0"  # &nbsp;
         para.text = None
         para.insert(0, span)
@@ -400,10 +399,15 @@ def process(args):
                 "base.yaml",  # include tab stop, lang, etc.
                 "--lua-filter",
                 "pandoc-quotes.lua",
-                "--strip-comments",
+                # stop stripping until bug resolved
+                # https://github.com/jgm/pandoc/issues/7521
+                # "--strip-comments",
                 "-c",
                 make_relpath(
-                    "https://reagle.org/joseph/talks/_custom/font-awesome/css/fontawesome.min.css",
+                    (
+                        "https://reagle.org/joseph/talks/_custom/"
+                        "font-awesome/css/all.min.css"
+                    ),
                     fn_path,
                 ),
             ]
