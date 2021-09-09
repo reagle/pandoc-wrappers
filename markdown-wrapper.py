@@ -117,7 +117,7 @@ def link_citations(line, bib_chunked):
         if citation.startswith("-"):
             key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
         else:
-            key_text = "%s (%s)" % (last_name, year)
+            key_text = "%s %s" % (last_name, year)
 
         debug("**   url = %s" % url)
         if url:
