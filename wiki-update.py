@@ -39,7 +39,7 @@ HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = environ["BROWSER"] if "BROWSER" in environ else None
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
-ZIM_BIN = "/usr/local/Cellar/zim/0.73.5/bin/zim"
+ZIM_BIN = "/Users/reagle/bin/zim-0.73.5/zim.py"
 
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
