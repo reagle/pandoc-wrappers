@@ -15,22 +15,20 @@ import hashlib
 import logging
 import re
 import shutil
-import sys
 import time
 from concurrent import futures
-from os import chdir, chmod, environ, mkdir, path, remove, rename, walk
+from os import chmod, environ, remove, walk
 from os.path import (
     abspath,
-    basename,
-    dirname,
+    # basename,
+    # dirname,
     exists,
     expanduser,
     getmtime,
     join,
-    relpath,
+    # relpath,
     splitext,
 )
-from shutil import copy, move, rmtree
 from subprocess import PIPE, Popen, call, check_output
 
 from lxml import etree, html
@@ -39,7 +37,8 @@ HOME = expanduser("~") if exists(expanduser("~")) else None
 BROWSER = environ["BROWSER"] if "BROWSER" in environ else None
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
-ZIM_BIN = "/Users/reagle/bin/zim-0.73.5/zim.py"
+# ZIM_BIN = "/Users/reagle/bin/zim-0.73.5/zim.py"
+ZIM_BIN = "/Applications/Zim.app/Contents/MacOS/Zim"
 
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
@@ -130,7 +129,8 @@ def export_zim(zim_path):
     ZIM_CMD = (
         "%s --export --recursive --overwrite --output=%szwiki "
         "--format=html "
-        "--template=~/.local/share/zim/templates/html/codex-default.html %szim "
+        "--template=~/.local/share/zim/templates/html/codex-default.html "
+        "%szim "
         "--format=html --index-page index " % (ZIM_BIN, zim_path, zim_path)
     )
     debug(ZIM_CMD)
@@ -232,19 +232,10 @@ def check_markdown_files(HOMEDIR):
         if exists(fn_html):
             if getmtime(fn_md) > getmtime(fn_html):
                 debug(
-                    f"{fn_md} {getmtime(fn_md)} > {fn_html} {getmtime(fn_html)}"
+                    f"""{fn_md} {getmtime(fn_md)} """
+                    f"""> {fn_html} {getmtime(fn_html)}"""
                 )
                 files_to_process.append((fn_bare, fn_md))
-        # Even this simple hack doesn't work, as it finds lots of files
-        # I'm not otherwise touching: I'd have to find files where the docx
-        # file is more recent than the md AND html file
-        # fn_docx = fn_bare + ".docx"
-        # if exists(fn_docx):
-        #     if getmtime(fn_md) > getmtime(fn_docx):
-        #         debug(
-        #             f"{fn_md} {getmtime(fn_md)} > {fn_docx} {getmtime(fn_docx)}"
-        #         )
-        #         files_to_process.append((fn_bare, fn_md))
     if args.sequential or len(files_to_process) < 3:
         # in python 3, map is lazy and won't do anything until iterated
         list(map(update_markdown, files_to_process))
@@ -291,7 +282,10 @@ def log2work(done_tasks):
         date_token = get_Now_YMD()
         digest = hashlib.md5(task.encode("utf-8", "replace")).hexdigest()
         uid = "e" + date_token + "-" + digest[:4]
-        log_item = f'<li class="event" id="{uid}">{date_token}: {activity}] {task}</li>\n'
+        log_item = (
+            f"""<li class="event" id="{uid}">"""
+            f"""{date_token}: {activity}] {task}</li>\n"""
+        )
         info(f"{log_item=}")
         log_items.append(log_item)
 
