@@ -399,9 +399,7 @@ def process(args):
                 "base.yaml",  # include tab stop, lang, etc.
                 "--lua-filter",
                 "pandoc-quotes.lua",
-                # stop stripping until bug resolved
-                # https://github.com/jgm/pandoc/issues/7521
-                # "--strip-comments",
+                "--strip-comments",
                 "-c",
                 make_relpath(
                     (
