@@ -401,6 +401,8 @@ def process(args):
                 "--lua-filter",
                 "pandoc-quotes.lua",
                 "--strip-comments",
+                "--wrap=auto",
+                "--columns=120",
                 "-c",
                 make_relpath(
                     (

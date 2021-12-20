@@ -206,6 +206,7 @@ if __name__ == "__main__":
             "-t",
             "markdown-simple_tables-pipe_tables-multiline_tables",
             "--reference-links",
+            "--reference-location=block",
             "--columns",
             f"{columns}",
             "-o",
