@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 # (c) Copyright 2011-2014 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
@@ -120,10 +119,10 @@ def emit_bibtex_entry(identifier, values, outfd):
     """Emit a single bibtex entry."""
 
     debug("writing entry")
-    outfd.write("@%s{%s,\n" % (values["entry_type"], identifier))
+    outfd.write("@{}{{{},\n".format(values["entry_type"], identifier))
     for field, value in values.items():
         if field != "entry_type":
-            outfd.write("   %s = {%s},\n" % (field, value))
+            outfd.write(f"   {field} = {{{value}}},\n")
     outfd.write("}\n")
 
 
@@ -151,7 +150,7 @@ def get_keys_from_file(filename):
     """Return a list of keys used in a markdown file"""
 
     debug("filename = '%s'" % filename)
-    text = open(filename, "r").read()
+    text = open(filename).read()
     return get_keys_from_string(text)
 
 
@@ -329,7 +328,7 @@ if "__main__" == __name__:
 
     debug("args.filename = %s" % (args.filename))
     debug("chunk_func = %s" % (chunk_func))
-    entries = chunk_func(open(args.filename, "r").readlines())
+    entries = chunk_func(open(args.filename).readlines())
 
     if args.keys:
         keys = args.keys[0].split(",")
