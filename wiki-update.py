@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Build the static portions of my website by looking for source files newer
     than existing HTML files.
@@ -96,7 +95,7 @@ def has_dir_changed(directory):
         return True
     else:
         debug("checksum_file = '%s'" % checksum_file)
-        state = open(checksum_file, "r").read()
+        state = open(checksum_file).read()
         debug("state = %s" % state)
         if checksum == state:
             debug("checksum == state")
@@ -180,7 +179,7 @@ def update_markdown(files_to_process):
     # TODO: add mermaid-filter processing for diagrams
     fn_bare, fn_md = files_to_process
     info("updating fn_md %s" % fn_md)
-    content = open(fn_md, "r").read()
+    content = open(fn_md).read()
     md_cmd = [MD_BIN]
     md_args = []  # '-VV'
     tmp_body_fn = None  # temporary store body of MM HTML
@@ -250,7 +249,7 @@ def check_mm_tmp_html_files():
 
     files = locate("tmm*.html", "/tmp/")
     for fn_html in files:
-        html_fd = open(fn_html, "r")
+        html_fd = open(fn_html)
         content = html_fd.read()
         content = content.replace(
             "</title>",
@@ -323,7 +322,7 @@ def retire_tasks(directory):
             done_tasks = []
             activity = "misc"
             new_wiki_page = []
-            with open(zim_fn, "r") as wiki_page:
+            with open(zim_fn) as wiki_page:
                 for line in wiki_page:
                     label = re.search(r"@\w+", line)
                     # TODO: support multiple labels and remove from activity

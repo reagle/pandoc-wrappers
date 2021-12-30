@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 # (c) Copyright 2008-2012 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
@@ -117,15 +116,15 @@ def link_citations(line, bib_chunked):
         if citation.startswith("-"):
             key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
         else:
-            key_text = "%s %s" % (last_name, year)
+            key_text = f"{last_name} {year}"
 
         debug("**   url = %s" % url)
         if url:
-            cite_replacement.append("[%s](%s)" % (key_text, url))
+            cite_replacement.append(f"[{key_text}]({url})")
         else:
             if title:
                 title = title.replace("{", "").replace("}", "")
-                cite_replacement.append('%s, "%s"' % (key_text, title))
+                cite_replacement.append(f'{key_text}, "{title}"')
             else:
                 cite_replacement.append("%s" % key_text)
         debug("**   using cite_replacement = %s" % cite_replacement)
@@ -239,8 +238,8 @@ def create_talk_handout(abs_fn, tmp2_fn):
         info("creating handout")
         skip_to_next_header = False
         handout_f = open(handout_fn, "w")
-        content = open(tmp2_fn, "r").read()
-        info("md_dir = '%s', handout_dir = '%s'" % (md_dir, handout_dir))
+        content = open(tmp2_fn).read()
+        info(f"md_dir = '{md_dir}', handout_dir = '{handout_dir}'")
         media_relpath = relpath(md_dir, handout_dir)
         info("media_relpath = '%s'" % (media_relpath))
         content = content.replace(" data-src=", " src=")
@@ -321,7 +320,7 @@ def number_elements(content):
     paras = doc.xpath("/html/body/p | /html/body/blockquote")
     para_num = 1
     for para in paras:
-        para_num_str = "{:0>2}".format(para_num)
+        para_num_str = f"{para_num:0>2}"
         span = et.Element("span")
         span.set("class", "paranum")
         span.tail = para.text
@@ -366,7 +365,7 @@ def process(args):
 
     if args.bibliography:
         bib_fn = HOME + "/joseph/readings.yaml"
-        bib_chunked = md2bib.chunk_yaml(open(bib_fn, "r").readlines())
+        bib_chunked = md2bib.chunk_yaml(open(bib_fn).readlines())
         debug("bib_chunked = %s" % (bib_chunked))
 
     info("args.files = '%s'" % args.files)
@@ -474,9 +473,9 @@ def process(args):
         ##############################
 
         bib_subset_tmp_fn = None  # fn of subset of main biblio
-        fn_tmp_1 = "%s-1%s" % (base_fn, base_ext)  # as read
-        fn_tmp_2 = "%s-2%s" % (base_fn, base_ext)  # pre-pandoc
-        fn_tmp_3 = "%s-3.%s" % (base_fn, args.write)  # post-pandoc copy
+        fn_tmp_1 = f"{base_fn}-1{base_ext}"  # as read
+        fn_tmp_2 = f"{base_fn}-2{base_ext}"  # pre-pandoc
+        fn_tmp_3 = f"{base_fn}-3.{args.write}"  # post-pandoc copy
         fn_result = base_fn + "." + args.write
         cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
 
@@ -504,7 +503,7 @@ def process(args):
             keys = md2bib.get_keys_from_file(abs_fn)
             debug("keys = %s" % keys)
             if keys:
-                entries = parse_func(open(bib_fn, "r").readlines())
+                entries = parse_func(open(bib_fn).readlines())
                 subset = subset_func(entries, keys)
                 emit_subset_func(subset, open(bib_subset_tmp_fn, "w"))
                 pandoc_opts.extend(
@@ -575,7 +574,7 @@ def process(args):
 
             # final tweaks html file
             shutil.copyfile(fn_result, fn_tmp_3)  # copy of html for debugging
-            content_html = open(fn_tmp_3, "r").read()
+            content_html = open(fn_tmp_3).read()
             if not content_html:
                 raise ValueError("post-pandoc content_html is empty")
                 sys.exit()
