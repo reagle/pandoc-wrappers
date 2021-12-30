@@ -11,7 +11,7 @@ import re
 import sys
 from collections import OrderedDict
 from inspect import cleandoc  # better than dedent
-from os.path import abspath, exists, expanduser, splitext
+from os.path import exists, expanduser, splitext
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
 
@@ -53,7 +53,6 @@ def chunk_yaml(text):
             key = line[6:]
             entries[key] = {}
             yaml_block = [line]
-            title_short = url = None
         else:
             yaml_block.append(line)
             if line.startswith("  URL: "):
@@ -176,7 +175,8 @@ def get_keys_from_string(text):
 TEST_IN = cleandoc(
     """WP@20 (or WP @ 20) was edited by joseph@email.com and jackie@email.com
 
-    The ancients were smart [@A1-5tt5; @A1-6tt6; @A12001tt1; @A12002tt2; @A12003tt3; @A12004tt4].
+    The ancients were smart [@A1-5tt5; @A1-6tt6; @A12001tt1; @A12002tt2;
+        @A12003tt3; @A12004tt4].
 
     Blah blah [see @vanHall1984te, pp. 33-35; also @Smith1113fe, chap. 1].
 
@@ -198,6 +198,7 @@ TEST_IN = cleandoc(
     Go {@forit2020bcr}.
     """
 )
+
 
 TEST_OUT = [
     "A1-5tt5",
