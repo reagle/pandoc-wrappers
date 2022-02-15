@@ -350,6 +350,9 @@ def make_relpath(path_to, path_from=os.curdir):
     '../../2003/papers.css'
     """
 
+    # TODO: doesn't work when argument is a filename
+    # https://stackoverflow.com/questions/17506552/python-os-path-relpath-behavior
+
     info(f"{path_from=}")
     path_from = realpath(path_from)
     info(f"{path_from=}")
