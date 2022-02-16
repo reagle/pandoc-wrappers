@@ -181,7 +181,10 @@ def update_markdown(files_to_process):
     info("updating fn_md %s" % fn_md)
     content = open(fn_md).read()
     md_cmd = [MD_BIN]
-    md_args = []  # '-VV'
+    md_args = []
+    # instead of this pass-through hack, use MD_BIN as a library
+    if args.verbose > 0:
+        md_args.extend([f"-{args.verbose * 'V'}"])
     tmp_body_fn = None  # temporary store body of MM HTML
 
     if "talks" in fn_md:
@@ -240,7 +243,7 @@ def check_markdown_files(HOMEDIR):
         list(map(update_markdown, files_to_process))
     else:
         with futures.ProcessPoolExecutor() as executor:
-            results = executor.map(update_markdown, files_to_process)
+            executor.map(update_markdown, files_to_process)
 
 
 def check_mm_tmp_html_files():
