@@ -38,8 +38,11 @@ from os.path import (
     dirname,
     exists,
     expanduser,
+    isdir,
+    isfile,
     realpath,
     relpath,
+    split,
     splitext,
 )
 
@@ -215,7 +218,7 @@ def process_commented_citations(line):
 def create_talk_handout(abs_fn, tmp2_fn):
     """If talks and handouts exists, create (partial) handout"""
 
-    info("starting handout")
+    info("HANDOUT START")
     EM_RE = re.compile(r"(?<! _)_([^_]+?)_ ")
 
     def em_mask(matchobj):
@@ -281,18 +284,17 @@ def create_talk_handout(abs_fn, tmp2_fn):
             "-w",
             "html",
             "-c",
-            make_relpath(
+            (
                 "https://reagle.org/joseph/talks/_custom/"
-                "class-handouts-201306.css",
-                fn_path,
+                "class-handouts-201306.css"
             ),
             handout_fn,
         ]
-        info("md_cmd = %s" % " ".join(md_cmd))
+        info("handout md_cmd = %s" % " ".join(md_cmd))
         call(md_cmd)
         if not args.keep_tmp:
             remove(handout_fn)
-    info("done handout")
+    info("HANDOUT DONE")
 
 
 def number_elements(content):
@@ -342,23 +344,32 @@ def number_elements(content):
     return content
 
 
-def make_relpath(path_to, path_from=os.curdir):
+def make_relpath(path_to, path_from):
     """return relative path that works on filesystem and server
 
     >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
-    ... '/Users/reagle/joseph/2021/pc' )
+    ... '/Users/reagle/joseph/2021/pc/' )
+    '../../2003/papers.css'
+    >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
+    ... '/Users/reagle/joseph/2021/pc/pc-syllabus-SP.html' )
     '../../2003/papers.css'
     """
 
-    # TODO: doesn't work when argument is a filename
-    # https://stackoverflow.com/questions/17506552/python-os-path-relpath-behavior
-
-    info(f"{path_from=}")
-    path_from = realpath(path_from)
-    info(f"{path_from=}")
+    info(f"argument {path_to=}")
     if path_to.startswith("http"):
-        path_to = f"{WEBROOT}{urlparse(path_to).path}"
-    info(f"{path_to=}")
+        path_to = realpath(f"{WEBROOT}{urlparse(path_to).path}")
+    info(f"realpath {path_to=}")
+
+    if isfile(path_from):
+        info(f"{path_from=} is a file, splitting!")
+        path_from, _ = split(path_from)
+    elif isdir(path_from):
+        info(f"{path_from=} is a directory!")
+    else:
+        info(f"{path_from=} I don't know what path_from is")
+    path_from = realpath(path_from)
+    info(f"final   {path_from=}")
+
     result = relpath(path_to, path_from)
     info(f"{result=}")
     return result
@@ -439,9 +450,11 @@ def process(args):
                     # '--no-highlight', # conflicts with reveal's highlight.js
                 ]
             )
-        # TODO, make this a relative URL rebased for working directory
-        if args.write.startswith("html") and args.css:
+        elif args.write.startswith("html") and args.css:
+            # ?DO NOT use relpath as this is a commandline argument?
+            # pandoc_opts.extend(["-c", args.css])
             pandoc_opts.extend(["-c", make_relpath(args.css, fn_path)])
+
         elif args.write.startswith("docx"):
             pandoc_opts.extend(
                 ["--reference-doc", HOME + "/.pandoc/reference-mit-press.docx"]
