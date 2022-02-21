@@ -8,6 +8,7 @@ zim/* (zim-wiki) -> html
 
 """
 
+
 import codecs
 import fnmatch
 import hashlib
@@ -15,19 +16,11 @@ import logging
 import re
 import shutil
 import time
-from concurrent import futures
+
+# from concurrent import futures
 from os import chmod, environ, remove, walk
-from os.path import (
-    abspath,
-    # basename,
-    # dirname,
-    exists,
-    expanduser,
-    getmtime,
-    join,
-    # relpath,
-    splitext,
-)
+from os.path import exists  # basename,; dirname,; relpath,
+from os.path import abspath, expanduser, getmtime, join, splitext
 from subprocess import PIPE, Popen, call, check_output
 
 from lxml import etree, html
@@ -72,13 +65,13 @@ def locate(pattern, root):
     supplied root directory."""
     # TODO: move RE instead of fnmatch?
     for path, dirs, files in walk(abspath(root)):
-        debug(f"{path=}")
+        # debug(f"{path=}")
         for fn in fnmatch.filter(files, pattern):
             yield join(path, fn)
 
 
 def has_dir_changed(directory):
-    """Check is a directory has changed by m5dsumming the directory
+    """Check if a directory has changed by m5dsumming the directory
     listing and leaving a copy to compare with next run.
     (Used for checking changes of Zim wiki.)
     """
@@ -210,8 +203,6 @@ def update_markdown(files_to_process):
     md_cmd.extend(md_args)
     md_cmd.extend([fn_md])
     md_cmd = list(filter(None, md_cmd))  # remove any empty strings
-    debug("md_cmd = '%s'" % md_cmd)
-    info("md_cmd = %s" % " ".join(md_cmd))
     call(md_cmd)
     if tmp_body_fn:
         remove(tmp_body_fn)
@@ -238,12 +229,15 @@ def check_markdown_files(HOMEDIR):
                     f"""> {fn_html} {getmtime(fn_html)}"""
                 )
                 files_to_process.append((fn_bare, fn_md))
-    if args.sequential or len(files_to_process) < 3:
-        # in python 3, map is lazy and won't do anything until iterated
-        list(map(update_markdown, files_to_process))
-    else:
-        with futures.ProcessPoolExecutor() as executor:
-            executor.map(update_markdown, files_to_process)
+    info(f"{files_to_process=}")
+    list(map(update_markdown, files_to_process))
+    # BUG: 2022-02-23 for unknown reasons update_markdown stopped running
+    # if args.sequential or len(files_to_process) < 3:
+    #     # in python 3, map is lazy and won't do anything until iterated
+    #     list(map(update_markdown, files_to_process))
+    # else:
+    #     with futures.ProcessPoolExecutor() as executor:
+    #         executor.map(update_markdown, files_to_process)
 
 
 def check_mm_tmp_html_files():
