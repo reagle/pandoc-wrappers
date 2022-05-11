@@ -169,7 +169,6 @@ def insert_todos(plan_fn, todos):
 def update_markdown(files_to_process):
     """Convert markdown file"""
 
-    # TODO: add mermaid-filter processing for diagrams
     fn_bare, fn_md = files_to_process
     info("updating fn_md %s" % fn_md)
     content = open(fn_md).read()

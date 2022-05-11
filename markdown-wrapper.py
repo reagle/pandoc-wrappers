@@ -406,6 +406,7 @@ def process(args):
         #     pandoc_opts.extend(['--csl=sage-harvard.csl',
         #         '--bibliography=/home/reagle/joseph/readings.yaml'])
 
+        # TODO: add mermaid-filter processing for diagrams
         pandoc_opts.extend(
             [
                 "--defaults",
@@ -413,8 +414,6 @@ def process(args):
                 "--standalone",
                 "--lua-filter",
                 "pandoc-quotes.lua",  # specify quote marks and lang
-                # "-F",
-                # "pantable",  # allows tables as CSV, slows by 50%
                 "--strip-comments",
                 "--wrap=auto",
                 "--columns=120",
@@ -428,6 +427,14 @@ def process(args):
                 ),
             ]
         )
+
+        if args.pantable:
+            pandoc_opts.extend(
+                [
+                    "-F",
+                    "pantable",  # allows tables as CSV, slows by 50%
+                ]
+            )
 
         if args.presentation:
             args.validate = False
@@ -735,6 +742,12 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="create presentation with reveal.js",
+    )
+    arg_parser.add_argument(
+        "--pantable",
+        action="store_true",
+        default=False,
+        help="use pantable filter",
     )
     arg_parser.add_argument(
         "--partial-handout",
