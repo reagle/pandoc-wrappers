@@ -412,7 +412,9 @@ def process(args):
                 "base.yaml",  # include tab stop, lang, etc.
                 "--standalone",
                 "--lua-filter",
-                "pandoc-quotes.lua",
+                "pandoc-quotes.lua",  # specify quote marks and lang
+                # "-F",
+                # "pantable",  # allows tables as CSV, slows by 50%
                 "--strip-comments",
                 "--wrap=auto",
                 "--columns=120",
