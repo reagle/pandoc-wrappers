@@ -324,8 +324,8 @@ def retire_tasks(directory):
                     # TODO: support multiple labels and remove from activity
                     if label:
                         activity = "#" + label.group(0).strip()[1:]
-                    if "[x]" in line:
-                        # following checkbox
+                    # look for completed or cancelled events
+                    if "[x]" in line:  # other signs "[*]", "[<]", "[>]"
                         item = line.split("]", 1)[1].strip()
                         debug("found item %s" % item)
                         debug("activity = %s" % activity)
