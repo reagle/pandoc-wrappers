@@ -64,7 +64,7 @@ def chunk_yaml(text):
                 next_line = next(lines)  # year is on next line
                 if "year" in next_line:
                     entries[key]["original-date"] = next_line[10:-1]
-    debug("entries = '%s'" % (entries))
+    # debug("entries = '%s'" % (entries))
     return entries
 
 
@@ -162,7 +162,7 @@ def get_keys_from_string(text):
         @\{?        # at-sign followed by optional curly
         ([\w\-]{1,} # author word_chars
         -?\d{1,}    # optional BCE minus and 1..4 digit date
-        \w{2,3})    # title suffix
+        \w{2,4})    # title suffix eg "teh1"
         [\.,:;\]\} ]  # terminal token
         """,
         re.VERBOSE,
@@ -182,7 +182,7 @@ TEST_IN = cleandoc(
 
     Blah blah [@doe1985te, pp. 33-35, 38-39 and *passim*].
 
-    Blah blah [@smith2020teh; @doe1984te].
+    Blah blah [@smith2020teh; @smith2020teh1; @doe1984te].
 
     Smith says blah [-@smith304jf].
     You can also write an in-text citation, as follows:
@@ -211,6 +211,7 @@ TEST_OUT = [
     "Smith1113fe",
     "doe1985te",
     "smith2020teh",
+    "smith2020teh1",
     "doe1984te",
     "smith304jf",
     "smith-304jf",
