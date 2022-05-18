@@ -177,7 +177,7 @@ def process_commented_citations(line):
     def quash(cite_match):
         """
         Collect and rewrite citations.
-        if args.quash_citations drop citation [#@Reagle2012foo]
+        if args.quash_citations drop commented citations, eg [#@Reagle2012foo]
         else uncomment
         """
         citation = cite_match.group(0)
