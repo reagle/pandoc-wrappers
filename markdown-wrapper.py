@@ -57,9 +57,7 @@ import md2bib
 
 HOME = expanduser("~") if exists(expanduser("~")) else None
 WEBROOT = f"{HOME}/e/clear/data/2web/reagle.org"
-BROWSER = (
-    environ["BROWSER"].replace("*", " ") if "BROWSER" in environ else None
-)
+BROWSER = environ["BROWSER"].replace("*", " ") if "BROWSER" in environ else None
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = shutil.which("markdown-wrapper.py")
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN]):
@@ -284,10 +282,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
             "-w",
             "html",
             "-c",
-            (
-                "https://reagle.org/joseph/talks/_custom/"
-                "class-handouts-201306.css"
-            ),
+            ("https://reagle.org/joseph/talks/_custom/" "class-handouts-201306.css"),
             handout_fn,
         ]
         info("handout md_cmd = %s" % " ".join(md_cmd))
@@ -487,9 +482,7 @@ def process(args):
         if args.divs:
             pandoc_opts.extend(["--section-divs"])
         if args.include_after_body:
-            pandoc_opts.extend(
-                ["--include-after-body=%s" % args.include_after_body[0]]
-            )
+            pandoc_opts.extend(["--include-after-body=%s" % args.include_after_body[0]])
         if args.style_chicago:
             args.style_csl = ["chicago-author-date.csl"]
 
@@ -619,12 +612,8 @@ def process(args):
 
             if args.presentation:
                 # convert to data-src for lazy loading
-                lazy_elements_re = re.compile(
-                    r"""(\<img|<iframe|<video)(.*?) src="""
-                )
-                content_html = lazy_elements_re.sub(
-                    r"\1\2 data-src=", content_html
-                )
+                lazy_elements_re = re.compile(r"""(\<img|<iframe|<video)(.*?) src=""")
+                content_html = lazy_elements_re.sub(r"\1\2 data-src=", content_html)
 
             # HTML alterations
             if args.number_elements:

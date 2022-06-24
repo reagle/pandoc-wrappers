@@ -102,10 +102,7 @@ def has_dir_changed(directory):
 def chmod_recursive(path, dir_perms, file_perms):
     """Fix permissions.
     (Useful if an app like Zim creates weird permissions.)"""
-    debug(
-        "changings perms to %o;%o on path = '%s'"
-        % (dir_perms, file_perms, path)
-    )
+    debug("changings perms to %o;%o on path = '%s'" % (dir_perms, file_perms, path))
     for root, dirs, files in walk(path):
         for d in dirs:
             chmod(join(root, d), dir_perms)
@@ -138,17 +135,13 @@ def export_zim(zim_path):
 def grab_todos(filename):
 
     debug("grab_todos")
-    html_parser = etree.HTMLParser(
-        remove_comments=True, remove_blank_text=True
-    )
+    html_parser = etree.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = etree.parse(open(filename, "rb"), html_parser)
     div = doc.xpath('//div[@id="zim-content-body"]')[0]
     div.set("id", "Ongoing-todos")
     div_txt = etree.tostring(div).decode("utf-8")
     div_txt = div_txt.replace('href="./', 'href="../zwiki/')
-    div_txt = div_txt.replace(
-        'href="file:///Users/reagle/joseph/', 'href="../../'
-    )
+    div_txt = div_txt.replace('href="file:///Users/reagle/joseph/', 'href="../../')
     new_div = html.fragment_fromstring(div_txt)
     return new_div
 
@@ -156,9 +149,7 @@ def grab_todos(filename):
 def insert_todos(plan_fn, todos):
 
     debug("insert_todos")
-    html_parser = etree.HTMLParser(
-        remove_comments=True, remove_blank_text=True
-    )
+    html_parser = etree.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = etree.parse(open(plan_fn, "rb"), html_parser)
     div = doc.xpath('//div[@id="Ongoing-todos"]')[0]
     parent = div.getparent()
@@ -262,9 +253,7 @@ def log2work(done_tasks):
     Log completed zim tasks to work microblog
     """
 
-    RE_MARKUP = re.compile(
-        r"""(?P<link>\[\[(?P<url>.*?)\|(?P<text>.*?)\]\])"""
-    )
+    RE_MARKUP = re.compile(r"""(?P<link>\[\[(?P<url>.*?)\|(?P<text>.*?)\]\])""")
 
     log_items = []
     for activity, task in done_tasks:
@@ -334,9 +323,7 @@ def retire_tasks(directory):
                         new_wiki_page.append(line)
             if done_tasks:
                 new_wiki_page_fd = open(zim_fn, "w")
-                new_wiki_page_fd.writelines(
-                    "%s" % line for line in new_wiki_page
-                )
+                new_wiki_page_fd.writelines("%s" % line for line in new_wiki_page)
                 new_wiki_page_fd.close()
                 log2work(done_tasks)
         return True
