@@ -30,6 +30,7 @@ BROWSER = environ["BROWSER"] if "BROWSER" in environ else None
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
 # ZIM_BIN = "/Users/reagle/bin/zim-0.73.5/zim.py"
+# ZIM_BIN = "/opt/homebrew/bin/zim"
 ZIM_BIN = "/Applications/Zim.app/Contents/MacOS/Zim"
 
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
