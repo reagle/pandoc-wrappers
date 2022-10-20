@@ -117,11 +117,10 @@ def chmod_recursive(path, dir_perms, file_perms):
 def export_zim(zim_path):
 
     ZIM_CMD = (
-        "%s --export --recursive --overwrite --output=%szwiki "
-        "--format=html "
-        "--template=~/.local/share/zim/templates/html/codex-default.html "
-        "%szim "
-        "--format=html --index-page index " % (ZIM_BIN, zim_path, zim_path)
+        f"{ZIM_BIN} --export --recursive --overwrite --output={zim_path}zwiki "
+        + f"--format=html "
+        + f"--template=~/.local/share/zim/templates/html/codex-default.html "
+        + f"{zim_path}zim --format=html --index-page index "
     )
     debug(ZIM_CMD)
     print(f"exporting {zim_path}")
@@ -298,8 +297,11 @@ def retire_tasks(directory):
     """
     Removes completed '[x]' zim tasks from zim
     """
-    if "zim" in check_output(["ps", "axw"]).decode("utf-8"):
-        print("Zim is presently running; skipping task retirement and export.")
+    if "zim" in check_output(["ps", "axw"]).decode("utf-8").lower():
+        print(
+            f"exporting {directory}, Zim is running,"
+            + " skipping task retirement and export"
+        )
         return False
     else:
         zim_files = locate("*.txt", directory)
@@ -330,7 +332,7 @@ def retire_tasks(directory):
         return True
 
 
-if "__main__" == __name__:
+if __name__ == "__main__":
     import argparse  # http://docs.python.org/dev/library/argparse.html
 
     arg_parser = argparse.ArgumentParser(
