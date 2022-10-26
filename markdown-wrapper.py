@@ -416,7 +416,7 @@ def process(args):
                 make_relpath(
                     (
                         "https://reagle.org/joseph/talks/_custom/"
-                        "font-awesome/css/all.min.css"
+                        "fontawesome/css/all.min.css"
                     ),
                     fn_path,
                 ),
