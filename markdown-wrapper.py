@@ -110,6 +110,8 @@ def link_citations(line, bib_chunked):
         title = reference.get("title-short")
         info(f"{title=}")
         last_name, year, _ = re.split(r"(\d\d\d\d)", key)
+        if last_name.endswith("Etal"):
+            last_name = last_name[0:-4] + " et al."
 
         if "original-date" in reference:
             year = f"{reference['original-date']}/{year}"
@@ -127,8 +129,8 @@ def link_citations(line, bib_chunked):
                 title = title.replace("{", "").replace("}", "")
                 cite_replacement.append(f'{key_text}, "{title}"')
             else:
-                cite_replacement.append("%s" % key_text)
-        debug("**   using cite_replacement = %s" % cite_replacement)
+                cite_replacement.append(f"{key_text}")
+        debug(f"**   using {cite_replacement}=")
         return "".join(cite_replacement)
 
     # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
