@@ -612,12 +612,6 @@ def process(args):
             # correct bibliography
             content_html = content_html.replace(" Vs. ", " vs. ")
 
-            # enable check-boxes
-            # https://groups.google.com/g/pandoc-discuss/c/i0ypIM8I6lE
-            content_html = content_html.replace(
-                'type="checkbox" disabled=""', 'type="checkbox"'
-            )
-
             if args.presentation:
                 # convert to data-src for lazy loading
                 lazy_elements_re = re.compile(r"""(\<img|<iframe|<video)(.*?) src=""")
