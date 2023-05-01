@@ -19,18 +19,22 @@ import time
 
 # from concurrent import futures
 from os import chmod, environ, remove, walk
-from os.path import exists  # basename,; dirname,; relpath,
-from os.path import abspath, expanduser, getmtime, join, splitext
+from os.path import (
+    abspath,
+    exists,  # basename,; dirname,; relpath,
+    expanduser,
+    getmtime,
+    join,
+    splitext,
+)
 from subprocess import PIPE, Popen, call, check_output
 
-from lxml import etree, html
+from lxml import etree, html  # type: ignore
 
-HOME = expanduser("~") if exists(expanduser("~")) else None
-BROWSER = environ["BROWSER"] if "BROWSER" in environ else None
+HOME = expanduser("~")
+BROWSER = environ["BROWSER"]
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
-# ZIM_BIN = "/Users/reagle/bin/zim-0.73.5/zim.py"
-# ZIM_BIN = "/opt/homebrew/bin/zim"
 ZIM_BIN = "/Applications/Zim.app/Contents/MacOS/Zim"
 
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, ZIM_BIN]):
@@ -65,7 +69,7 @@ def locate(pattern, root):
     """Locate all files matching supplied filename pattern in and below
     supplied root directory."""
     # TODO: move RE instead of fnmatch?
-    for path, dirs, files in walk(abspath(root)):
+    for path, _, files in walk(abspath(root)):
         # debug(f"{path=}")
         for fn in fnmatch.filter(files, pattern):
             yield join(path, fn)
@@ -103,7 +107,7 @@ def has_dir_changed(directory):
 def chmod_recursive(path, dir_perms, file_perms):
     """Fix permissions.
     (Useful if an app like Zim creates weird permissions.)"""
-    debug("changings perms to %o;%o on path = '%s'" % (dir_perms, file_perms, path))
+    debug(f"changing perms to {dir_perms};{file_perms} on {path=}")
     for root, dirs, files in walk(path):
         for d in dirs:
             chmod(join(root, d), dir_perms)
@@ -115,11 +119,10 @@ def chmod_recursive(path, dir_perms, file_perms):
 
 
 def export_zim(zim_path):
-
     ZIM_CMD = (
         f"{ZIM_BIN} --export --recursive --overwrite --output={zim_path}zwiki "
-        + f"--format=html "
-        + f"--template=~/.local/share/zim/templates/html/codex-default.html "
+        + "--format=html "
+        + "--template=~/.local/share/zim/templates/html/codex-default.html "
         + f"{zim_path}zim --format=html --index-page index "
     )
     debug(ZIM_CMD)
@@ -133,7 +136,6 @@ def export_zim(zim_path):
 
 
 def grab_todos(filename):
-
     debug("grab_todos")
     html_parser = etree.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = etree.parse(open(filename, "rb"), html_parser)
@@ -147,7 +149,6 @@ def grab_todos(filename):
 
 
 def insert_todos(plan_fn, todos):
-
     debug("insert_todos")
     html_parser = etree.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = etree.parse(open(plan_fn, "rb"), html_parser)
@@ -160,7 +161,7 @@ def insert_todos(plan_fn, todos):
 def update_markdown(files_to_process):
     """Convert markdown file"""
 
-    fn_bare, fn_md = files_to_process
+    _, fn_md = files_to_process
     info("updating fn_md %s" % fn_md)
     content = open(fn_md).read()
     md_cmd = [MD_BIN]
@@ -216,7 +217,7 @@ def check_markdown_files(HOMEDIR):
             if getmtime(fn_md) > getmtime(fn_html):
                 debug(
                     f"""{fn_md} {getmtime(fn_md)} """
-                    f"""> {fn_html} {getmtime(fn_html)}"""
+                    + f"""> {fn_html} {getmtime(fn_html)}"""
                 )
                 files_to_process.append((fn_bare, fn_md))
     info(f"{files_to_process=}")
@@ -257,7 +258,6 @@ def log2work(done_tasks):
 
     log_items = []
     for activity, task in done_tasks:
-
         # convert zim wiki markup to HTML (hack)
         task = re.sub(r"(?<!:)\/\/(.*?)\/\/", r"<em>\1</em>", task)  # italics
         task = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", task)  # bold
@@ -357,8 +357,10 @@ if __name__ == "__main__":
         "--sequential",
         action="store_true",
         default=False,
-        help="Forces sequential invocation of pandoc, rather than default"
-        " behavior which is often parallel",
+        help=(
+            "Forces sequential invocation of pandoc, rather than default"
+            " behavior which is often parallel"
+        ),
     )
     arg_parser.add_argument(
         "-L",
