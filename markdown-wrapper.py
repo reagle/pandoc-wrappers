@@ -45,19 +45,18 @@ from os.path import (
     split,
     splitext,
 )
-
 from subprocess import Popen, call
 from urllib.parse import urlparse
 
 # from lxml.etree import *
-import lxml.etree as et
-from lxml.html import tostring
+import lxml.etree as et  # type: ignore
+from lxml.html import tostring  # type: ignore
 
 import md2bib
 
-HOME = expanduser("~") if exists(expanduser("~")) else None
+HOME = expanduser("~")
 WEBROOT = f"{HOME}/e/clear/data/2web/reagle.org"
-BROWSER = environ["BROWSER"].replace("*", " ") if "BROWSER" in environ else None
+BROWSER = environ["BROWSER"].replace("*", " ")
 PANDOC_BIN = shutil.which("pandoc")
 MD_BIN = shutil.which("markdown-wrapper.py")
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN]):
@@ -284,7 +283,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
             "-w",
             "html",
             "-c",
-            ("https://reagle.org/joseph/talks/_custom/" "class-handouts-201306.css"),
+            "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css",
             handout_fn,
         ]
         info("handout md_cmd = %s" % " ".join(md_cmd))
@@ -311,7 +310,7 @@ def number_elements(content):
         span.tail = heading.text
         a = et.SubElement(span, "a", href="#%s" % h_id)
         heading.text = None  # this has become the tail of the span
-        a.text = "§" + str(heading_num) + "\u00A0"  # &nbsp;
+        a.text = "§" + str(heading_num) + "\u00a0"  # &nbsp;
         heading.insert(0, span)  # insert span at beginning of parent
         heading_num += 1
 
@@ -325,7 +324,7 @@ def number_elements(content):
         span.tail = para.text
         a_id = "p" + str(para_num_str)
         a = et.SubElement(span, "a", id=a_id, name=a_id, href="#%s" % a_id)
-        a.text = "p" + str(para_num_str) + "\u00A0"  # &nbsp;
+        a.text = "p" + str(para_num_str) + "\u00a0"  # &nbsp;
         para.text = None
         para.insert(0, span)
         para_num += 1
@@ -373,7 +372,6 @@ def make_relpath(path_to, path_from):
 
 
 def process(args):
-
     if args.bibliography:
         bib_fn = HOME + "/joseph/readings.yaml"
         bib_chunked = md2bib.chunk_yaml(open(bib_fn).readlines())
@@ -485,6 +483,10 @@ def process(args):
             pandoc_opts.extend(["--section-divs"])
         if args.include_after_body:
             pandoc_opts.extend(["--include-after-body=%s" % args.include_after_body[0]])
+        if args.lua_filter:
+            pandoc_opts.extend(["--lua-filter", args.lua_filter[0]])
+        if args.metadata:
+            pandoc_opts.extend(["--metadata", args.metadata[0]])
         if args.style_chicago:
             args.style_csl = ["chicago-author-date.csl"]
 
@@ -591,7 +593,6 @@ def process(args):
         ##############################
 
         if args.write == "html":
-
             # final tweaks html file
             shutil.copyfile(fn_result, fn_tmp_3)  # copy of html for debugging
             content_html = open(fn_tmp_3).read()
@@ -700,6 +701,11 @@ if __name__ == "__main__":
         help="use pandoc's --section-divs",
     )
     arg_parser.add_argument(
+        "--lua-filter",
+        nargs=1,
+        help="lua filter (pandoc pass-through)",
+    )
+    arg_parser.add_argument(
         "--include-after-body",
         nargs=1,
         metavar="FILE",
@@ -718,6 +724,11 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="launch browser to see results",
+    )
+    arg_parser.add_argument(
+        "--metadata",
+        nargs=1,
+        help="metadata (pandoc pass-through)",
     )
     arg_parser.add_argument("-o", "--output", nargs=1, help="output file path")
     arg_parser.add_argument(
@@ -827,7 +838,7 @@ if __name__ == "__main__":
         default=0,
         help="increase verbosity (specify multiple times for more)",
     )
-    arg_parser.add_argument("--version", action="version", version="TBD")
+    arg_parser.add_argument("--version", action="version", version="1.0")
     args = arg_parser.parse_args()
 
     log_level = logging.ERROR  # 40
