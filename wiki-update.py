@@ -56,7 +56,7 @@ info = logging.info
 debug = logging.debug
 
 #################################
-# Obsidian, Zim Wiki, and Freeplane export functions
+# Obsidianand Freeplane export functions
 #################################
 
 
@@ -71,23 +71,6 @@ def export_obsidian(vault_dir: str, export_dir: str) -> None:
         print(f"results_out = {results_out}\nresults_sdterr = {results_sdterr}")
     create_missing_html_files(export_dir)
     copy_mtime(vault_dir, export_dir)
-
-
-def export_zim(zim_path):
-    ZIM_CMD = (
-        f"{ZIM_BIN} --export --recursive --overwrite --output={zim_path}zwiki "
-        + "--format=html "
-        + "--template=~/.local/share/zim/templates/html/codex-default.html "
-        + f"{zim_path}zim --format=html --index-page index "
-    )
-    debug(ZIM_CMD)
-    print(f"exporting {zim_path}")
-    results = Popen((ZIM_CMD), stdout=PIPE, stderr=PIPE, shell=True, text=True)
-    chmod_recursive("%szwiki" % zim_path, 0o755, 0o744)
-    results_out, results_sdterr = results.communicate()
-    if results_sdterr:
-        print(f"results_out = {results_out}")
-        print(f"results_sdterr = {results_sdterr}")
 
 
 def update_markdown(files_to_process: list[str]) -> None:
@@ -167,24 +150,6 @@ def check_markdown_files(source_dir: str) -> None:
 
     info(f"{files_to_process=}")
     update_markdown(files_to_process)
-
-
-def check_mm_tmp_html_files():
-    """Freeplane exports HTML to '/tmp/tmm543...72.html; find them and
-    associate style sheet."""
-
-    files = locate("tmm*.html", "/tmp/")
-    for fn_html in files:
-        html_fd = open(fn_html)
-        content = html_fd.read()
-        content = content.replace(
-            "</title>",
-            """
-            </title>\n\t\t<link href="/home/reagle/joseph/2005/01/mm-print.css"
-            rel="stylesheet" type="text/css" />""",
-        )
-        html_fd = open(fn_html, "w")
-        html_fd.write(content)
 
 
 #################################
@@ -352,8 +317,7 @@ def has_dir_changed(directory: str) -> bool:
 
 
 def chmod_recursive(path, dir_perms, file_perms):
-    """Fix permissions.
-    (Useful if an app like Zim creates weird permissions.)"""
+    """Fix permissions on a generated/exported tree if needed."""
     debug(f"changing perms to {dir_perms};{file_perms} on {path=}")
     for root, dirs, files in walk(path):
         for d in dirs:
@@ -471,30 +435,6 @@ if __name__ == "__main__":
     else:
         logging.basicConfig(level=log_level, format=LOG_FORMAT)
 
-    ## Zim notebooks ##
-
-    # Private Joseph and Nora notebook
-    source_dir = HOME + "/joseph/plan/joseph-nora/"
-    if has_dir_changed(source_dir + "zim/") or args.force_update:
-        export_zim(source_dir)
-
-    # Private planning notebook
-    source_dir = HOME + "/joseph/plan/"
-    if has_dir_changed(source_dir + "zim/") or args.force_update:
-        if retire_tasks(source_dir + "zim/"):
-            export_zim(source_dir)
-
-        source_fn = source_dir + "zwiki/Home.html"
-        todos = grab_todos(source_fn)
-
-        plan_fn = source_dir + "plans/index.html"
-        insert_todos(plan_fn, todos)
-
-    # Public codex notebook
-    source_dir = HOME + "/joseph/"
-    if has_dir_changed(source_dir + "zim/") or args.force_update:
-        export_zim(source_dir)
-
     ## Obsidian vault ##
 
     # Private planning vault
@@ -516,6 +456,3 @@ if __name__ == "__main__":
     # Private markdown files
     HOMEDIR = HOME + "/data/1work/"
     check_markdown_files(HOMEDIR)
-
-    ## Freeplane exports ##
-    check_mm_tmp_html_files()
