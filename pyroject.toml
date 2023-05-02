@@ -1,0 +1,67 @@
+[tool.black]
+
+line-length = 88
+preview = true
+
+[tool.ruff]
+
+select = ["A", "B", "BLE", "C4", "C90", "E", "F", "I", "PIE", "Q", "RSE", "UP", "YTT"]
+# "SIM", "PTH"] # good, but hard on old code
+# "PLR" need to understand more
+# "RUF" warns about ambiguous Unicode for curly quotes
+# "C90" McCabe complexity 
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "_old",
+]
+
+# Same as Black.
+line-length = 88
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.mccabe] # enabled via "C90" above
+max-complexity = 10
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-r a -q --doctest-modules"
+testpaths = [
+    # "biblio", "formats", "tests"
+]
+filterwarnings = "ignore::DeprecationWarning"
+enable_assertion_pass_hook = true
+python_files = [
+    "*.py",
+    ]
+
+[tool.mypy]
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+
+[tool.pyright]
+reportMissingImports = false
+reportMissingTypeStubs = false
+pythonVersion = '3.11'
