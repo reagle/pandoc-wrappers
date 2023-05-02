@@ -14,22 +14,16 @@ import os
 import re
 import shutil
 from os import chmod, environ, walk
-from os.path import (
-    exists,
-    expanduser,
-    getmtime,
-    join,
-    splitext,
-)
+from os.path import join
 from pathlib import Path
 from subprocess import PIPE, Popen, call
 
-HOME = expanduser("~")
-BROWSER = environ["BROWSER"]
-PANDOC_BIN = shutil.which("pandoc")
-MD_BIN = HOME + "/bin/pw/markdown-wrapper.py"
-OBS_EXPORT_BIN = HOME + "/bin/obsidian-export"
-TEMPLATES_FOLDER = HOME + "/.pandoc/templates"
+BROWSER = Path(os.environ["BROWSER"])
+HOME = Path.home()
+MD_BIN = HOME / "bin/pw/markdown-wrapper.py"
+OBS_EXPORT_BIN = HOME / "bin/obsidian-export"
+PANDOC_BIN = Path(shutil.which("pandoc"))  # type: ignore ; tested below
+TEMPLATES_FOLDER = HOME / ".pandoc/templates"
 
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, OBS_EXPORT_BIN, TEMPLATES_FOLDER]):
     raise FileNotFoundError("Your environment is not configured correctly")
@@ -44,12 +38,12 @@ info = logging.info
 debug = logging.debug
 
 #################################
-# Obsidian export to markdown and run `markdown-wrapper.py`
-# on recent files
+# Obsidian export to markdown and convert all new/modified markdown
+# files to HTML via `markdown-wrapper.py`
 #################################
 
 
-def export_obsidian(vault_dir: str, export_dir: str) -> None:
+def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
     """call obsidian-export on source; copy source's mtimes to target"""
     export_cmd = f"{OBS_EXPORT_BIN} {vault_dir} {export_dir}"
     debug(f"{export_cmd=}")
@@ -62,7 +56,7 @@ def export_obsidian(vault_dir: str, export_dir: str) -> None:
     copy_mtime(vault_dir, export_dir)
 
 
-def invoke_md_wrapper(files_to_process: list[str]) -> None:
+def invoke_md_wrapper(files_to_process: list[Path]) -> None:
     """
     Configure arguments for `markdown-wrapper.py and invoke to convert
     markdown file to HTML
@@ -115,7 +109,7 @@ def invoke_md_wrapper(files_to_process: list[str]) -> None:
             Path(tmp_body_fn).unlink()
 
 
-def find_convert_md(source_dir: str) -> None:
+def find_convert_md(source_path: Path) -> None:
     """Find and convert any markdown file whose HTML file is older than it."""
     # TODO: have this work when output format is docx or odt.
     # 2020-03-11: attempted but difficult, need to:
@@ -124,7 +118,6 @@ def find_convert_md(source_dir: str) -> None:
     #     - don't update where docx is newer than md, but older than html?
     # 2020-09-17: possible hack: always generate HTML in addition to docx
 
-    source_path = Path(source_dir)
     files_to_process = []
 
     for fn_md in source_path.glob("**/*.md"):
@@ -141,16 +134,15 @@ def find_convert_md(source_dir: str) -> None:
     invoke_md_wrapper(files_to_process)
 
 
-def create_missing_html_files(folder: str) -> None:
+def create_missing_html_files(folder: Path) -> None:
     """
     Walk a folder looking for markdown files. For each markdown file without a
     corresponding HTML file, create one, and set its mtime back so
     `find_convert_md_files` knows to process it.
 
     """
-    folder_path = Path(folder)
 
-    for md_file in folder_path.glob("**/*.md"):
+    for md_file in folder.glob("**/*.md"):
         html_file = md_file.with_suffix(".html")
 
         if not html_file.exists():
@@ -163,24 +155,23 @@ def create_missing_html_files(folder: str) -> None:
 #################################
 
 
-def chmod_recursive(path, dir_perms, file_perms):
+def chmod_recursive(
+    path: Path, dir_perms: int = 0o755, file_perms: int = 0o744
+) -> None:
     """Fix permissions on a generated/exported tree if needed."""
     debug(f"changing perms to {dir_perms};{file_perms} on {path=}")
-    for root, dirs, files in walk(path):
+    for root, dirs, files in os.walk(path):  # does os.walk accept Path?
         for d in dirs:
             chmod(join(root, d), dir_perms)
         for f in files:
             chmod(join(root, f), file_perms)
 
 
-def copy_mtime(source_dir: str, target_dir: str) -> None:
+def copy_mtime(src_path: Path, dst_path: Path) -> None:
     """
     Copy mtime from source_dir to target_dir so that `find_convert_md_files`
     know what changed.
     """
-    src_path = Path(source_dir)
-    dst_path = Path(target_dir)
-
     if not src_path.is_dir() or not dst_path.is_dir():
         raise ValueError("Both arguments should be valid directory paths.")
 
@@ -269,21 +260,15 @@ if __name__ == "__main__":
     ## Obsidian vault ##
 
     # Private planning vault
-    source_dir = HOME + "/joseph/plan/ob-plan/"
-    target_dir = HOME + "/joseph/plan/ob-web"
-    export_obsidian(source_dir, target_dir)
+    export_obsidian(HOME / "joseph/plan/ob-plan/", HOME / "joseph/plan/ob-web")
 
     # Public codex vault
-    source_dir = HOME + "/joseph/ob-codex/"
-    target_dir = HOME + "/joseph/ob-web/"
-    export_obsidian(source_dir, target_dir)
+    export_obsidian(HOME / "joseph/ob-codex/", HOME / "joseph/ob-web")
 
-    ## Markdown files via pandoc ##
-
-    # Public markdown files
-    source_dir = HOME + "/joseph/"
-    find_convert_md(source_dir)
+    ## Markdown files ##
 
     # Private markdown files
-    HOMEDIR = HOME + "/data/1work/"
-    find_convert_md(HOMEDIR)
+    find_convert_md(HOME / "data/1work/")
+
+    # Public markdown files
+    find_convert_md(HOME / "joseph/")
