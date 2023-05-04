@@ -13,10 +13,12 @@ import logging
 import os
 import re
 import shutil
-from os import chmod, environ, walk
+from os import chmod
 from os.path import join
 from pathlib import Path
 from subprocess import PIPE, Popen, call
+
+from lxml import etree, html
 
 BROWSER = Path(os.environ["BROWSER"])
 HOME = Path.home()
@@ -189,6 +191,33 @@ def copy_mtime(src_path: Path, dst_path: Path) -> None:
                 os.utime(dst_fn, (dst_fn.stat().st_atime, src_mtime))
 
 
+def replace_xpath(
+    receiving_page: Path,
+    source_page: Path,
+    receiving_xpath: str,
+    source_xpath: str,
+) -> str:
+    content_receiving = Path(receiving_page).read_text().strip()
+    content_source = Path(source_page).read_text().strip()
+
+    tree_receiving = html.fromstring(content_receiving)
+    tree_source = html.fromstring(content_source)
+
+    element_source = tree_source.xpath(source_xpath)
+    element_receiving_container = tree_receiving.xpath(receiving_xpath)
+
+    # Remove all outdated children
+    receiving_parent = element_receiving_container[0]
+    for child in receiving_parent.getchildren():
+        receiving_parent.remove(child)
+    # Embed the target element from source page into the parent
+    receiving_parent.append(element_source[0])
+
+    return etree.tostring(tree_receiving, pretty_print=True, method="html").decode(
+        "utf-8"
+    )
+
+
 ##################################
 
 
@@ -272,3 +301,15 @@ if __name__ == "__main__":
 
     # Public markdown files
     find_convert_md(HOME / "joseph/")
+
+    ## Transclude Obsidian home into my planning page
+    planning_page = HOME / "joseph/plan/index.html"
+    modified_html = replace_xpath(
+        receiving_page=planning_page,
+        source_page=HOME / "joseph/plan/ob-web/Home.html",
+        receiving_xpath='//*[@id="embed-here"]',
+        source_xpath='//header[@id="title-block-header"]/following-sibling::*[1]',
+    )
+    if modified_html:
+        with open(planning_page, "w") as f:
+            f.write(modified_html)
