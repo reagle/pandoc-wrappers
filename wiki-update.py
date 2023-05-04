@@ -157,6 +157,20 @@ def create_missing_html_files(folder: Path) -> None:
 #################################
 
 
+def create_index(root_folder: Path) -> None:
+    with open(root_folder / "_index.md", "w") as output_file:
+        output_file.write(f"# Index of {root_folder.name}\n")
+        for path in root_folder.glob("**/*"):
+            if "dog" in str(path).lower():
+                print(f"{path=}")
+            if path.is_file() and path.suffix == ".md":
+                relative_path = path.relative_to(root_folder)
+                link_text = f"[{relative_path.with_suffix('')}]({relative_path})"
+                depth = len(relative_path.parts) - 1
+                indentation = "  " * depth
+                output_file.write(f"{indentation}- {link_text}\n")
+
+
 def chmod_recursive(
     path: Path, dir_perms: int = 0o755, file_perms: int = 0o744
 ) -> None:
@@ -290,9 +304,11 @@ if __name__ == "__main__":
 
     # Private planning vault
     export_obsidian(HOME / "joseph/plan/ob-plan/", HOME / "joseph/plan/ob-web")
+    create_index(HOME / "joseph/plan/ob-plan/")
 
     # Public codex vault
     export_obsidian(HOME / "joseph/ob-codex/", HOME / "joseph/ob-web")
+    create_index(HOME / "joseph/ob-codex/")
 
     ## Markdown files ##
 
@@ -302,7 +318,7 @@ if __name__ == "__main__":
     # Public markdown files
     find_convert_md(HOME / "joseph/")
 
-    ## Transclude Obsidian home into my planning page
+    # Transclude Obsidian home into my planning page
     planning_page = HOME / "joseph/plan/index.html"
     modified_html = replace_xpath(
         receiving_page=planning_page,
