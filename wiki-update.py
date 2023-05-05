@@ -159,8 +159,6 @@ def create_index(root_folder: Path) -> None:
     with open(root_folder / "_index.md", "w") as output_file:
         output_file.write(f"# Index of {root_folder.name}\n")
         for path in root_folder.glob("**/*"):
-            if "dog" in str(path).lower():
-                print(f"{path=}")
             if path.is_file() and path.suffix == ".md":
                 relative_path = path.relative_to(root_folder)
                 link_text = f"[{relative_path.with_suffix('')}]({relative_path})"
