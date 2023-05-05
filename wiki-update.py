@@ -4,8 +4,6 @@ Build the static portions of my website by looking for source
     files newer than existing HTML files.
 
 ob-/* (obsidian) -> html
-zim/* (zim-wiki) -> html
-*.mm (Freeplane)-> html
 *.md (pandoc)-> html
 """
 
