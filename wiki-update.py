@@ -38,28 +38,80 @@ info = logging.info
 debug = logging.debug
 
 #################################
-# Obsidian export to markdown and convert all new/modified markdown
-# files to HTML via `markdown-wrapper.py`
+# Export Obsidian markdown to standard markdown.
 #################################
 
 
 def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
-    """call obsidian-export on source; copy source's mtimes to target"""
+    """Call obsidian-export on source; copy source's mtimes to target."""
+
     export_cmd = f"{OBS_EXPORT_BIN} {vault_dir} {export_dir}"
     debug(f"{export_cmd=}")
+
     print(f"exporting {vault_dir}")
     results = Popen((export_cmd), stdout=PIPE, stderr=PIPE, shell=True, text=True)
     results_out, results_sdterr = results.communicate()
     if results_sdterr:
         print(f"results_out = {results_out}\nresults_sdterr = {results_sdterr}")
-    create_missing_html_files(export_dir)
     copy_mtime(vault_dir, export_dir)
+
+    remove_empty_or_hidden_folders(export_dir)
+    if created_or_deleted_files(vault_dir, export_dir):
+        create_index(vault_dir)  # buggy
+
+
+def create_index(vault_path: Path) -> None:
+    """Create a new HTML index for the export vault."""
+    # TODO: this seems to have problems when filenames have spaces
+    #   2023-05-06: identified
+
+    print(f"creating index for {vault_path}")
+    with open(vault_path / "_index.md", "w") as output_file:
+        output_file.write(f"# Index of {vault_path.name}\n")
+        for path in vault_path.glob("**/*.md"):
+            relative_path = path.relative_to(vault_path)
+            link_text = f"[{relative_path.with_suffix('')}]({relative_path})"
+            depth = len(relative_path.parts) - 1
+            indentation = "  " * depth
+            output_file.write(f"{indentation}- {link_text}\n")
+
+
+# problem is if I delete the file from ob-web, when I build the index from ob-web, the mtime comparison is using ob-plan
+
+#################################
+# Convert all new/modified markdown files to HTML via `markdown-wrapper.py`
+#################################
+
+
+def find_convert_md(source_path: Path) -> None:
+    """Find and convert any markdown file whose HTML file is older than it."""
+    # TODO: have this work when output format is docx or odt.
+    #   2020-03-11: attempted but difficult, need to:
+    #     - ignore when a docx was converted to html (impossible?)
+    #     - don't create outputs if they don't already exist
+    #     - don't update where docx is newer than md, but older than html?
+    #   2020-09-17: possible hack: always generate HTML in addition to docx
+
+    files_to_process = []
+
+    for fn_md in source_path.glob("**/*.md"):
+        fn_html = fn_md.with_suffix(".html")
+        if fn_html.exists():
+            if fn_md.stat().st_mtime > fn_html.stat().st_mtime:
+                info(
+                    f"""{fn_md} {fn_md.stat().st_mtime} """
+                    + f"""> {fn_html} {fn_html.stat().st_mtime}"""
+                )
+                files_to_process.append(fn_md)
+
+    info(f"{files_to_process=}")
+    invoke_md_wrapper(files_to_process)
 
 
 def invoke_md_wrapper(files_to_process: list[Path]) -> None:
     """
     Configure arguments for `markdown-wrapper.py and invoke to convert
-    markdown file to HTML
+    markdown file to HTML.
     """
 
     for fn_md in files_to_process:
@@ -109,96 +161,9 @@ def invoke_md_wrapper(files_to_process: list[Path]) -> None:
             Path(tmp_body_fn).unlink()
 
 
-def find_convert_md(source_path: Path) -> None:
-    """Find and convert any markdown file whose HTML file is older than it."""
-    # TODO: have this work when output format is docx or odt.
-    # 2020-03-11: attempted but difficult, need to:
-    #     - ignore when a docx was converted to html (impossible?)
-    #     - don't create outputs if they don't already exist
-    #     - don't update where docx is newer than md, but older than html?
-    # 2020-09-17: possible hack: always generate HTML in addition to docx
-
-    files_to_process = []
-
-    for fn_md in source_path.glob("**/*.md"):
-        fn_html = fn_md.with_suffix(".html")
-        if fn_html.exists():
-            if fn_md.stat().st_mtime > fn_html.stat().st_mtime:
-                debug(
-                    f"""{fn_md} {fn_md.stat().st_mtime} """
-                    + f"""> {fn_html} {fn_html.stat().st_mtime}"""
-                )
-                files_to_process.append(fn_md)
-
-    info(f"{files_to_process=}")
-    invoke_md_wrapper(files_to_process)
-
-
-def create_missing_html_files(folder: Path) -> None:
-    """
-    Walk a folder looking for markdown files. For each markdown file without a
-    corresponding HTML file, create one, and set its mtime back so
-    `find_convert_md_files` knows to process it.
-
-    """
-
-    for md_file in folder.glob("**/*.md"):
-        html_file = md_file.with_suffix(".html")
-
-        if not html_file.exists():
-            html_file.touch()
-            os.utime(html_file, (0, 0))
-
-
 #################################
-# Utilities
+# XML/HTML utilities
 #################################
-
-
-def create_index(root_folder: Path) -> None:
-    with open(root_folder / "_index.md", "w") as output_file:
-        output_file.write(f"# Index of {root_folder.name}\n")
-        for path in root_folder.glob("**/*"):
-            if path.is_file() and path.suffix == ".md":
-                relative_path = path.relative_to(root_folder)
-                link_text = f"[{relative_path.with_suffix('')}]({relative_path})"
-                depth = len(relative_path.parts) - 1
-                indentation = "  " * depth
-                output_file.write(f"{indentation}- {link_text}\n")
-
-
-def chmod_recursive(
-    path: Path, dir_perms: int = 0o755, file_perms: int = 0o744
-) -> None:
-    """Fix permissions on a generated/exported tree if needed."""
-    debug(f"changing perms to {dir_perms};{file_perms} on {path=}")
-    for root, dirs, files in os.walk(path):  # does os.walk accept Path?
-        for d in dirs:
-            chmod(join(root, d), dir_perms)
-        for f in files:
-            chmod(join(root, f), file_perms)
-
-
-def copy_mtime(src_path: Path, dst_path: Path) -> None:
-    """
-    Copy mtime from source_dir to target_dir so that `find_convert_md_files`
-    know what changed.
-    """
-    if not src_path.is_dir() or not dst_path.is_dir():
-        raise ValueError("Both arguments should be valid directory paths.")
-
-    for src_fn in src_path.glob("**/*"):
-        if src_fn.is_file():
-            # Create a corresponding target file path
-            relative_path = src_fn.relative_to(src_path)
-            dst_fn = dst_path.joinpath(relative_path)
-
-            if dst_fn.exists() and dst_fn.is_file():
-                # find_convert_md_f time of the source file
-                src_mtime = src_fn.stat().st_mtime
-
-                # Apply the modified time to the destination file
-                os.utime(dst_fn, (dst_fn.stat().st_atime, src_mtime))
 
 
 def replace_xpath(
@@ -228,6 +193,105 @@ def replace_xpath(
     )
 
 
+#################################
+# Filesystem utilities
+#################################
+
+
+def created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
+    """
+    Check dst_path and create or delete HTML files based on the
+    presence of their corresponding markdown in src_path.
+    Created HTML is set with an early mtime so find_convert_md_files()
+    knows to process it.
+    (Renamed files are simply deleted and created.)
+    """
+
+    needs_indexing = False
+    info(f"checking for new markdown files in {dst_path}")
+    for md_file in dst_path.glob("**/*.md"):
+        html_file = md_file.with_suffix(".html")
+        if not html_file.exists():
+            html_file.touch()
+            os.utime(html_file, (0, 0))
+            print(f"created {html_file}")
+            needs_indexing = True
+
+    info(f"checking for deleted markdown files in {src_path}")
+    for dst_md_file in dst_path.glob("**/*.md"):
+        src_md_file = src_path / dst_md_file.relative_to(dst_path)
+        if not src_md_file.exists():
+            dst_md_file.unlink()
+            dst_md_file.with_suffix(".html").unlink()
+            print(f"deleted  {dst_md_file}")
+            needs_indexing = True
+
+    return needs_indexing
+
+
+def remove_empty_or_hidden_folders(path: Path, hide_prefix: str = "_") -> bool:
+    """Remove empty or hidden folders in path.
+
+    Pandoc chokes on Obsidian template files, so remove."""
+
+    def is_empty(folder: Path) -> bool:
+        return not any(folder.iterdir())
+
+    print(f"check for empty or hidden files {path=}")
+    did_remove = False
+    folders = sorted(path.rglob("**/"))  # returns all descendant folders
+    for folder in folders:
+        info(f"checking if need to remove {folder}")
+        # breakpoint()
+        if is_empty(folder) or folder.name.startswith(hide_prefix):
+            shutil.rmtree(folder)
+            did_remove = True
+            print(f"Removed folder: {folder}")
+    return did_remove
+
+
+def chmod_recursive(
+    path: Path, dir_perms: int = 0o755, file_perms: int = 0o744
+) -> None:
+    """Fix permissions on a generated/exported tree if needed."""
+    debug(f"changing perms to {dir_perms};{file_perms} on {path=}")
+    for root, dirs, files in os.walk(path):  # does os.walk accept Path?
+        for d in dirs:
+            chmod(join(root, d), dir_perms)
+        for f in files:
+            chmod(join(root, f), file_perms)
+
+
+def copy_mtime(src_path: Path, dst_path: Path) -> None:
+    """
+    Copy mtime from source_dir to target_dir so that `find_convert_md_files`
+    know what changed.
+    """
+    debug("copying mtimes")
+    if not src_path.is_dir() or not dst_path.is_dir():
+        raise ValueError("Both arguments should be valid directory paths.")
+
+    for src_fn in src_path.glob("**/*"):
+        if src_fn.is_file():
+            # Create a corresponding target file path
+            relative_path = src_fn.relative_to(src_path)
+            dst_fn = dst_path.joinpath(relative_path)
+
+            if dst_fn.exists() and dst_fn.is_file():
+                # find_convert_md_f time of the source file
+                src_mtime = src_fn.stat().st_mtime
+
+                # Apply the modified time to the destination file
+                os.utime(dst_fn, (dst_fn.stat().st_atime, src_mtime))
+
+
+def reset_folder(folder_path):
+    """Remove and recreate a folder."""
+    info(f"nuking {folder_path=}")
+    shutil.rmtree(folder_path)
+    folder_path.mkdir(parents=True, exist_ok=True)
+
+
 ##################################
 
 
@@ -242,7 +306,7 @@ if __name__ == "__main__":
         "--force-update",
         action="store_true",
         default=False,
-        help="Force retire/update of Zim despite md5sums",
+        help="Force fresh build of Obsidian export.",
     )
     arg_parser.add_argument(
         "-n",
@@ -298,13 +362,15 @@ if __name__ == "__main__":
 
     ## Obsidian vault ##
 
+    if args.force_update:
+        reset_folder(HOME / "joseph/ob-web")
+        reset_folder(HOME / "joseph/plan/ob-web")
+
     # Private planning vault
     export_obsidian(HOME / "joseph/plan/ob-plan/", HOME / "joseph/plan/ob-web")
-    create_index(HOME / "joseph/plan/ob-plan/")
 
     # Public codex vault
     export_obsidian(HOME / "joseph/ob-codex/", HOME / "joseph/ob-web")
-    create_index(HOME / "joseph/ob-codex/")
 
     ## Markdown files ##
 
