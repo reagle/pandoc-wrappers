@@ -56,8 +56,9 @@ def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
     copy_mtime(vault_dir, export_dir)
 
     remove_empty_or_hidden_folders(export_dir)
-    if created_or_deleted_files(vault_dir, export_dir):
-        create_index(vault_dir)  # buggy
+    review_created_or_deleted_files(vault_dir, export_dir)
+    if has_dir_changed(export_dir):
+        create_index(export_dir)
 
 
 def create_index(vault_path: Path) -> None:
@@ -198,7 +199,40 @@ def replace_xpath(
 #################################
 
 
-def created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
+def has_dir_changed(path: Path) -> bool:
+    """
+    Check if content of folder has changed.
+    """
+    print(f"{path=}")
+    if not path.is_dir():
+        raise NotADirectoryError(f"{path} is not a directory")
+
+    checksum_file = path / ".dirs.md5sum"
+    checksum = Popen(
+        ["ls -R %s | md5sum" % path], shell=True, stdout=PIPE
+    ).communicate()[0]
+    checksum = checksum.split()[0].decode("utf-8")
+
+    if not checksum_file.exists():
+        with checksum_file.open("w") as file:
+            file.write(checksum)
+        debug(f"checksum created {checksum}")
+        return True
+    else:
+        debug(f"{checksum_file=}")
+        state = checksum_file.read_text()
+        debug(f"{state=}")
+        if checksum == state:
+            debug("checksum == state")
+            return False
+        else:
+            with checksum_file.open("w") as file:
+                file.write(checksum)
+            debug("checksum updated")
+            return True
+
+
+def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
     """
     Check dst_path and create or delete HTML files based on the
     presence of their corresponding markdown in src_path.
@@ -207,7 +241,7 @@ def created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
     (Renamed files are simply deleted and created.)
     """
 
-    needs_indexing = False
+    has_changed = False
     info(f"checking for new markdown files in {dst_path}")
     for md_file in dst_path.glob("**/*.md"):
         html_file = md_file.with_suffix(".html")
@@ -215,7 +249,7 @@ def created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
             html_file.touch()
             os.utime(html_file, (0, 0))
             print(f"created {html_file}")
-            needs_indexing = True
+            has_changed = True
 
     info(f"checking for deleted markdown files in {src_path}")
     for dst_md_file in dst_path.glob("**/*.md"):
@@ -223,31 +257,10 @@ def created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
         if not src_md_file.exists():
             dst_md_file.unlink()
             dst_md_file.with_suffix(".html").unlink()
-            print(f"deleted  {dst_md_file}")
-            needs_indexing = True
+            print(f"deleted {dst_md_file}")
+            has_changed = True
 
-    return needs_indexing
-
-
-def remove_empty_or_hidden_folders(path: Path, hide_prefix: str = "_") -> bool:
-    """Remove empty or hidden folders in path.
-
-    Pandoc chokes on Obsidian template files, so remove."""
-
-    def is_empty(folder: Path) -> bool:
-        return not any(folder.iterdir())
-
-    print(f"check for empty or hidden files {path=}")
-    did_remove = False
-    folders = sorted(path.rglob("**/"))  # returns all descendant folders
-    for folder in folders:
-        info(f"checking if need to remove {folder}")
-        # breakpoint()
-        if is_empty(folder) or folder.name.startswith(hide_prefix):
-            shutil.rmtree(folder)
-            did_remove = True
-            print(f"Removed folder: {folder}")
-    return did_remove
+    return has_changed
 
 
 def chmod_recursive(

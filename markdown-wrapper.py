@@ -598,7 +598,6 @@ def process(args):
             content_html = open(fn_tmp_3).read()
             if not content_html:
                 raise ValueError("post-pandoc content_html is empty")
-                sys.exit()
 
             # text alterations
             if args.british_quotes:  # swap double/single quotes
