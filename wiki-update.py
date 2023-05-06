@@ -55,11 +55,11 @@ def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
         debug(f"results_out = {results_out}\nresults_sdterr = {results_sdterr}")
     copy_mtime(vault_dir, export_dir)
 
-    if has_dir_changed(export_dir):
-        info(f"{dir=} has changed")
-        create_index(vault_dir, export_dir)
     remove_empty_or_hidden_folders(export_dir)
     review_created_or_deleted_files(vault_dir, export_dir)
+    if has_dir_changed(export_dir):
+        print(f"{dir=} has changed")
+        create_index(vault_dir, export_dir)
 
 
 def create_index(vault_path: Path, export_path: Path) -> None:
@@ -80,9 +80,11 @@ def create_index(vault_path: Path, export_path: Path) -> None:
             output_file.write(f"{indentation}- {link_text}\n")
     shutil.copy2(vault_index_file, export_index_file)
     info(f"created {output_file=} and {export_index_file=}")
+    # print(
+    #     f"""{vault_index_file} {vault_index_file.stat().st_mtime} """
+    #     + f"""> {export_index_file} {export_index_file.stat().st_mtime}"""
+    # )
 
-
-# problem is if I delete the file from ob-web, when I build the index from ob-web, the mtime comparison is using ob-plan
 
 #################################
 # Convert all new/modified markdown files to HTML via `markdown-wrapper.py`
@@ -104,7 +106,7 @@ def find_convert_md(source_path: Path) -> None:
         fn_html = fn_md.with_suffix(".html")
         if fn_html.exists():
             if fn_md.stat().st_mtime > fn_html.stat().st_mtime:
-                info(
+                print(
                     f"""{fn_md} {fn_md.stat().st_mtime} """
                     + f"""> {fn_html} {fn_html.stat().st_mtime}"""
                 )
