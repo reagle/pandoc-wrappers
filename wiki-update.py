@@ -52,22 +52,25 @@ def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
     results = Popen((export_cmd), stdout=PIPE, stderr=PIPE, shell=True, text=True)
     results_out, results_sdterr = results.communicate()
     if results_sdterr:
-        print(f"results_out = {results_out}\nresults_sdterr = {results_sdterr}")
+        debug(f"results_out = {results_out}\nresults_sdterr = {results_sdterr}")
     copy_mtime(vault_dir, export_dir)
 
+    if has_dir_changed(export_dir):
+        info(f"{dir=} has changed")
+        create_index(vault_dir, export_dir)
     remove_empty_or_hidden_folders(export_dir)
     review_created_or_deleted_files(vault_dir, export_dir)
-    if has_dir_changed(export_dir):
-        create_index(export_dir)
 
 
-def create_index(vault_path: Path) -> None:
+def create_index(vault_path: Path, export_path: Path) -> None:
     """Create a new HTML index for the export vault."""
     # TODO: this seems to have problems when filenames have spaces
     #   2023-05-06: identified
 
-    print(f"creating index for {vault_path}")
-    with open(vault_path / "_index.md", "w") as output_file:
+    info(f"creating index for {vault_path}")
+    vault_index_file = vault_path / "_index.md"
+    export_index_file = export_path / "_index.md"
+    with open(vault_index_file, "w") as output_file:
         output_file.write(f"# Index of {vault_path.name}\n")
         for path in vault_path.glob("**/*.md"):
             relative_path = path.relative_to(vault_path)
@@ -75,6 +78,8 @@ def create_index(vault_path: Path) -> None:
             depth = len(relative_path.parts) - 1
             indentation = "  " * depth
             output_file.write(f"{indentation}- {link_text}\n")
+    shutil.copy2(vault_index_file, export_index_file)
+    info(f"created {output_file=} and {export_index_file=}")
 
 
 # problem is if I delete the file from ob-web, when I build the index from ob-web, the mtime comparison is using ob-plan
@@ -203,7 +208,7 @@ def has_dir_changed(path: Path) -> bool:
     """
     Check if content of folder has changed.
     """
-    print(f"{path=}")
+    info(f"{path=}")
     if not path.is_dir():
         raise NotADirectoryError(f"{path} is not a directory")
 
@@ -232,6 +237,25 @@ def has_dir_changed(path: Path) -> bool:
             return True
 
 
+def remove_empty_or_hidden_folders(path: Path, hide_prefix: str = "_") -> bool:
+    """Remove empty or hidden folders in path.
+
+    Pandoc chokes on Obsidian template files, so remove."""
+
+    def is_empty(folder: Path) -> bool:
+        return not any(folder.iterdir())
+
+    info(f"check for empty or hidden folders {path=}")
+    did_remove = False
+    folders = sorted(path.rglob("**/"))  # returns all descendant folders
+    for folder in folders:
+        if is_empty(folder) or folder.name.startswith(hide_prefix):
+            shutil.rmtree(folder)
+            did_remove = True
+            info(f"  Removed folder: {folder}")
+    return did_remove
+
+
 def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
     """
     Check dst_path and create or delete HTML files based on the
@@ -248,7 +272,7 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
         if not html_file.exists():
             html_file.touch()
             os.utime(html_file, (0, 0))
-            print(f"created {html_file}")
+            info(f"created {html_file}")
             has_changed = True
 
     info(f"checking for deleted markdown files in {src_path}")
@@ -257,7 +281,7 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
         if not src_md_file.exists():
             dst_md_file.unlink()
             dst_md_file.with_suffix(".html").unlink()
-            print(f"deleted {dst_md_file}")
+            info(f"deleted {dst_md_file}")
             has_changed = True
 
     return has_changed
