@@ -16,8 +16,7 @@ from os.path import join
 from pathlib import Path
 from subprocess import PIPE, Popen, call
 
-from bs4 import BeautifulSoup
-from lxml import etree
+from bs4 import BeautifulSoup  # type: ignore
 
 BROWSER = Path(os.environ["BROWSER"])
 HOME = Path.home()
@@ -59,7 +58,7 @@ def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
     remove_empty_or_hidden_folders(export_dir)
     review_created_or_deleted_files(vault_dir, export_dir)
     if has_dir_changed(export_dir):
-        print(f"{dir=} has changed")
+        warning(f"{dir=} has changed")
         create_index(vault_dir, export_dir)
 
 
@@ -107,7 +106,7 @@ def find_convert_md(source_path: Path) -> None:
         fn_html = fn_md.with_suffix(".html")
         if fn_html.exists():
             if fn_md.stat().st_mtime > fn_html.stat().st_mtime:
-                print(
+                debug(
                     f"""{fn_md} {fn_md.stat().st_mtime} """
                     + f"""> {fn_html} {fn_html.stat().st_mtime}"""
                 )
@@ -163,7 +162,7 @@ def invoke_md_wrapper(files_to_process: list[Path]) -> None:
             debug(f"md_opts = {md_opts}")
             md_args.extend(md_opts)
         md_cmd.extend(md_args)
-        md_cmd.extend([str(path_md)])
+        md_cmd.extend([path_md])
         md_cmd = list(filter(None, md_cmd))  # remove any empty strings
         call(md_cmd)
         if tmp_body_fn:
@@ -175,56 +174,43 @@ def invoke_md_wrapper(files_to_process: list[Path]) -> None:
 #################################
 
 
-def transclude(receiving_page: Path, source_page: Path) -> str:
-    """Transclude the source_page into the receiving_page."""
+def remove_chunks(soup, selectors: list[str]) -> None:
+    """Remove chunks of HTML give CSS selectors"""
+    for selector in selectors:
+        chunks = soup.select(selector)
+        for chunk in chunks:
+            chunk.extract()
+
+
+def transclude(
+    receiving_page: Path,
+    receiving_selector: str,
+    source_page: Path,
+    source_selector: str,
+    remove_selectors: list[str],
+) -> str:
+    """Transclude the source_page into the receiving_page using CSS selectors."""
 
     content_receiving = Path(receiving_page).read_text().strip()
     content_source = Path(source_page).read_text().strip()
     receiving_soup = BeautifulSoup(content_receiving, "html.parser")
     source_soup = BeautifulSoup(content_source, "html.parser")
 
-    # Find and remove Obsidian footer from source
-    obsidian_footer = source_soup.find("div", {"id": "obsidian-footer"})
-    if obsidian_footer is not None:
-        obsidian_footer.extract()
+    # Remove Obsidian header and footer
+    remove_chunks(source_soup, remove_selectors)
 
-    source_body_content = source_soup.body.find_all(recursive=False)
+    # Get chunk to be transcluded and location of embed
+    source_body_contents: list = source_soup.select(source_selector)
+    embed_here_div = receiving_soup.select_one(receiving_selector)
 
-    # Find div to embed within and clear its old children
-    embed_here_div = receiving_soup.find("div", {"id": "embed-here"})
-    embed_here_div.clear()
-
-    if embed_here_div is not None:
-        for content in source_body_content:
+    if source_body_contents and embed_here_div:
+        embed_here_div.clear()
+        for content in source_body_contents:
             embed_here_div.append(content.extract())
     else:
-        raise ("No 'embed-here' div found in the receiving HTML.")
+        raise RuntimeError("There was no embeddable content or location found.")
 
     return str(receiving_soup)
-
-
-def transclude_old(
-    receiving_page: Path,
-    source_page: Path,
-) -> str:
-    # Read files and parse their content
-    content_receiving = Path(receiving_page).read_text().strip()
-    content_source = Path(source_page).read_text().strip()
-    soup_receiving = BeautifulSoup(content_receiving, "html.parser")
-    soup_source = BeautifulSoup(content_source, "html.parser")
-
-    # Remove unnecessary footer from source
-    soup_source.find("div", {"id": "obsidian-footer"}).extract()  # remove footer
-
-    # Remove old children of receiving's div
-    div_receiving = soup_receiving("div", {"id": "embed-here"})
-    breakpoint()
-    # div_receiving.clear()
-
-    # Append source
-    div_receiving.append(soup_source.body)
-
-    return str(soup_receiving)
 
 
 #################################
@@ -352,7 +338,7 @@ def copy_mtime(src_path: Path, dst_path: Path) -> None:
 
 def reset_folder(folder_path):
     """Remove and recreate a folder."""
-    info(f"nuking {folder_path=}")
+    info(f"removing/recreating {folder_path=}")
     shutil.rmtree(folder_path)
     folder_path.mkdir(parents=True, exist_ok=True)
 
@@ -445,11 +431,14 @@ if __name__ == "__main__":
     # Public markdown files
     find_convert_md(HOME / "joseph/")
 
-    # Transclude Obsidian home into my planning page
+    # Transclude Obsidian Home.html into my planning page
     planning_page = HOME / "joseph/plan/index.html"
     modified_html = transclude(
         receiving_page=planning_page,
+        receiving_selector="div#embed-here",
         source_page=HOME / "joseph/plan/ob-web/Home.html",
+        source_selector="body > *",
+        remove_selectors=["div#obsidian-footer", "header"],
     )
     if modified_html:
         with open(planning_page, "w") as f:
