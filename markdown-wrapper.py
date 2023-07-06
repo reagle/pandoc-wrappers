@@ -546,7 +546,7 @@ def process(args):
             content = content[1:]
         f2 = codecs.open(fn_tmp_2, "w", "UTF-8", "replace")
 
-        print(f"{abs_fn=}")
+        # print(f"{abs_fn=}")
 
         lines = content.split("\n")
         new_lines = []
@@ -581,7 +581,7 @@ def process(args):
         pandoc_cmd.extend(pandoc_opts)
         pandoc_inputs.insert(0, fn_tmp_2)
         pandoc_cmd.extend(pandoc_inputs)
-        print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
+        # print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
         call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
         info("done pandoc_cmd")
 

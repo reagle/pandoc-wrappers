@@ -21,6 +21,7 @@ from bs4 import BeautifulSoup  # type: ignore
 BROWSER = Path(os.environ["BROWSER"])
 HOME = Path.home()
 MD_BIN = HOME / "bin/pw/markdown-wrapper.py"
+# https://github.com/zoni/obsidian-export
 OBS_EXPORT_BIN = HOME / "bin/obsidian-export"
 PANDOC_BIN = Path(shutil.which("pandoc"))  # type: ignore ; tested below
 TEMPLATES_FOLDER = HOME / ".pandoc/templates"
@@ -46,13 +47,13 @@ def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
     """Call obsidian-export on source; copy source's mtimes to target."""
 
     export_cmd = f"{OBS_EXPORT_BIN} {vault_dir} {export_dir}"
-    debug(f"{export_cmd=}")
+    info(f"{export_cmd=}")
 
     print(f"exporting {vault_dir}")
     results = Popen((export_cmd), stdout=PIPE, stderr=PIPE, shell=True, text=True)
     results_out, results_sdterr = results.communicate()
     if results_sdterr:
-        debug(f"results_out = {results_out}\nresults_sdterr = {results_sdterr}")
+        print(f"{results_sdterr}")
     copy_mtime(vault_dir, export_dir)
 
     remove_empty_or_hidden_folders(export_dir)
@@ -118,7 +119,7 @@ def find_convert_md(source_path: Path) -> None:
 
 def invoke_md_wrapper(files_to_process: list[Path]) -> None:
     """
-    Configure arguments for `markdown-wrapper.py and invoke to convert
+    Configure arguments for `markdown-wrapper.py` and invoke to convert
     markdown file to HTML.
     """
 
@@ -156,10 +157,10 @@ def invoke_md_wrapper(files_to_process: list[Path]) -> None:
         else:
             md_args.extend(["-c", "https://reagle.org/joseph/2003/papers.css"])
         # check for a multimarkdown metadata line with extra build options
-        match_md_opts = re.search("^md_opts_: (.*)", content, re.MULTILINE)
+        match_md_opts = re.search('^md_opts_: "?(.*)"?', content, re.MULTILINE)
         if match_md_opts:
             md_opts = match_md_opts.group(1).strip().split(" ")
-            debug(f"md_opts = {md_opts}")
+            debug(f"{md_opts=}")
             md_args.extend(md_opts)
         md_cmd.extend(md_args)
         md_cmd.extend([path_md])
@@ -281,8 +282,9 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
 
     has_changed = False
     info(f"checking for new markdown files in {dst_path}")
-    for md_file in dst_path.glob("**/*.md"):
-        html_file = md_file.with_suffix(".html")
+    for dst_md_file in dst_path.glob("**/*.md"):
+        info(f"  {dst_md_file=}")
+        html_file = dst_md_file.with_suffix(".html")
         if not html_file.exists():
             html_file.touch()
             os.utime(html_file, (0, 0))
@@ -337,10 +339,15 @@ def copy_mtime(src_path: Path, dst_path: Path) -> None:
 
 
 def reset_folder(folder_path):
-    """Remove and recreate a folder."""
+    """Remove and remake a folder."""
     info(f"removing/recreating {folder_path=}")
-    shutil.rmtree(folder_path)
+    if folder_path.exists():
+        shutil.rmtree(folder_path)
     folder_path.mkdir(parents=True, exist_ok=True)
+    if folder_path.exists():
+        info(f"{folder_path} creation succeeded.")
+    else:
+        info(f"{folder_path} creation failed.")
 
 
 ##################################
