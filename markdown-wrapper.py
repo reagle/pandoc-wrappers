@@ -414,10 +414,8 @@ def process(args):
                 "--columns=120",
                 "-c",
                 make_relpath(
-                    (
-                        "https://reagle.org/joseph/talks/_custom/"
-                        "fontawesome/css/all.min.css"
-                    ),
+                    "https://reagle.org/joseph/talks/_custom/"
+                    "fontawesome/css/all.min.css",
                     fn_path,
                 ),
             ]
@@ -478,7 +476,7 @@ def process(args):
             if args.toc_depth:
                 pandoc_opts.extend(["--toc-depth=%s" % args.toc_depth[0]])
         if args.self_contained:
-            pandoc_opts.extend(["--self-contained"])
+            pandoc_opts.extend(["--embed-resources"])
         if args.divs:
             pandoc_opts.extend(["--section-divs"])
         if args.include_after_body:
