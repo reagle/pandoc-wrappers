@@ -6,7 +6,6 @@ import os
 import shutil
 import sys
 import textwrap
-from os import chdir, environ, mkdir, path, remove, rename, walk
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
 from subprocess import PIPE, Popen, call
 from urllib.request import urlopen
@@ -14,7 +13,7 @@ from urllib.request import urlopen
 HOME = os.path.expanduser("~")
 DST_FILE = HOME + "/tmp/.pw/dt-result.txt"
 PANDOC_BIN = shutil.which("pandoc")
-VISUAL = environ["VISUAL"]
+VISUAL = os.environ["VISUAL"]
 if not all([HOME, VISUAL, PANDOC_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
@@ -24,11 +23,11 @@ info = logging.info
 dbg = logging.debug
 
 
-def rotate_files(filename, max=5):
-    f"""create at most {max} rotating files"""
+def rotate_files(filename, max_rot=5):
+    """create at most {max_rot} rotating files"""
 
     bare, ext = os.path.splitext(filename)
-    for counter in reversed(range(2, max + 1)):
+    for counter in reversed(range(2, max_rot + 1)):
         old_filename = f"{bare}{counter-1}{ext}"
         new_filename = f"{bare}{counter}{ext}"
         if os.path.exists(old_filename):
@@ -41,8 +40,9 @@ if __name__ == "__main__":
     import argparse  # http://docs.python.org/dev/library/argparse.html
 
     arg_parser = argparse.ArgumentParser(
-        description="Document transformation wrapper which "
-        "(by default) converts HTML to text"
+        description=(
+            "Document transformation wrapper which (by default) converts HTML to text"
+        )
     )
     arg_parser.add_argument("filename", nargs=1, metavar="FILE_NAME")
     arg_parser.add_argument(
@@ -161,9 +161,9 @@ if __name__ == "__main__":
             url = url.replace("/edit", "/export")
     else:
         if os.path.exists(file_name):
-            path = os.path.abspath(file_name)
-            info(f"path = {path}")
-            url = f"file://{path}"
+            file_path = os.path.abspath(file_name)
+            info(f"path = {file_path}")
+            url = f"file://{file_path}"
         else:
             print(f"ERROR: Cannot find {file_name}")
             sys.exit()

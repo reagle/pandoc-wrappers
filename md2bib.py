@@ -227,9 +227,11 @@ if "__main__" == __name__:
     import argparse  # http://docs.python.org/dev/library/argparse.html
 
     arg_parser = argparse.ArgumentParser(
-        description="Extract a subset of bibliographic keys "
-        "from BIB_FILE (bib or yaml) using those keys found "
-        "in a markdown file or specified in argument."
+        description=(
+            "Extract a subset of bibliographic keys "
+            "from BIB_FILE (bib or yaml) using those keys found "
+            "in a markdown file or specified in argument."
+        )
     )
     arg_parser.add_argument("filename", nargs="?", metavar="BIB_FILE")
     arg_parser.add_argument(
@@ -298,9 +300,9 @@ if "__main__" == __name__:
     if args.test:
         results = get_keys_from_string(TEST_IN)
         if results == TEST_OUT:
-            print(f"test passed")
+            print("test passed")
         else:
-            print(f"test failed")
+            print("test failed")
             print(f"{set(TEST_OUT)=}")
             print(f"{set(results)=}")
             print(f"difference: {set(TEST_OUT) ^ set(results)}")
