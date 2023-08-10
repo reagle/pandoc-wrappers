@@ -114,7 +114,7 @@ def link_citations(line, bib_chunked):
 
         if "original-date" in reference:
             year = f"{reference['original-date']}/{year}"
-            info(f"original-date!")
+            info("original-date!")
         if citation.startswith("-"):
             key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
         else:
@@ -190,7 +190,7 @@ def process_commented_citations(line):
             if "#@" in chunk:
                 if args.quash_citations:
                     pass
-                    debug(f"  quashed")
+                    debug("  quashed")
                 else:
                     chunk = chunk.replace("#@", "@")
                     debug(f"  keeping chunk = '{chunk}'")
@@ -257,7 +257,7 @@ def create_talk_handout(abs_fn, tmp2_fn):
                 info("args.partial_handout = '%s'" % (args.partial_handout))
                 line = line.replace("### ", " ")
                 # skip slides with underscore in heading
-                if line.startswith("# ") or line.startswith("## "):
+                if line.startswith(("# ", "## ")):
                     if " _" in line:
                         skip_to_next_header = True
                     else:
@@ -351,6 +351,28 @@ def make_relpath(path_to, path_from):
     '../../2003/papers.css'
     """
 
+    # TODO: fix the bug when relpath fails to work when command is invoked
+    # from different directory 2023-08-10
+
+    # wiki- DEB invok: md_opts=['--toc', '--quash-citations', '--style-csl', 'apa.csl', '-w', 'html', '--embed-resources']
+    # markd INF proce: args.files = '['/Users/reagle/joseph/2023/aoc/advice-of-crowds.md']'
+    # markd INF proce: in_file = '/Users/reagle/joseph/2023/aoc/advice-of-crowds.md'
+    # markd INF proce: abs_fn = '/Users/reagle/joseph/2023/aoc/advice-of-crowds.md'
+    # markd INF proce: base_fn = '/Users/reagle/joseph/2023/aoc/advice-of-crowds'
+    # markd INF proce: fn_path = '/Users/reagle/joseph/2023/aoc'
+    # markd INF make_: argument path_to='https://reagle.org/joseph/talks/_custom/fontawesome/css/all.min.css'
+    # markd INF make_: realpath path_to='/Users/reagle/e/clear/data/2web/reagle.org/joseph/talks/_custom/fontawesome/css/all.min.css'
+    # markd INF make_: path_from='/Users/reagle/joseph/2023/aoc' is a directory!
+    # markd INF make_: final   path_from='/Users/reagle/e/clear/data/2web/reagle.org/joseph/2023/aoc'
+    # markd INF make_: result='../../talks/_custom/fontawesome/css/all.min.css'
+    # markd INF make_: argument path_to='https://reagle.org/joseph/2003/papers.css'
+    # markd INF make_: realpath path_to='/Users/reagle/e/clear/data/2web/reagle.org/joseph/2003/papers.css'
+    # markd INF make_: path_from='/Users/reagle/joseph/2023/aoc' is a directory!
+    # markd INF make_: final   path_from='/Users/reagle/e/clear/data/2web/reagle.org/joseph/2023/aoc'
+    # markd INF make_: result='../../2003/papers.css'
+    # markd INF proce: generate temporary subset bib for speed
+    # md2bi DEB get_k: filename = '/Users/reagle/joseph/2023/aoc/advice-of-crowds.md'
+
     info(f"argument {path_to=}")
     if path_to.startswith("http"):
         path_to = realpath(f"{WEBROOT}{urlparse(path_to).path}")
@@ -415,7 +437,7 @@ def process(args):
                 "-c",
                 make_relpath(
                     "https://reagle.org/joseph/talks/_custom/"
-                    "fontawesome/css/all.min.css",
+                    + "fontawesome/css/all.min.css",
                     fn_path,
                 ),
             ]
@@ -475,7 +497,7 @@ def process(args):
             pandoc_opts.extend(["--toc"])
             if args.toc_depth:
                 pandoc_opts.extend(["--toc-depth=%s" % args.toc_depth[0]])
-        if args.self_contained:
+        if args.embed_resources:
             pandoc_opts.extend(["--embed-resources"])
         if args.divs:
             pandoc_opts.extend(["--section-divs"])
@@ -549,7 +571,7 @@ def process(args):
         lines = content.split("\n")
         new_lines = []
 
-        for lineNo, line in enumerate(lines):
+        for line in lines:
             # TODO: fix Wikicommons relative network-path references
             # so the URLs work on local file system (i.e.,'file:///')
             line = line.replace('src="//', 'src="http://')
@@ -785,7 +807,7 @@ if __name__ == "__main__":
         help="specify CSL style (e.g., chicago-fullnote-bibliography.csl)",
     )
     arg_parser.add_argument(
-        "--self-contained",
+        "--embed-resources",
         action="store_true",
         default=False,
         help="incorporate links: scripts, images, & CSS (pandoc pass-through)",
