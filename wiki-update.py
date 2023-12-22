@@ -148,12 +148,10 @@ def invoke_md_wrapper(files_to_process: list[Path]) -> None:
         elif "ob-" in str(path_md):
             md_args.extend(["--metadata", f"title={path_md.stem}"])
             md_args.extend(["--lua-filter", "obsidian-export.lua"])
-            md_args.extend(
-                [
-                    "--include-after-body",
-                    f"{TEMPLATES_FOLDER}/obsidian-footer.html",
-                ]
-            )
+            md_args.extend([
+                "--include-after-body",
+                f"{TEMPLATES_FOLDER}/obsidian-footer.html",
+            ])
         else:
             md_args.extend(["-c", "https://reagle.org/joseph/2003/papers.css"])
         # check for a multimarkdown metadata line with extra build options

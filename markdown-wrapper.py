@@ -9,12 +9,12 @@
 """
 
 # TODO:
-#     1. reduce redundant references: page only, if key already cited
-#     2. replace square brackets with round when no URL.
-#     3. restore move_punctuation_outside,
-#         move each of these periods to right of quotation mark:
-#         a. if using note style: "I do what I hate" [#@Paul2006r7].
-#         b. all styles: "Testes Testes Testes."
+#  1. reduce redundant references: page only, if key already cited
+#  2. replace square brackets with round when no URL.
+#  3. restore move_punctuation_outside,
+#     move each of these periods to right of quotation mark:
+#     a. if using note style: "I do what I hate" [#@Paul2006r7].
+#     b. all styles: "Testes Testes Testes."
 # TODO 2020-12-16: support citations to links
 #   (perhaps as variation to --presentation)
 #   https://groups.google.com/g/pandoc-discuss/c/MTJDaCzjc0c
@@ -189,7 +189,6 @@ def process_commented_citations(line):
             debug(f"  chunk = '{chunk}'")
             if "#@" in chunk:
                 if args.quash_citations:
-                    pass
                     debug("  quashed")
                 else:
                     chunk = chunk.replace("#@", "@")
@@ -424,56 +423,50 @@ def process(args):
         #         '--bibliography=/home/reagle/joseph/readings.yaml'])
 
         # TODO: add mermaid-filter processing for diagrams
-        pandoc_opts.extend(
-            [
-                "--defaults",
-                "base.yaml",  # include tab stop, lang, etc.
-                "--standalone",
-                "--lua-filter",
-                "pandoc-quotes.lua",  # specify quote marks and lang
-                "--strip-comments",
-                "--wrap=auto",
-                "--columns=120",
-                "-c",
-                make_relpath(
-                    "https://reagle.org/joseph/talks/_custom/"
-                    + "fontawesome/css/all.min.css",
-                    fn_path,
-                ),
-            ]
-        )
+        pandoc_opts.extend([
+            "--defaults",
+            "base.yaml",  # include tab stop, lang, etc.
+            "--standalone",
+            "--lua-filter",
+            "pandoc-quotes.lua",  # specify quote marks and lang
+            "--strip-comments",
+            "--wrap=auto",
+            "--columns=120",
+            "-c",
+            make_relpath(
+                "https://reagle.org/joseph/talks/_custom/"
+                + "fontawesome/css/all.min.css",
+                fn_path,
+            ),
+        ])
 
         if args.pantable:
-            pandoc_opts.extend(
-                [
-                    "-F",
-                    "pantable",  # allows tables as CSV, slows by 50%
-                ]
-            )
+            pandoc_opts.extend([
+                "-F",
+                "pantable",  # allows tables as CSV, slows by 50%
+            ])
 
         if args.presentation:
             args.validate = False
             args.css = False
-            pandoc_opts.extend(
-                [
-                    "-c",
-                    "../_custom/reveal4js.css",
-                    "-t",
-                    "revealjs",
-                    "--slide-level=2",
-                    "-V",
-                    "revealjs-url=../_reveal4.js",
-                    "-V",
-                    "theme=beige",
-                    "-V",
-                    "transition=linear",
-                    "-V",
-                    "history=true",
-                    "-V",
-                    "zoomKey=shift",
-                    # '--no-highlight', # conflicts with reveal's highlight.js
-                ]
-            )
+            pandoc_opts.extend([
+                "-c",
+                "../_custom/reveal4js.css",
+                "-t",
+                "revealjs",
+                "--slide-level=2",
+                "-V",
+                "revealjs-url=../_reveal4.js",
+                "-V",
+                "theme=beige",
+                "-V",
+                "transition=linear",
+                "-V",
+                "history=true",
+                "-V",
+                "zoomKey=shift",
+                # '--no-highlight', # conflicts with reveal's highlight.js
+            ])
         elif args.write.startswith("html") and args.css:
             # ?DO NOT use relpath as this is a commandline argument?
             # pandoc_opts.extend(["-c", args.css])
@@ -484,15 +477,13 @@ def process(args):
                 ["--reference-doc", HOME + "/.pandoc/reference-mit-press.docx"]
             )
         if args.condensed:
-            pandoc_opts.extend(
-                [
-                    "-c",
-                    make_relpath(
-                        "https://reagle.org/joseph/2003/papers-condensed.css",
-                        fn_path,
-                    ),
-                ]
-            )
+            pandoc_opts.extend([
+                "-c",
+                make_relpath(
+                    "https://reagle.org/joseph/2003/papers-condensed.css",
+                    fn_path,
+                ),
+            ])
         if args.toc:
             pandoc_opts.extend(["--toc"])
             if args.toc_depth:
@@ -548,16 +539,12 @@ def process(args):
                 entries = parse_func(open(bib_fn).readlines())
                 subset = subset_func(entries, keys)
                 emit_subset_func(subset, open(bib_subset_tmp_fn, "w"))
-                pandoc_opts.extend(
-                    [
-                        "--bibliography=%s" % bib_subset_tmp_fn,
-                    ]
-                )
-                pandoc_opts.extend(
-                    [
-                        "--citeproc",
-                    ]
-                )
+                pandoc_opts.extend([
+                    "--bibliography=%s" % bib_subset_tmp_fn,
+                ])
+                pandoc_opts.extend([
+                    "--citeproc",
+                ])
 
         shutil.copyfile(abs_fn, fn_tmp_1)
         f1 = codecs.open(fn_tmp_1, "r", "UTF-8", "replace")
@@ -648,19 +635,17 @@ def process(args):
             open(result_fn, "w").write(content_html)
 
             if args.validate:
-                call(
-                    [
-                        "tidy",
-                        "-utf8",
-                        "-q",
-                        "-i",
-                        "-m",
-                        "-w",
-                        "0",
-                        "-asxhtml",
-                        result_fn,
-                    ]
-                )
+                call([
+                    "tidy",
+                    "-utf8",
+                    "-q",
+                    "-i",
+                    "-m",
+                    "-w",
+                    "0",
+                    "-asxhtml",
+                    result_fn,
+                ])
             if args.launch_browser:
                 info("launching %s" % result_fn)
                 Popen([BROWSER, result_fn])
