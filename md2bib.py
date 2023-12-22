@@ -88,7 +88,6 @@ def subset_yaml(entries, keys):
             subset[key] = entries[key]
         else:
             critical("%s not in entries" % key)
-            pass
     return subset
 
 
@@ -141,7 +140,6 @@ def subset_bibtex(entries, keys):
             subset[key] = entries[key]
         else:
             critical("%s not in entries" % key)
-            pass
     return subset
 
 
