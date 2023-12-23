@@ -174,16 +174,18 @@ if __name__ == "__main__":
     # os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
 
     # default is lynx; args.catdoc now removed
-    if not any((
-        args.lynx,
-        args.plain,
-        args.markdown,
-        args.links,
-        args.w3m,
-        args.antiword,
-        args.docx2txt,
-        args.pdftotext,
-    )):
+    if not any(
+        (
+            args.lynx,
+            args.plain,
+            args.markdown,
+            args.links,
+            args.w3m,
+            args.antiword,
+            args.docx2txt,
+            args.pdftotext,
+        )
+    ):
         args.lynx = True
 
     if extension == "md":
