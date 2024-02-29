@@ -32,7 +32,7 @@ import sys
 
 # from sh import chmod # http://amoffat.github.com/sh/
 from io import StringIO
-from os import environ, remove
+from os import environ, makedirs, remove
 from os.path import (
     abspath,
     dirname,
@@ -214,7 +214,7 @@ def process_commented_citations(line):
 
 
 def create_talk_handout(abs_fn, tmp2_fn):
-    """If talks and handouts exists, create (partial) handout"""
+    """If a talk, create a (partial) handout"""
 
     info("HANDOUT START")
     EM_RE = re.compile(r"(?<! _)_([^_]+?)_ ")
@@ -234,8 +234,9 @@ def create_talk_handout(abs_fn, tmp2_fn):
     if "/talks" in abs_fn:
         handout_fn = abs_fn.replace("/talks/", "/handouts/")
         handout_dir = dirname(handout_fn)
-        info("handout_dir = '%s'" % (dirname(handout_fn)))
-    if exists(dirname(handout_fn)):
+        info(f"{handout_dir=}")
+        if not exists(handout_dir):
+            makedirs(handout_dir)
         info("creating handout")
         skip_to_next_header = False
         handout_f = open(handout_fn, "w")

@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 """
-Build the static portions of my website by looking for source 
+Build the static portions of my website by looking for source
     files newer than existing HTML files.
 
 ob-/* (obsidian) -> html
