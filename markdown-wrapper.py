@@ -35,7 +35,6 @@ from io import StringIO
 from os import environ, makedirs, remove
 from os.path import (
     abspath,
-    dirname,
     exists,
     expanduser,
     isdir,
@@ -45,6 +44,7 @@ from os.path import (
     split,
     splitext,
 )
+from pathlib import Path
 from subprocess import Popen, call
 from urllib.parse import urlparse
 
@@ -213,7 +213,7 @@ def process_commented_citations(line):
     return new_line
 
 
-def create_talk_handout(abs_fn, tmp2_fn):
+def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
     """If a talk, create a (partial) handout"""
 
     info("HANDOUT START")
@@ -225,57 +225,53 @@ def create_talk_handout(abs_fn, tmp2_fn):
         # underscore that pandoc will ignore
         return "&#95;" * len(matchobj.group(0))
 
-    fn_path = os.path.split(abs_fn)[0]
+    abs_path = Path(abs_fn)
+    tmp2_path = Path(tmp2_fn)
+    fn_path = abs_path.parent
     info(f"{fn_path=}")
     info(f"{abs_fn=}")
     info(f"{tmp2_fn=}")
-    md_dir = dirname(abs_fn)
+    md_dir = abs_path.parent
     handout_fn = ""
     if "/talks" in abs_fn:
-        handout_fn = abs_fn.replace("/talks/", "/handouts/")
-        handout_dir = dirname(handout_fn)
+        handout_fn = str(abs_path).replace("/talks/", "/handouts/")
+        handout_path = Path(handout_fn)
+        handout_dir = handout_path.parent
         info(f"{handout_dir=}")
-        if not exists(handout_dir):
-            makedirs(handout_dir)
+        if not handout_dir.exists():
+            handout_dir.mkdir(parents=True)
         info("creating handout")
         skip_to_next_header = False
-        handout_f = open(handout_fn, "w")
-        content = open(tmp2_fn).read()
-        info(f"md_dir = '{md_dir}', handout_dir = '{handout_dir}'")
-        media_relpath = relpath(md_dir, handout_dir)
-        info("media_relpath = '%s'" % (media_relpath))
-        content = content.replace(" data-src=", " src=")
-        content = content.replace("](media/", "](%s/media/" % media_relpath)
-        content = content.replace('="media/', '="%s/media/' % media_relpath)
-        lines = [line + "\n" for line in content.split("\n")]
-        for line in lines:
-            # if line.startswith('<details'):  # skip rules
-            #     skip_to_next_header = True
-            #     info("skipping line = '%s'" % line)
-            #     continue
-            if args.partial_handout:
-                info("args.partial_handout = '%s'" % (args.partial_handout))
-                line = line.replace("### ", " ")
-                # skip slides with underscore in heading
-                if line.startswith(("# ", "## ")):
-                    if " _" in line:
-                        skip_to_next_header = True
-                    else:
-                        skip_to_next_header = False
-                    handout_f.write(line)
-                else:
-                    if not skip_to_next_header:
-                        # eg: if line.startswith('> *'): continue
-                        debug("entering em redaction")
-                        # replace emph underscores  w/ literal '_'
-                        line = EM_RE.subn(em_mask, line)[0]
-                        debug("line = '%s'" % (line))
+        with handout_path.open("w") as handout_f, tmp2_path.open() as tmp2_f:
+            content = tmp2_f.read()
+            info(f"md_dir = '{md_dir}', handout_dir = '{handout_dir}'")
+            media_relpath = relpath(md_dir, handout_dir)
+            info(f"media_relpath = '{media_relpath}'")
+            content = content.replace(" data-src=", " src=")
+            content = content.replace("](media/", f"]({media_relpath}/media/")
+            content = content.replace('="media/', f'="{media_relpath}/media/')
+            lines = [line + "\n" for line in content.split("\n")]
+            for line in lines:
+                if args.partial_handout:
+                    info(f"args.partial_handout = '{args.partial_handout}'")
+                    line = line.replace("### ", " ")
+                    if line.startswith(("# ", "## ")):
+                        if " _" in line:
+                            skip_to_next_header = True
+                        else:
+                            skip_to_next_header = False
                         handout_f.write(line)
                     else:
-                        handout_f.write("\n")
-            else:
-                handout_f.write(line)
-        handout_f.close()
+                        if not skip_to_next_header:
+                            line = EM_RE.subn(em_mask, line)[0]
+                            debug(f"line = '{line}'")
+                            handout_f.write(line)
+                        else:
+                            handout_f.write("\n")
+                else:
+                    handout_f.write(line)
+            deck_link = f"[deck]({abs_fn}){{.decklink}}"
+            handout_f.write(deck_link)
         md_cmd = [
             MD_BIN,
             "--divs",
@@ -284,12 +280,12 @@ def create_talk_handout(abs_fn, tmp2_fn):
             "html",
             "-c",
             "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css",
-            handout_fn,
+            str(handout_path),
         ]
         info("handout md_cmd = %s" % " ".join(md_cmd))
         call(md_cmd)
         if not args.keep_tmp:
-            remove(handout_fn)
+            handout_path.unlink()
     info("HANDOUT DONE")
 
 
