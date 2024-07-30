@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
-"""
-Build the static portions of my website by looking for source
+"""Build the static portions of my website by looking for source
     files newer than existing HTML files.
 
 ob-/* (obsidian) -> html
@@ -45,7 +44,6 @@ debug = logging.debug
 
 def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
     """Call obsidian-export on source; copy source's mtimes to target."""
-
     export_cmd = f"{OBS_EXPORT_BIN} {vault_dir} {export_dir}"
     info(f"{export_cmd=}")
 
@@ -118,11 +116,9 @@ def find_convert_md(source_path: Path) -> None:
 
 
 def invoke_md_wrapper(files_to_process: list[Path]) -> None:
-    """
-    Configure arguments for `markdown-wrapper.py` and invoke to convert
+    """Configure arguments for `markdown-wrapper.py` and invoke to convert
     markdown file to HTML.
     """
-
     for fn_md in files_to_process:
         info(f"updating fn_md {fn_md}")
         path_md = Path(fn_md)
@@ -191,7 +187,6 @@ def transclude(
     remove_selectors: list[str],
 ) -> str:
     """Transclude the source_page into the receiving_page using CSS selectors."""
-
     content_receiving = Path(receiving_page).read_text().strip()
     content_source = Path(source_page).read_text().strip()
     receiving_soup = BeautifulSoup(content_receiving, "html.parser")
@@ -220,8 +215,7 @@ def transclude(
 
 
 def has_dir_changed(path: Path) -> bool:
-    """
-    Check if content of folder has changed.
+    """Check if content of folder has changed.
     """
     info(f"{path=}")
     if not path.is_dir():
@@ -255,7 +249,8 @@ def has_dir_changed(path: Path) -> bool:
 def remove_empty_or_hidden_folders(path: Path, hide_prefix: str = "_") -> bool:
     """Remove empty or hidden folders in path.
 
-    Pandoc chokes on Obsidian template files, so remove."""
+    Pandoc chokes on Obsidian template files, so remove.
+    """
 
     def is_empty(folder: Path) -> bool:
         return not any(folder.iterdir())
@@ -272,14 +267,12 @@ def remove_empty_or_hidden_folders(path: Path, hide_prefix: str = "_") -> bool:
 
 
 def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
-    """
-    Check dst_path and create or delete HTML files based on the
+    """Check dst_path and create or delete HTML files based on the
     presence of their corresponding markdown in src_path.
     Created HTML is set with an early mtime so find_convert_md_files()
     knows to process it.
     (Renamed files are simply deleted and created.)
     """
-
     has_changed = False
     info(f"checking for new markdown files in {dst_path}")
     for dst_md_file in dst_path.glob("**/*.md"):
@@ -316,8 +309,7 @@ def chmod_recursive(
 
 
 def copy_mtime(src_path: Path, dst_path: Path) -> None:
-    """
-    Copy mtime from source_dir to target_dir so that `find_convert_md_files`
+    """Copy mtime from source_dir to target_dir so that `find_convert_md_files`
     know what changed.
     """
     debug("copying mtimes")
