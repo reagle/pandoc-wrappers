@@ -24,8 +24,7 @@ dbg = logging.debug
 
 
 def rotate_files(filename, max_rot=5):
-    """create at most {max_rot} rotating files"""
-
+    """Create at most {max_rot} rotating files."""
     bare, ext = os.path.splitext(filename)
     for counter in reversed(range(2, max_rot + 1)):
         old_filename = f"{bare}{counter-1}{ext}"
@@ -139,7 +138,7 @@ if __name__ == "__main__":
         log_level = logging.INFO
     elif args.verbose >= 3:
         log_level = logging.DEBUG
-    LOG_FORMAT = "%(levelno)s %(funcName).5s: %(message)s"
+    LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     if args.log_to_file:
         logging.basicConfig(
             filename="doi_query.log",
@@ -159,14 +158,13 @@ if __name__ == "__main__":
         url = file_name
         if "docs.google.com" in url:
             url = url.replace("/edit", "/export")
+    elif os.path.exists(file_name):
+        file_path = os.path.abspath(file_name)
+        info(f"path = {file_path}")
+        url = f"file://{file_path}"
     else:
-        if os.path.exists(file_name):
-            file_path = os.path.abspath(file_name)
-            info(f"path = {file_path}")
-            url = f"file://{file_path}"
-        else:
-            print(f"ERROR: Cannot find {file_name}")
-            sys.exit()
+        print(f"ERROR: Cannot find {file_name}")
+        sys.exit()
     info(f"** url = {url}")
 
     content = None

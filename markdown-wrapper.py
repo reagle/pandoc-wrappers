@@ -3,9 +3,9 @@
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
 """A wrapper script for pandoc that handles my own issues:
-    1. associates the result with a particular style sheet.
-    2. can replace [@key] with hypertext'd refs from bibliographic DB.
-    3. makes use of reveal.js for presentations.
+1. associates the result with a particular style sheet.
+2. can replace [@key] with hypertext'd refs from bibliographic DB.
+3. makes use of reveal.js for presentations.
 """
 
 # TODO:
@@ -73,11 +73,9 @@ debug = logging.debug
 
 
 def link_citations(line, bib_chunked):
-    """
-    Turn pandoc/markdown citations into links within parenthesis.
+    """Turn pandoc/markdown citations into links within parenthesis.
     Used only with citations in presentations.
     """
-
     # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
     PARENS_KEY = re.compile(
         r"""
@@ -89,8 +87,7 @@ def link_citations(line, bib_chunked):
     )  # -@Clark-Flory2010fpo
 
     def hyperize(cite_match):
-        """
-        hyperize every non-overlapping occurrence
+        """Hyperize every non-overlapping occurrence
         and return to PARENS_KEY.sub
         """
         cite_replacement = []
@@ -123,12 +120,11 @@ def link_citations(line, bib_chunked):
         debug("**   url = %s" % url)
         if url:
             cite_replacement.append(f"[{key_text}]({url})")
+        elif title:
+            title = title.replace("{", "").replace("}", "")
+            cite_replacement.append(f'{key_text}, "{title}"')
         else:
-            if title:
-                title = title.replace("{", "").replace("}", "")
-                cite_replacement.append(f'{key_text}, "{title}"')
-            else:
-                cite_replacement.append(f"{key_text}")
+            cite_replacement.append(f"{key_text}")
         debug(f"**   using {cite_replacement}=")
         return "".join(cite_replacement)
 
@@ -143,9 +139,7 @@ def link_citations(line, bib_chunked):
     )
 
     def make_parens(cite_match):
-        """
-        Convert to balanced parens
-        """
+        """Convert to balanced parens"""
         return "(" + cite_match.group(0)[1:-1] + ")"
 
     line = PARENS_BRACKET_PAIR.sub(make_parens, line)
@@ -156,8 +150,7 @@ def link_citations(line, bib_chunked):
 
 
 def process_commented_citations(line):
-    """
-    Match stuff within a bracket (beginning with ' ' or '^') that
+    """Match stuff within a bracket (beginning with ' ' or '^') that
     has no other brackets within
     """
     # TODO 2021-06-18: replace this with a pandoc filter?
@@ -174,8 +167,7 @@ def process_commented_citations(line):
     )
 
     def quash(cite_match):
-        """
-        Collect and rewrite citations.
+        """Collect and rewrite citations.
         if args.quash_citations drop commented citations, eg [#@Reagle2012foo]
         else uncomment
         """
@@ -215,12 +207,11 @@ def process_commented_citations(line):
 
 def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
     """If a talk, create a (partial) handout"""
-
     info("HANDOUT START")
     EM_RE = re.compile(r"(?<! _)_([^_]+?)_ ")
 
     def em_mask(matchobj):
-        """replace emphasis with underscores"""
+        """Replace emphasis with underscores"""
         debug("return replace function")
         # underscore that pandoc will ignore
         return "&#95;" * len(matchobj.group(0))
@@ -261,13 +252,12 @@ def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
                         else:
                             skip_to_next_header = False
                         handout_f.write(line)
+                    elif not skip_to_next_header:
+                        line = EM_RE.subn(em_mask, line)[0]
+                        debug(f"line = '{line}'")
+                        handout_f.write(line)
                     else:
-                        if not skip_to_next_header:
-                            line = EM_RE.subn(em_mask, line)[0]
-                            debug(f"line = '{line}'")
-                            handout_f.write(line)
-                        else:
-                            handout_f.write("\n")
+                        handout_f.write("\n")
                 else:
                     handout_f.write(line)
             deck_link = f"[deck]({abs_fn}){{.decklink}}"
@@ -290,8 +280,7 @@ def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
 
 
 def number_elements(content):
-    "add section and paragraph marks to content which is parsed as HTML"
-
+    """Add section and paragraph marks to content which is parsed as HTML"""
     info("parsing without comments")
     parser = et.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = et.parse(StringIO(content), parser)
@@ -337,7 +326,7 @@ def number_elements(content):
 
 
 def make_relpath(path_to, path_from):
-    """return relative path that works on filesystem and server
+    """Return relative path that works on filesystem and server
 
     >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
     ... '/Users/reagle/joseph/2021/pc/' )
@@ -346,7 +335,6 @@ def make_relpath(path_to, path_from):
     ... '/Users/reagle/joseph/2021/pc/pc-syllabus-SP.html' )
     '../../2003/papers.css'
     """
-
     # TODO: fix the bug when relpath fails to work when command is invoked
     # from different directory 2023-08-10
 
@@ -419,7 +407,6 @@ def process(args):
         #     pandoc_opts.extend(['--csl=sage-harvard.csl',
         #         '--bibliography=/home/reagle/joseph/readings.yaml'])
 
-        # TODO: add mermaid-filter processing for diagrams
         pandoc_opts.extend(
             [
                 "--defaults",
@@ -438,6 +425,17 @@ def process(args):
                 ),
             ]
         )
+
+        # npm install --global mermaid-filter
+        if args.mermaid:
+            pandoc_opts.extend(
+                [
+                    "-F",
+                    "mermaid-filter",  # creates png/svg
+                    # "--lua-filter",  # does not work presently
+                    # "mermaid-figure.lua",  # uses fig and figcaption
+                ]
+            )
 
         if args.pantable:
             pandoc_opts.extend(
@@ -765,6 +763,12 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="use pantable filter",
+    )
+    arg_parser.add_argument(
+        "--mermaid",
+        action="store_true",
+        default=False,
+        help="use mermaid filter",
     )
     arg_parser.add_argument(
         "--partial-handout",

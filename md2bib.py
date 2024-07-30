@@ -4,7 +4,8 @@
 
 """Extract a subset of bibliographic keys from BIB_FILE
 using those keys found in a markdown file or specified
-in argument."""
+in argument.
+"""
 
 import logging
 import re
@@ -32,7 +33,6 @@ def chunk_yaml(text):
     and '_yaml_block' for quick subsetting/emitting.
 
     """
-
     entries = OrderedDict()
     yaml_block = []
     key = None
@@ -70,7 +70,6 @@ def chunk_yaml(text):
 
 def emit_yaml_subset(entries, outfd):
     """Emit a YAML file."""
-
     outfd.write("""---\nreferences:\n""")
     for identifier in entries:
         debug("identifier = '%s'" % (identifier))
@@ -81,7 +80,6 @@ def emit_yaml_subset(entries, outfd):
 
 def subset_yaml(entries, keys):
     """Emit a susbet of a YAML file based on keys."""
-
     subset = OrderedDict()
     for key in sorted(keys):
         if key in entries:
@@ -94,8 +92,8 @@ def subset_yaml(entries, keys):
 def chunk_bibtex(text):
     """Return a dictionary of entry dictionaries, each with a field/value.
     The parser is simple/fast *and* inflexible, unlike the proper but
-    slow parsers bibstuff and pyparsing-based parsers."""
-
+    slow parsers bibstuff and pyparsing-based parsers.
+    """
     entries = OrderedDict()
     key_pat = re.compile(r"@(\w+){(.*),")
     value_pat = re.compile(r"[ ]*(\w+)[ ]*=[ ]*{(.*)},")
@@ -115,7 +113,6 @@ def chunk_bibtex(text):
 
 def emit_bibtex_entry(identifier, values, outfd):
     """Emit a single bibtex entry."""
-
     debug("writing entry")
     outfd.write("@{}{{{},\n".format(values["entry_type"], identifier))
     for field, value in values.items():
@@ -126,14 +123,12 @@ def emit_bibtex_entry(identifier, values, outfd):
 
 def emit_bibtex_subset(entries, outfd):
     """Emit a biblatex file."""
-
     for identifier, values in entries.items():
         emit_bibtex_entry(identifier, values, outfd)
 
 
 def subset_bibtex(entries, keys):
     """Emit a susbet of a biblatex file based on keys."""
-
     subset = OrderedDict()
     for key in sorted(keys):
         if key in entries:
@@ -145,7 +140,6 @@ def subset_bibtex(entries, keys):
 
 def get_keys_from_file(filename):
     """Return a list of keys used in a markdown file"""
-
     debug("filename = '%s'" % filename)
     text = open(filename).read()
     return get_keys_from_string(text)
@@ -153,7 +147,6 @@ def get_keys_from_file(filename):
 
 def get_keys_from_string(text):
     """Return a list of keys from string"""
-
     # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
     CITES_RE = re.compile(
         r"""
