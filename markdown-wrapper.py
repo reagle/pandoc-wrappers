@@ -25,7 +25,7 @@
 #       b. append output of md2bib.py
 
 import codecs
-import logging
+import logging as log
 import os
 import re
 import shutil
@@ -37,12 +37,6 @@ from os import environ, remove
 from os.path import (
     abspath,
     exists,
-    expanduser,
-    isdir,
-    isfile,
-    realpath,
-    relpath,
-    split,
     splitext,
 )
 from pathlib import Path
@@ -55,22 +49,13 @@ from lxml.html import tostring  # type: ignore
 
 import md2bib
 
-HOME = expanduser("~")
-WEBROOT = f"{HOME}/e/clear/data/2web/reagle.org"
+HOME = Path.home()
+WEBROOT = HOME / "/e/clear/data/2web/reagle.org"
 BROWSER = environ["BROWSER"].replace("*", " ")
-PANDOC_BIN = shutil.which("pandoc")
-MD_BIN = shutil.which("markdown-wrapper.py")
+PANDOC_BIN = Path(shutil.which("pandoc"))
+MD_BIN = Path(shutil.which("markdown-wrapper.py"))
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
-
-log_level = logging.ERROR  # 40
-
-# function aliases
-critical = logging.critical
-error = logging.error
-warning = logging.warning
-info = logging.info
-debug = logging.debug
 
 
 def hyperize(cite_match, bib_chunked):
@@ -79,30 +64,30 @@ def hyperize(cite_match, bib_chunked):
     url = None
     citation = cite_match.group(0)
     key = citation.split("@", 1)[1]
-    info(f"**   processing key: {key}")
+    log.info(f"**   processing key: {key}")
     reference = bib_chunked.get(key)
     if reference is None:
         print(f"WARNING: key {key} not found")
         return key
     else:
-        info(reference.keys())
+        log.info(reference.keys())
     url = reference.get("url")
-    info(f"{url=}")
+    log.info(f"{url=}")
     title = reference.get("title-short")
-    info(f"{title=}")
+    log.info(f"{title=}")
     last_name, year, _ = re.split(r"(\d\d\d\d)", key)
     if last_name.endswith("Etal"):
         last_name = last_name[0:-4] + " et al."
 
     if "original-date" in reference:
         year = f"{reference['original-date']}/{year}"
-        info("original-date!")
+        log.info("original-date!")
     if citation.startswith("-"):
         key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
     else:
         key_text = f"{last_name} {year}"
 
-    debug(f"**   url = {url}")
+    log.debug(f"**   url = {url}")
     if url:
         cite_replacement.append(f"[{key_text}]({url})")
     elif title:
@@ -110,7 +95,7 @@ def hyperize(cite_match, bib_chunked):
         cite_replacement.append(f'{key_text}, "{title}"')
     else:
         cite_replacement.append(f"{key_text}")
-    debug(f"**   using {cite_replacement}=")
+    log.debug(f"**   using {cite_replacement}=")
     return "".join(cite_replacement)
 
 
@@ -140,9 +125,9 @@ def link_citations(line, bib_chunked):
     )
 
     line = PARENS_BRACKET_PAIR.sub(make_parens, line)
-    debug(f"{line}")
+    log.debug(f"{line}")
     line = PARENS_KEY.sub(lambda match_obj: hyperize(match_obj, bib_chunked), line)
-    debug(f"{line}")
+    log.debug(f"{line}")
     return line
 
 
@@ -166,9 +151,9 @@ def process_commented_citations(line):
         re.VERBOSE,
     )
 
-    debug(f"old_line = {line}")
+    log.debug(f"old_line = {line}")
     new_line = PARENS_BRACKET_PAIR.subn(quash, line)[0]
-    debug(f"new_line = {new_line}")
+    log.debug(f"new_line = {new_line}")
     # if I quashed a citation completely, I might have a period after a quote
     if args.quash_citations:
         if "]." in line and '".' in new_line:  # imperfect test
@@ -183,108 +168,66 @@ def quash(cite_match):
     else uncomment
     """
     citation = cite_match.group(0)
-    debug(f"citation = '{citation}'")
+    log.debug(f"citation = '{citation}'")
     prefix = "^" if citation[0] == "^" else " "
     chunks = citation[2:-1].split(";")  # isolate chunks from ' [' + ']'
-    debug(f"chunks = {chunks}")
+    log.debug(f"chunks = {chunks}")
     citations_keep = []
     for chunk in chunks:
-        debug(f"  chunk = '{chunk}'")
+        log.debug(f"  chunk = '{chunk}'")
         if "#@" in chunk:
             if args.quash_citations:
-                debug("  quashed")
+                log.debug("  quashed")
             else:
                 chunk = chunk.replace("#@", "@")
-                debug(f"  keeping chunk = '{chunk}'")
+                log.debug(f"  keeping chunk = '{chunk}'")
                 citations_keep.append(chunk)
         else:
             citations_keep.append(chunk)
 
     if citations_keep:
-        debug(f"citations_keep = '{citations_keep}'")
+        log.debug(f"citations_keep = '{citations_keep}'")
         return f"{prefix}[" + ";".join(citations_keep) + "]"
     else:
         return ""
 
 
-def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
+def create_talk_handout(abs_fn, fn_tmp_2):
     """If a talk, create a (partial) handout."""
-    info("HANDOUT START")
-    EM_RE = re.compile(r"(?<! _)_([^_]+?)_ ")
+    log.info("HANDOUT START")
+    EM_RE = re.compile(r"(?<=\s)_\S+?_(?=[\s\.,])")
+    STRONG_RE = re.compile(r"(?<=\s)\*\*\S+?\*\*(?=[\s\.,])")
 
-    def em_mask(matchobj):
-        """Replace emphasis with underscores."""
-        debug("return replace function")
-        # underscore that pandoc will ignore
-        return "&#95;" * len(matchobj.group(0))
+    handout_fn = Path(abs_fn).with_suffix(".handout.html")
+    with handout_fn.open("w", encoding="utf-8") as handout:
+        handout.write("<html><body>\n")
+        handout.write("<h1>Handout</h1>\n")
 
-    abs_path = Path(abs_fn)
-    tmp2_path = Path(tmp2_fn)
-    fn_path = abs_path.parent
-    info(f"{fn_path=}")
-    info(f"{abs_fn=}")
-    info(f"{tmp2_fn=}")
-    md_dir = abs_path.parent
-    handout_fn = ""
-    if "/talks" in abs_fn:
-        handout_fn = str(abs_path).replace("/talks/", "/handouts/")
-        handout_path = Path(handout_fn)
-        handout_dir = handout_path.parent
-        info(f"{handout_dir=}")
-        if not handout_dir.exists():
-            handout_dir.mkdir(parents=True)
-        info("creating handout")
-        skip_to_next_header = False
-        with handout_path.open("w") as handout_f, tmp2_path.open() as tmp2_f:
-            content = tmp2_f.read()
-            info(f"md_dir = '{md_dir}', handout_dir = '{handout_dir}'")
-            media_relpath = relpath(md_dir, handout_dir)
-            info(f"media_relpath = '{media_relpath}'")
-            content = content.replace(" data-src=", " src=")
-            content = content.replace("](media/", f"]({media_relpath}/media/")
-            content = content.replace('="media/', f'="{media_relpath}/media/')
-            lines = [line + "\n" for line in content.split("\n")]
-            for line in lines:
-                if args.partial_handout:
-                    info(f"args.partial_handout = '{args.partial_handout}'")
-                    line = line.replace("### ", " ")
-                    if line.startswith(("# ", "## ")):
-                        skip_to_next_header = " _" in line
-                        handout_f.write(line)
-                    elif not skip_to_next_header:
-                        line = EM_RE.subn(em_mask, line)[0]
-                        debug(f"line = '{line}'")
-                        handout_f.write(line)
-                    else:
-                        handout_f.write("\n")
+        with Path(fn_tmp_2).open(encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("#"):
+                    handout.write(line)
+                elif line.startswith("---"):
+                    handout.write("<hr/>\n")
+                elif line.startswith("!"):
+                    handout.write(line)
                 else:
-                    handout_f.write(line)
-            deck_link = f"[deck]({abs_fn}){{.decklink}}"
-            handout_f.write(deck_link)
-        md_cmd = [
-            MD_BIN,
-            "--divs",
-            "--toc",
-            "-w",
-            "html",
-            "-c",
-            "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css",
-            str(handout_path),
-        ]
-        info("handout md_cmd = {}".format(" ".join(md_cmd)))
-        call(md_cmd)
-        if not args.keep_tmp:
-            handout_path.unlink()
-    info("HANDOUT DONE")
+                    line = EM_RE.sub(lambda m: m.group().strip("_"), line)
+                    line = STRONG_RE.sub(lambda m: m.group().strip("*"), line)
+                    handout.write(line)
+
+        handout.write("</body></html>\n")
+
+    log.info("HANDOUT END")
 
 
 def number_elements(content):
     """Add section and paragraph marks to content which is parsed as HTML."""
-    info("parsing without comments")
+    log.info("parsing without comments")
     parser = et.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = et.parse(StringIO(content), parser)
 
-    debug("add heading marks")
+    log.debug("add heading marks")
     headings = doc.xpath("//*[name()='h2' or name()='h3' or name()='h4']")
     heading_num = 1
     for heading in headings:
@@ -298,7 +241,7 @@ def number_elements(content):
         heading.insert(0, span)  # insert span at beginning of parent
         heading_num += 1
 
-    debug("add paragraph marks")
+    log.debug("add paragraph marks")
     paras = doc.xpath("/html/body/p | /html/body/blockquote")
     para_num = 1
     for para in paras:
@@ -334,67 +277,52 @@ def make_relpath(path_to, path_from):
     ... '/Users/reagle/joseph/2021/pc/pc-syllabus-SP.html' )
     '../../2003/papers.css'
     """
-    # TODO: fix the bug when relpath fails to work when command is invoked
-    # from different directory 2023-08-10
-
-    # wiki- DEB invok: md_opts=['--toc', '--quash-citations', '--style-csl', 'apa.csl', '-w', 'html', '--embed-resources']
-    # markd INF proce: args.files = '['/Users/reagle/joseph/2023/aoc/advice-of-crowds.md']'
-    # markd INF proce: in_file = '/Users/reagle/joseph/2023/aoc/advice-of-crowds.md'
-    # markd INF proce: abs_fn = '/Users/reagle/joseph/2023/aoc/advice-of-crowds.md'
-    # markd INF proce: base_fn = '/Users/reagle/joseph/2023/aoc/advice-of-crowds'
-    # markd INF proce: fn_path = '/Users/reagle/joseph/2023/aoc'
-    # markd INF make_: argument path_to='https://reagle.org/joseph/talks/_custom/fontawesome/css/all.min.css'
-    # markd INF make_: realpath path_to='/Users/reagle/e/clear/data/2web/reagle.org/joseph/talks/_custom/fontawesome/css/all.min.css'
-    # markd INF make_: path_from='/Users/reagle/joseph/2023/aoc' is a directory!
-    # markd INF make_: final   path_from='/Users/reagle/e/clear/data/2web/reagle.org/joseph/2023/aoc'
-    # markd INF make_: result='../../talks/_custom/fontawesome/css/all.min.css'
-    # markd INF make_: argument path_to='https://reagle.org/joseph/2003/papers.css'
-    # markd INF make_: realpath path_to='/Users/reagle/e/clear/data/2web/reagle.org/joseph/2003/papers.css'
-    # markd INF make_: path_from='/Users/reagle/joseph/2023/aoc' is a directory!
-    # markd INF make_: final   path_from='/Users/reagle/e/clear/data/2web/reagle.org/joseph/2023/aoc'
-    # markd INF make_: result='../../2003/papers.css'
-    # markd INF proce: generate temporary subset bib for speed
-    # md2bi DEB get_k: filename = '/Users/reagle/joseph/2023/aoc/advice-of-crowds.md'
-
-    info(f"argument {path_to=}")
+    log.info(f"argument {path_to=}")
     if path_to.startswith("http"):
-        path_to = realpath(f"{WEBROOT}{urlparse(path_to).path}")
-    info(f"realpath {path_to=}")
+        path_to = Path(WEBROOT) / urlparse(path_to).path.lstrip("/")
+    log.info(f"realpath {path_to=}")
 
-    if isfile(path_from):
-        info(f"{path_from=} is a file, splitting!")
-        path_from, _ = split(path_from)
-    elif isdir(path_from):
-        info(f"{path_from=} is a directory!")
+    path_from = Path(path_from)
+    if path_from.is_file():
+        log.info(f"{path_from=} is a file, using parent!")
+        path_from = path_from.parent
+    elif path_from.is_dir():
+        log.info(f"{path_from=} is a directory!")
     else:
-        info(f"{path_from=} I don't know what path_from is")
-    path_from = realpath(path_from)
-    info(f"final   {path_from=}")
+        log.info(f"{path_from=} I don't know what path_from is")
 
-    result = relpath(path_to, path_from)
-    info(f"{result=}")
-    return result
+    path_from = path_from.resolve()
+    log.info(f"final {path_from=}")
+
+    try:
+        result = path_to.relative_to(path_from)
+    except ValueError:
+        # Pathlib path_to fails, convert to strings and use os.path.relpath
+        result = Path(os.path.relpath(str(path_to), str(path_from)))
+
+    log.info(f"{result=}")
+    return str(result)
 
 
 def process(args):
     if args.bibliography:
-        bib_fn = HOME + "/joseph/readings.yaml"
+        bib_fn = HOME / "joseph/readings.yaml"
         bib_chunked = md2bib.chunk_yaml(open(bib_fn).readlines())
-        debug(f"bib_chunked = {bib_chunked}")
+        log.debug(f"bib_chunked = {bib_chunked}")
 
-    info(f"args.files = '{args.files}'")
+    log.info(f"args.files = '{args.files}'")
     for in_file in args.files:
         if not in_file:
             continue
-        info(f"in_file = '{in_file}'")
+        log.info(f"in_file = '{in_file}'")
         abs_fn = abspath(in_file)
-        info(f"abs_fn = '{abs_fn}'")
+        log.info(f"abs_fn = '{abs_fn}'")
 
         base_fn, base_ext = splitext(abs_fn)
-        info(f"base_fn = '{base_fn}'")
+        log.info(f"base_fn = '{base_fn}'")
 
         fn_path = os.path.split(abs_fn)[0]
-        info(f"fn_path = '{fn_path}'")
+        log.info(f"fn_path = '{fn_path}'")
 
         ##############################
         # initial pandoc configuration based on arguments
@@ -532,11 +460,11 @@ def process(args):
                 emit_subset_func = md2bib.emit_yaml_subset
 
             pandoc_opts.extend([f"--csl={args.style_csl[0]}"])
-            info("generate temporary subset bib for speed")
+            log.info("generate temporary subset bib for speed")
             bib_subset_tmp_fn = base_fn + bib_ext
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
             keys = md2bib.get_keys_from_file(Path(abs_fn))
-            debug(f"keys = {keys}")
+            log.debug(f"keys = {keys}")
             if keys:
                 entries = parse_func(open(bib_fn).readlines())
                 subset = subset_func(entries, keys)
@@ -572,11 +500,11 @@ def process(args):
             line = process_commented_citations(line)
             if args.bibliography:  # create hypertext refs from bib db
                 line = link_citations(line, bib_chunked)
-                debug(f"\n** line is now {line}")
+                log.debug(f"\n** line is now {line}")
             if args.presentation:  # color some revealjs top of column slides
                 if line.startswith("# ") and "{data-" not in line:
                     line = line.strip() + ' {data-background="LightBlue"}\n'
-            debug(f"END line: '{line}'")
+            log.debug(f"END line: '{line}'")
             new_lines.append(line)
         f1.close()
         f2.write("\n".join(new_lines))
@@ -596,7 +524,7 @@ def process(args):
         pandoc_cmd.extend(pandoc_inputs)
         # print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
         call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
-        info("done pandoc_cmd")
+        log.info("done pandoc_cmd")
 
         if args.presentation:
             create_talk_handout(abs_fn, fn_tmp_2)
@@ -635,7 +563,7 @@ def process(args):
                 content_html = number_elements(content_html)
 
             result_fn = f"{base_fn}.html"
-            info(f"result_fn = '{result_fn}'")
+            log.info(f"result_fn = '{result_fn}'")
             if args.output:
                 result_fn = args.output[0]
             open(result_fn, "w").write(content_html)
@@ -655,11 +583,11 @@ def process(args):
                     ]
                 )
             if args.launch_browser:
-                info(f"launching {result_fn}")
+                log.info(f"launching {result_fn}")
                 Popen([BROWSER, result_fn])
 
         if not args.keep_tmp:
-            info("removing tmp files")
+            log.info("removing tmp files")
             for cleanup_fn in cleanup_tmp_fns:
                 if exists(cleanup_fn):
                     remove(cleanup_fn)
@@ -672,7 +600,7 @@ if __name__ == "__main__":
         description="Markdown wrapper with slide and bibliographic options",
         #  formatter_class=argparse.RawTextHelpFormatter,
     )
-    arg_parser.add_argument("files", nargs="+", metavar="FILE")
+    arg_parser.add_argument("files", nargs="+", metavar="FILE", type=Path)
     arg_parser.add_argument(
         "-b",
         "--bibliography",
@@ -857,23 +785,19 @@ if __name__ == "__main__":
     arg_parser.add_argument("--version", action="version", version="1.0")
     args = arg_parser.parse_args()
 
-    log_level = logging.ERROR  # 40
-    if args.verbose == 1:
-        log_level = logging.WARNING  # 30
-    elif args.verbose == 2:
-        log_level = logging.INFO  # 20
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG  # 10
-    LOG_FORMAT = "%(module).5s %(levelname).3s %(funcName).5s: %(message)s"
+    log_level = (log.CRITICAL) - (args.verbose * 10)
+    LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     if args.log_to_file:
-        logging.basicConfig(
+        print("logging to file")
+        log.basicConfig(
             filename="markdown-wrapper.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
         )
     else:
-        logging.basicConfig(level=log_level, format=LOG_FORMAT)
+        log.basicConfig(level=log_level, format=LOG_FORMAT)
+
     if args.tests:
         import doctest
 
