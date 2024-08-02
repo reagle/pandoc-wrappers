@@ -223,7 +223,7 @@ def has_dir_changed(path: Path) -> bool:
 
     checksum_file = path / ".dirs.md5sum"
     checksum = Popen(
-        ["ls -R %s | md5sum" % path], shell=True, stdout=PIPE
+        ["ls -R {} | md5sum".format(path)], shell=True, stdout=PIPE
     ).communicate()[0]
     checksum = checksum.split()[0].decode("utf-8")
 

@@ -5,11 +5,45 @@ preview = true
 
 [tool.ruff]
 
-select = ["A", "B", "BLE", "C4", "C90", "E", "F", "I", "PIE", "Q", "RSE", "UP", "YTT"]
-# "SIM", "PTH"] # good, but hard on old code
-# "PLR" need to understand more
-# "RUF" warns about ambiguous Unicode for curly quotes
-# "C90" McCabe complexity 
+# Same as Black.
+line-length = 88
+
+lint.select = [
+"A", # flake8-builtins        https://tinyurl.com/ruff-rules#flake8-builtins-a
+"B", # Flake8-bugbear         https://tinyurl.com/ruff-rules#flake8-bugbear-b
+"BLE", # Flake8-blind-except  https://tinyurl.com/ruff-rules#flake8-blind-except-ble
+"C4", # Flake8-comprehensions https://tinyurl.com/ruff-rules#flake8-comprehensions-c4
+"C90", # McCabe complexity    https://tinyurl.com/ruff-rules#mccabe-c90
+"D", # Pydocstyle             https://tinyurl.com/ruff-rules#pydocstyle-d
+"E", # Pycodestyle errors     https://tinyurl.com/ruff-rules#pycodestyle-e-w
+"F", # Pyflakes               https://tinyurl.com/ruff-rules#pyflakes-f
+"I", # Isort                  https://tinyurl.com/ruff-rules#isort-i
+"PIE", # Flake8-pie           https://tinyurl.com/ruff-rules#flake8-pie-pie
+"PLR", # Pylint refactor      https://tinyurl.com/ruff-rules#pylint-pl
+"PTH", # Flake8-use-pathlib   https://tinyurl.com/ruff-rules#flake8-use-pathlib-pth
+"Q", # Flake8-quotes          https://tinyurl.com/ruff-rules#flake8-quotes-q
+"RSE", # Flake8-raise         https://tinyurl.com/ruff-rules#flake8-raise-rse
+"RUF", # Ruff-specific        https://tinyurl.com/ruff-rules#ruff-specific-rules-ruf
+"SIM", # Flake8-simplify      https://tinyurl.com/ruff-rules#flake8-simplify-sim
+"UP", # Pyupgrade             https://tinyurl.com/ruff-rules#pyupgrade-up
+"YTT", # Flake8-2020          https://tinyurl.com/ruff-rules#flake8-2020-ytt
+]
+
+lint.ignore = [
+"D102", # Missing docstring in public method
+"D107", # Missing docstring in __init__
+"E501", # doctests need long lines
+"PLR0912", # Too many branches in function or method
+"PLR0915", # Too many statements in function or method
+"PLR0913", # Too many arguments to function call
+"PLR2004", # Magic value used in comparison
+"RUF001", # String contains ambiguous Unicode character (curly quotes)
+"RUF002", # Docstring contains ambiguous Unicode character (curly quotes)
+]
+
+lint.unfixable = [
+"F401", # keep unused modules as I'm likely to use them shortly
+]
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -35,33 +69,22 @@ exclude = [
     "_old",
 ]
 
-# Same as Black.
-line-length = 88
-
 # Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-[tool.ruff.mccabe] # enabled via "C90" above
+[tool.ruff.lint.mccabe] # enabled via "C90" above
 max-complexity = 10
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-r a -q --doctest-modules"
 testpaths = [
-    # "biblio", "formats", "tests"
+    "biblio", "formats", "tests"
 ]
 filterwarnings = "ignore::DeprecationWarning"
 enable_assertion_pass_hook = true
-python_files = [
-    "*.py",
-    ]
-
-[tool.mypy]
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
 
 [tool.pyright]
 reportMissingImports = false
 reportMissingTypeStubs = false
-pythonVersion = '3.11'
+pythonVersion = '3.12'

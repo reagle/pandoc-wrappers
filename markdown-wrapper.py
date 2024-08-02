@@ -2,7 +2,8 @@
 # (c) Copyright 2008-2012 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-"""A wrapper script for pandoc that handles my own issues:
+"""A wrapper script for pandoc that handles my own issues.
+
 1. associates the result with a particular style sheet.
 2. can replace [@key] with hypertext'd refs from bibliographic DB.
 3. makes use of reveal.js for presentations.
@@ -32,7 +33,7 @@ import sys
 
 # from sh import chmod # http://amoffat.github.com/sh/
 from io import StringIO
-from os import environ, makedirs, remove
+from os import environ, remove
 from os.path import (
     abspath,
     exists,
@@ -74,6 +75,7 @@ debug = logging.debug
 
 def link_citations(line, bib_chunked):
     """Turn pandoc/markdown citations into links within parenthesis.
+
     Used only with citations in presentations.
     """
     # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
@@ -87,17 +89,15 @@ def link_citations(line, bib_chunked):
     )  # -@Clark-Flory2010fpo
 
     def hyperize(cite_match):
-        """Hyperize every non-overlapping occurrence
-        and return to PARENS_KEY.sub
-        """
+        """Hyperize every non-overlapping occurrence and return to PARENS_KEY.sub."""
         cite_replacement = []
         url = None
         citation = cite_match.group(0)
         key = citation.split("@", 1)[1]
-        info("**   processing key: %s" % key)
+        info(f"**   processing key: {key}")
         reference = bib_chunked.get(key)
         if reference is None:
-            print("WARNING: key %s not found" % key)
+            print(f"WARNING: key {key} not found")
             return key
         else:
             info(reference.keys())
@@ -117,7 +117,7 @@ def link_citations(line, bib_chunked):
         else:
             key_text = f"{last_name} {year}"
 
-        debug("**   url = %s" % url)
+        debug(f"**   url = {url}")
         if url:
             cite_replacement.append(f"[{key_text}]({url})")
         elif title:
@@ -139,7 +139,7 @@ def link_citations(line, bib_chunked):
     )
 
     def make_parens(cite_match):
-        """Convert to balanced parens"""
+        """Convert to balanced parens."""
         return "(" + cite_match.group(0)[1:-1] + ")"
 
     line = PARENS_BRACKET_PAIR.sub(make_parens, line)
@@ -150,9 +150,7 @@ def link_citations(line, bib_chunked):
 
 
 def process_commented_citations(line):
-    """Match stuff within a bracket (beginning with ' ' or '^') that
-    has no other brackets within
-    """
+    """Match stuff within a bracket that has no other brackets within."""
     # TODO 2021-06-18: replace this with a pandoc filter?
 
     # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
@@ -168,6 +166,7 @@ def process_commented_citations(line):
 
     def quash(cite_match):
         """Collect and rewrite citations.
+
         if args.quash_citations drop commented citations, eg [#@Reagle2012foo]
         else uncomment
         """
@@ -206,12 +205,12 @@ def process_commented_citations(line):
 
 
 def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
-    """If a talk, create a (partial) handout"""
+    """If a talk, create a (partial) handout."""
     info("HANDOUT START")
     EM_RE = re.compile(r"(?<! _)_([^_]+?)_ ")
 
     def em_mask(matchobj):
-        """Replace emphasis with underscores"""
+        """Replace emphasis with underscores."""
         debug("return replace function")
         # underscore that pandoc will ignore
         return "&#95;" * len(matchobj.group(0))
@@ -247,10 +246,7 @@ def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
                     info(f"args.partial_handout = '{args.partial_handout}'")
                     line = line.replace("### ", " ")
                     if line.startswith(("# ", "## ")):
-                        if " _" in line:
-                            skip_to_next_header = True
-                        else:
-                            skip_to_next_header = False
+                        skip_to_next_header = " _" in line
                         handout_f.write(line)
                     elif not skip_to_next_header:
                         line = EM_RE.subn(em_mask, line)[0]
@@ -272,7 +268,7 @@ def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
             "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css",
             str(handout_path),
         ]
-        info("handout md_cmd = %s" % " ".join(md_cmd))
+        info("handout md_cmd = {}".format(" ".join(md_cmd)))
         call(md_cmd)
         if not args.keep_tmp:
             handout_path.unlink()
@@ -280,7 +276,7 @@ def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
 
 
 def number_elements(content):
-    """Add section and paragraph marks to content which is parsed as HTML"""
+    """Add section and paragraph marks to content which is parsed as HTML."""
     info("parsing without comments")
     parser = et.HTMLParser(remove_comments=True, remove_blank_text=True)
     doc = et.parse(StringIO(content), parser)
@@ -293,7 +289,7 @@ def number_elements(content):
         span.set("class", "headingnum")
         h_id = heading.get("id")  # grab id of existing a element
         span.tail = heading.text
-        a = et.SubElement(span, "a", href="#%s" % h_id)
+        a = et.SubElement(span, "a", href=f"#{h_id}")
         heading.text = None  # this has become the tail of the span
         a.text = "§" + str(heading_num) + "\u00a0"  # &nbsp;
         heading.insert(0, span)  # insert span at beginning of parent
@@ -308,7 +304,7 @@ def number_elements(content):
         span.set("class", "paranum")
         span.tail = para.text
         a_id = "p" + str(para_num_str)
-        a = et.SubElement(span, "a", id=a_id, name=a_id, href="#%s" % a_id)
+        a = et.SubElement(span, "a", id=a_id, name=a_id, href=f"#{a_id}")
         a.text = "p" + str(para_num_str) + "\u00a0"  # &nbsp;
         para.text = None
         para.insert(0, span)
@@ -326,7 +322,7 @@ def number_elements(content):
 
 
 def make_relpath(path_to, path_from):
-    """Return relative path that works on filesystem and server
+    """Return relative path that works on filesystem and server.
 
     >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
     ... '/Users/reagle/joseph/2021/pc/' )
@@ -381,21 +377,21 @@ def process(args):
     if args.bibliography:
         bib_fn = HOME + "/joseph/readings.yaml"
         bib_chunked = md2bib.chunk_yaml(open(bib_fn).readlines())
-        debug("bib_chunked = %s" % (bib_chunked))
+        debug(f"bib_chunked = {bib_chunked}")
 
-    info("args.files = '%s'" % args.files)
+    info(f"args.files = '{args.files}'")
     for in_file in args.files:
         if not in_file:
             continue
-        info("in_file = '%s'" % in_file)
+        info(f"in_file = '{in_file}'")
         abs_fn = abspath(in_file)
-        info("abs_fn = '%s'" % (abs_fn))
+        info(f"abs_fn = '{abs_fn}'")
 
         base_fn, base_ext = splitext(abs_fn)
-        info("base_fn = '%s'" % (base_fn))
+        info(f"base_fn = '{base_fn}'")
 
         fn_path = os.path.split(abs_fn)[0]
-        info("fn_path = '%s'" % (fn_path))
+        info(f"fn_path = '{fn_path}'")
 
         ##############################
         # initial pandoc configuration based on arguments
@@ -490,13 +486,13 @@ def process(args):
         if args.toc:
             pandoc_opts.extend(["--toc"])
             if args.toc_depth:
-                pandoc_opts.extend(["--toc-depth=%s" % args.toc_depth[0]])
+                pandoc_opts.extend([f"--toc-depth={args.toc_depth[0]}"])
         if args.embed_resources:
             pandoc_opts.extend(["--embed-resources"])
         if args.divs:
             pandoc_opts.extend(["--section-divs"])
         if args.include_after_body:
-            pandoc_opts.extend(["--include-after-body=%s" % args.include_after_body[0]])
+            pandoc_opts.extend([f"--include-after-body={args.include_after_body[0]}"])
         if args.lua_filter:
             pandoc_opts.extend(["--lua-filter", args.lua_filter[0]])
         if args.metadata:
@@ -532,19 +528,19 @@ def process(args):
                 subset_func = md2bib.subset_yaml
                 emit_subset_func = md2bib.emit_yaml_subset
 
-            pandoc_opts.extend(["--csl=%s" % args.style_csl[0]])
+            pandoc_opts.extend([f"--csl={args.style_csl[0]}"])
             info("generate temporary subset bib for speed")
             bib_subset_tmp_fn = base_fn + bib_ext
             cleanup_tmp_fns.append(bib_subset_tmp_fn)
-            keys = md2bib.get_keys_from_file(abs_fn)
-            debug("keys = %s" % keys)
+            keys = md2bib.get_keys_from_file(Path(abs_fn))
+            debug(f"keys = {keys}")
             if keys:
                 entries = parse_func(open(bib_fn).readlines())
                 subset = subset_func(entries, keys)
                 emit_subset_func(subset, open(bib_subset_tmp_fn, "w"))
                 pandoc_opts.extend(
                     [
-                        "--bibliography=%s" % bib_subset_tmp_fn,
+                        f"--bibliography={bib_subset_tmp_fn}",
                     ]
                 )
                 pandoc_opts.extend(
@@ -573,11 +569,11 @@ def process(args):
             line = process_commented_citations(line)
             if args.bibliography:  # create hypertext refs from bib db
                 line = link_citations(line, bib_chunked)
-                debug("\n** line is now %s" % line)
+                debug(f"\n** line is now {line}")
             if args.presentation:  # color some revealjs top of column slides
                 if line.startswith("# ") and "{data-" not in line:
                     line = line.strip() + ' {data-background="LightBlue"}\n'
-            debug("END line: '%s'" % line)
+            debug(f"END line: '{line}'")
             new_lines.append(line)
         f1.close()
         f2.write("\n".join(new_lines))
@@ -635,8 +631,8 @@ def process(args):
             if args.number_elements:
                 content_html = number_elements(content_html)
 
-            result_fn = "%s.html" % (base_fn)
-            info("result_fn = '%s'" % (result_fn))
+            result_fn = f"{base_fn}.html"
+            info(f"result_fn = '{result_fn}'")
             if args.output:
                 result_fn = args.output[0]
             open(result_fn, "w").write(content_html)
@@ -656,7 +652,7 @@ def process(args):
                     ]
                 )
             if args.launch_browser:
-                info("launching %s" % result_fn)
+                info(f"launching {result_fn}")
                 Popen([BROWSER, result_fn])
 
         if not args.keep_tmp:

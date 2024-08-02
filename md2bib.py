@@ -2,36 +2,28 @@
 # (c) Copyright 2011-2014 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-"""Extract a subset of bibliographic keys from BIB_FILE
-using those keys found in a markdown file or specified
-in argument.
+"""Extract a subset of bibliographic keys.
+
+UExtract a subset of bibliographic keys from BIB_FILE
+using keys found in a markdown file or specified in argument.
 """
 
-import logging
+import logging as log
 import re
 import sys
 from collections import OrderedDict
 from inspect import cleandoc  # better than dedent
-from os.path import exists, expanduser, splitext
+from pathlib import Path
 
-HOME = expanduser("~") if exists(expanduser("~")) else None
-
-log_level = logging.ERROR  # 40
-
-# function aliases
-critical = logging.critical
-error = logging.error
-warning = logging.warning
-info = logging.info
-debug = logging.debug
+HOME = Path.home()
 
 
 def chunk_yaml(text):
-    """Return a dictionary of YAML chunks. This does *not* parse the YAML
-    but chunks syntactically constrained YAML for speed.
+    """Return a dictionary of YAML chunks.
+
+    This does *not* parse the YAML but chunks syntactically constrained YAML for speed.
     entries dict only supports the keys 'url' and 'title-short' for lookups
     and '_yaml_block' for quick subsetting/emitting.
-
     """
     entries = OrderedDict()
     yaml_block = []
@@ -72,7 +64,7 @@ def emit_yaml_subset(entries, outfd):
     """Emit a YAML file."""
     outfd.write("""---\nreferences:\n""")
     for identifier in entries:
-        debug("identifier = '%s'" % (identifier))
+        log.debug(f"identifier = '{identifier}'")
         outfd.write(entries[identifier]["_yaml_block"])
         outfd.write("\n")
     outfd.write("""\n...\n""")
@@ -85,12 +77,13 @@ def subset_yaml(entries, keys):
         if key in entries:
             subset[key] = entries[key]
         else:
-            critical("%s not in entries" % key)
+            log.critical(f"{key} not in entries")
     return subset
 
 
 def chunk_bibtex(text):
     """Return a dictionary of entry dictionaries, each with a field/value.
+
     The parser is simple/fast *and* inflexible, unlike the proper but
     slow parsers bibstuff and pyparsing-based parsers.
     """
@@ -113,7 +106,7 @@ def chunk_bibtex(text):
 
 def emit_bibtex_entry(identifier, values, outfd):
     """Emit a single bibtex entry."""
-    debug("writing entry")
+    log.debug("writing entry")
     outfd.write("@{}{{{},\n".format(values["entry_type"], identifier))
     for field, value in values.items():
         if field != "entry_type":
@@ -134,19 +127,19 @@ def subset_bibtex(entries, keys):
         if key in entries:
             subset[key] = entries[key]
         else:
-            critical("%s not in entries" % key)
+            log.critical(f"{key} not in entries")
     return subset
 
 
-def get_keys_from_file(filename):
-    """Return a list of keys used in a markdown file"""
-    debug("filename = '%s'" % filename)
-    text = open(filename).read()
+def get_keys_from_file(filename: Path) -> list[str]:
+    """Return a list of keys used in a markdown file."""
+    log.debug(f"{filename=}'")
+    text = filename.read_text()
     return get_keys_from_string(text)
 
 
-def get_keys_from_string(text):
-    """Return a list of keys from string"""
+def get_keys_from_string(text: str) -> list[str]:
+    """Return a list of keys from string."""
     # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
     CITES_RE = re.compile(
         r"""
@@ -214,7 +207,7 @@ TEST_OUT = [
 ]
 
 
-if "__main__" == __name__:
+if __name__ == "__main__":
     import argparse  # http://docs.python.org/dev/library/argparse.html
 
     arg_parser = argparse.ArgumentParser(
@@ -224,7 +217,7 @@ if "__main__" == __name__:
             "in a markdown file or specified in argument."
         )
     )
-    arg_parser.add_argument("filename", nargs="?", metavar="BIB_FILE")
+    arg_parser.add_argument("filename", nargs="?", metavar="BIB_FILE", type=Path)
     arg_parser.add_argument(
         "-b",
         "--BIBTEX",
@@ -239,7 +232,13 @@ if "__main__" == __name__:
         metavar="MD_FILE",
         help="use citations in file",
     )
-    arg_parser.add_argument("-k", "--keys", nargs=1, help="use specified KEYS")
+    arg_parser.add_argument(
+        "-k",
+        "--keys",
+        nargs=1,
+        help="use specified KEYS, comma or newline delimited",
+        type=str,
+    )
     arg_parser.add_argument(
         "-L",
         "--log-to-file",
@@ -252,6 +251,7 @@ if "__main__" == __name__:
         "--out-filename",
         help="output results to filename",
         metavar="OUT_FILE",
+        type=Path,
     )
     arg_parser.add_argument(
         "-T",
@@ -270,23 +270,17 @@ if "__main__" == __name__:
     arg_parser.add_argument("--version", action="version", version="TBD")
     args = arg_parser.parse_args()
 
-    log_level = logging.ERROR  # 40
-    if args.verbose == 1:
-        log_level = logging.WARNING  # 30
-    elif args.verbose == 2:
-        log_level = logging.INFO  # 20
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG  # 10
-    LOG_FORMAT = "%(module).5s %(levelname).3s %(funcName).5s: %(message)s"
+    log_level = (log.CRITICAL) - (args.verbose * 10)
+    LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     if args.log_to_file:
-        logging.basicConfig(
+        log.basicConfig(
             filename="md2bib.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
         )
     else:
-        logging.basicConfig(level=log_level, format=LOG_FORMAT)
+        log.basicConfig(level=log_level, format=LOG_FORMAT)
 
     if args.test:
         results = get_keys_from_string(TEST_IN)
@@ -299,38 +293,35 @@ if "__main__" == __name__:
             print(f"difference: {set(TEST_OUT) ^ set(results)}")
         sys.exit()
 
-    if args.out_filename:
-        outfd = open(args.out_filename, "w")
-    else:
-        outfd = sys.stdout
+    outfd = args.out_filename.open("w") if args.out_filename else sys.stdout
 
     # debug("args.filename = %s" % (args.filename))
     if not args.filename:
         if args.BIBTEX:
-            args.filename = HOME + "/joseph/readings.bib"
+            args.filename = HOME / "joseph/readings.bib"
             chunk_func = chunk_bibtex
         else:
-            args.filename = HOME + "/joseph/readings.yaml"
+            args.filename = HOME / "joseph/readings.yaml"
             chunk_func = chunk_yaml
     else:
-        fn, ext = splitext(args.filename)
-        debug("ext = %s" % (ext))
+        fn, ext = args.filename.stem, args.filename.suffix
+        log.debug(f"ext = {ext}")
         if ext == ".bib":
             chunk_func = chunk_bibtex
             args.BIBTEX = True
         else:
             chunk_func = chunk_yaml
 
-    debug("args.filename = %s" % (args.filename))
-    debug("chunk_func = %s" % (chunk_func))
-    entries = chunk_func(open(args.filename).readlines())
+    log.debug(f"args.filename = {args.filename}")
+    log.debug(f"chunk_func = {chunk_func}")
+    entries = chunk_func(args.filename.open().readlines())
 
     if args.keys:
-        keys = args.keys[0].split(",")
-        debug("arg keys = '%s'" % keys)
+        keys = [key.strip() for key in args.keys[0].split(",")]
+        log.debug(f"arg keys = '{keys}'")
     elif args.find_keys:
         keys = get_keys_from_file(args.find_keys[0])
-        debug("md  keys = '%s'" % keys)
+        log.debug(f"md  keys = '{keys}'")
     else:
         print("No keys given")
         sys.exit()
