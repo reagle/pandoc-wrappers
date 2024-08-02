@@ -73,6 +73,47 @@ info = logging.info
 debug = logging.debug
 
 
+def hyperize(cite_match, bib_chunked):
+    """Hyperize every non-overlapping occurrence and return to PARENS_KEY.sub."""
+    cite_replacement = []
+    url = None
+    citation = cite_match.group(0)
+    key = citation.split("@", 1)[1]
+    info(f"**   processing key: {key}")
+    reference = bib_chunked.get(key)
+    if reference is None:
+        print(f"WARNING: key {key} not found")
+        return key
+    else:
+        info(reference.keys())
+    url = reference.get("url")
+    info(f"{url=}")
+    title = reference.get("title-short")
+    info(f"{title=}")
+    last_name, year, _ = re.split(r"(\d\d\d\d)", key)
+    if last_name.endswith("Etal"):
+        last_name = last_name[0:-4] + " et al."
+
+    if "original-date" in reference:
+        year = f"{reference['original-date']}/{year}"
+        info("original-date!")
+    if citation.startswith("-"):
+        key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
+    else:
+        key_text = f"{last_name} {year}"
+
+    debug(f"**   url = {url}")
+    if url:
+        cite_replacement.append(f"[{key_text}]({url})")
+    elif title:
+        title = title.replace("{", "").replace("}", "")
+        cite_replacement.append(f'{key_text}, "{title}"')
+    else:
+        cite_replacement.append(f"{key_text}")
+    debug(f"**   using {cite_replacement}=")
+    return "".join(cite_replacement)
+
+
 def link_citations(line, bib_chunked):
     """Turn pandoc/markdown citations into links within parenthesis.
 
@@ -88,46 +129,6 @@ def link_citations(line, bib_chunked):
         re.VERBOSE,
     )  # -@Clark-Flory2010fpo
 
-    def hyperize(cite_match):
-        """Hyperize every non-overlapping occurrence and return to PARENS_KEY.sub."""
-        cite_replacement = []
-        url = None
-        citation = cite_match.group(0)
-        key = citation.split("@", 1)[1]
-        info(f"**   processing key: {key}")
-        reference = bib_chunked.get(key)
-        if reference is None:
-            print(f"WARNING: key {key} not found")
-            return key
-        else:
-            info(reference.keys())
-        url = reference.get("url")
-        info(f"{url=}")
-        title = reference.get("title-short")
-        info(f"{title=}")
-        last_name, year, _ = re.split(r"(\d\d\d\d)", key)
-        if last_name.endswith("Etal"):
-            last_name = last_name[0:-4] + " et al."
-
-        if "original-date" in reference:
-            year = f"{reference['original-date']}/{year}"
-            info("original-date!")
-        if citation.startswith("-"):
-            key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
-        else:
-            key_text = f"{last_name} {year}"
-
-        debug(f"**   url = {url}")
-        if url:
-            cite_replacement.append(f"[{key_text}]({url})")
-        elif title:
-            title = title.replace("{", "").replace("}", "")
-            cite_replacement.append(f'{key_text}, "{title}"')
-        else:
-            cite_replacement.append(f"{key_text}")
-        debug(f"**   using {cite_replacement}=")
-        return "".join(cite_replacement)
-
     # TODO: harmonize within markdown-wrapper.py and with md2bib.py 2021-06-25
     PARENS_BRACKET_PAIR = re.compile(
         r"""
@@ -138,15 +139,16 @@ def link_citations(line, bib_chunked):
         re.VERBOSE,
     )
 
-    def make_parens(cite_match):
-        """Convert to balanced parens."""
-        return "(" + cite_match.group(0)[1:-1] + ")"
-
     line = PARENS_BRACKET_PAIR.sub(make_parens, line)
     debug(f"{line}")
-    line = PARENS_KEY.sub(hyperize, line)
+    line = PARENS_KEY.sub(lambda match_obj: hyperize(match_obj, bib_chunked), line)
     debug(f"{line}")
     return line
+
+
+def make_parens(cite_match):
+    """Convert to balanced parens."""
+    return "(" + cite_match.group(0)[1:-1] + ")"
 
 
 def process_commented_citations(line):
@@ -164,36 +166,6 @@ def process_commented_citations(line):
         re.VERBOSE,
     )
 
-    def quash(cite_match):
-        """Collect and rewrite citations.
-
-        if args.quash_citations drop commented citations, eg [#@Reagle2012foo]
-        else uncomment
-        """
-        citation = cite_match.group(0)
-        debug(f"citation = '{citation}'")
-        prefix = "^" if citation[0] == "^" else " "
-        chunks = citation[2:-1].split(";")  # isolate chunks from ' [' + ']'
-        debug(f"chunks = {chunks}")
-        citations_keep = []
-        for chunk in chunks:
-            debug(f"  chunk = '{chunk}'")
-            if "#@" in chunk:
-                if args.quash_citations:
-                    debug("  quashed")
-                else:
-                    chunk = chunk.replace("#@", "@")
-                    debug(f"  keeping chunk = '{chunk}'")
-                    citations_keep.append(chunk)
-            else:
-                citations_keep.append(chunk)
-
-        if citations_keep:
-            debug(f"citations_keep = '{citations_keep}'")
-            return f"{prefix}[" + ";".join(citations_keep) + "]"
-        else:
-            return ""
-
     debug(f"old_line = {line}")
     new_line = PARENS_BRACKET_PAIR.subn(quash, line)[0]
     debug(f"new_line = {new_line}")
@@ -202,6 +174,37 @@ def process_commented_citations(line):
         if "]." in line and '".' in new_line:  # imperfect test
             new_line = new_line.replace('".', '."')
     return new_line
+
+
+def quash(cite_match):
+    """Collect and rewrite citations.
+
+    if args.quash_citations drop commented citations, eg [#@Reagle2012foo]
+    else uncomment
+    """
+    citation = cite_match.group(0)
+    debug(f"citation = '{citation}'")
+    prefix = "^" if citation[0] == "^" else " "
+    chunks = citation[2:-1].split(";")  # isolate chunks from ' [' + ']'
+    debug(f"chunks = {chunks}")
+    citations_keep = []
+    for chunk in chunks:
+        debug(f"  chunk = '{chunk}'")
+        if "#@" in chunk:
+            if args.quash_citations:
+                debug("  quashed")
+            else:
+                chunk = chunk.replace("#@", "@")
+                debug(f"  keeping chunk = '{chunk}'")
+                citations_keep.append(chunk)
+        else:
+            citations_keep.append(chunk)
+
+    if citations_keep:
+        debug(f"citations_keep = '{citations_keep}'")
+        return f"{prefix}[" + ";".join(citations_keep) + "]"
+    else:
+        return ""
 
 
 def create_talk_handout(abs_fn: str, tmp2_fn: str) -> None:
