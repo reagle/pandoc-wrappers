@@ -518,7 +518,7 @@ def process(args):
             if args.bibtex:
                 bib_fn = HOME + "/joseph/readings.bib"
                 bib_ext = ".bib"
-                parse_func = md2bib.parse_bibtex
+                parse_func = md2bib.chunk_bibtex
                 subset_func = md2bib.subset_bibtex
                 emit_subset_func = md2bib.emit_bibtex_subset
             else:
