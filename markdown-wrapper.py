@@ -295,7 +295,7 @@ def make_relpath(path_to, path_from):
     log.info(f"final {path_from=}")
 
     try:
-        result = path_to.relative_to(path_from)
+        result = path_to.relative_to(path_from, walk_up=True)
     except ValueError:
         # Pathlib path_to fails, convert to strings and use os.path.relpath
         result = Path(os.path.relpath(str(path_to), str(path_from)))
@@ -309,6 +309,8 @@ def process(args):
         bib_fn = HOME / "joseph/readings.yaml"
         bib_chunked = md2bib.chunk_yaml(open(bib_fn).readlines())
         log.debug(f"bib_chunked = {bib_chunked}")
+    else:
+        bib_chunked = None
 
     log.info(f"args.files = '{args.files}'")
     for in_file in args.files:
@@ -324,273 +326,274 @@ def process(args):
         fn_path = os.path.split(abs_fn)[0]
         log.info(f"fn_path = '{fn_path}'")
 
-        ##############################
-        # initial pandoc configuration based on arguments
-        ##############################
-
-        pandoc_inputs = []
-        pandoc_opts = ["-w", args.write]
-        # if args.write == 'markdown-citations':
-        #     pandoc_opts.extend(['--csl=sage-harvard.csl',
-        #         '--bibliography=/home/reagle/joseph/readings.yaml'])
-
-        pandoc_opts.extend(
-            [
-                "--defaults",
-                "base.yaml",  # include tab stop, lang, etc.
-                "--standalone",
-                "--lua-filter",
-                "pandoc-quotes.lua",  # specify quote marks and lang
-                "--strip-comments",
-                "--wrap=auto",
-                "--columns=120",
-                "-c",
-                make_relpath(
-                    "https://reagle.org/joseph/talks/_custom/"
-                    + "fontawesome/css/all.min.css",
-                    fn_path,
-                ),
-            ]
+        # ##############################
+        # These functions result from breaking up an earlier massive function,
+        # further refactoring should minimize the arguments being passed about.
+        pandoc_inputs, pandoc_opts = set_pandoc_options(args, fn_path)
+        cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3 = pre_pandoc_processing(
+            abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_opts
         )
+        pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts)
+        result_fn = post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3)
+        # ##############################
 
-        # npm install --global mermaid-filter
-        if args.mermaid:
-            pandoc_opts.extend(
-                [
-                    "-F",
-                    "mermaid-filter",  # creates png/svg
-                    # "--lua-filter",  # does not work presently
-                    # "mermaid-figure.lua",  # uses fig and figcaption
-                ]
-            )
-
-        if args.pantable:
-            pandoc_opts.extend(
-                [
-                    "-F",
-                    "pantable",  # allows tables as CSV, slows by 50%
-                ]
-            )
-
-        if args.presentation:
-            args.validate = False
-            args.css = False
-            pandoc_opts.extend(
-                [
-                    "-c",
-                    "../_custom/reveal4js.css",
-                    "-t",
-                    "revealjs",
-                    "--slide-level=2",
-                    "-V",
-                    "revealjs-url=../_reveal4.js",
-                    "-V",
-                    "theme=beige",
-                    "-V",
-                    "transition=linear",
-                    "-V",
-                    "history=true",
-                    "-V",
-                    "zoomKey=shift",
-                    # '--no-highlight', # conflicts with reveal's highlight.js
-                ]
-            )
-        elif args.write.startswith("html") and args.css:
-            # ?DO NOT use relpath as this is a commandline argument?
-            # pandoc_opts.extend(["-c", args.css])
-            pandoc_opts.extend(["-c", make_relpath(args.css, fn_path)])
-
-        elif args.write.startswith("docx"):
-            pandoc_opts.extend(
-                ["--reference-doc", HOME + "/.pandoc/reference-mit-press.docx"]
-            )
-        if args.condensed:
-            pandoc_opts.extend(
-                [
-                    "-c",
-                    make_relpath(
-                        "https://reagle.org/joseph/2003/papers-condensed.css",
-                        fn_path,
-                    ),
-                ]
-            )
-        if args.toc:
-            pandoc_opts.extend(["--toc"])
-            if args.toc_depth:
-                pandoc_opts.extend([f"--toc-depth={args.toc_depth[0]}"])
-        if args.embed_resources:
-            pandoc_opts.extend(["--embed-resources"])
-        if args.divs:
-            pandoc_opts.extend(["--section-divs"])
-        if args.include_after_body:
-            pandoc_opts.extend([f"--include-after-body={args.include_after_body[0]}"])
-        if args.lua_filter:
-            pandoc_opts.extend(["--lua-filter", args.lua_filter[0]])
-        if args.metadata:
-            pandoc_opts.extend(["--metadata", args.metadata[0]])
-        if args.style_chicago:
-            args.style_csl = ["chicago-author-date.csl"]
-
-        ##############################
-        # pre pandoc
-        ##############################
-
-        bib_subset_tmp_fn = None  # fn of subset of main biblio
-        fn_tmp_1 = f"{base_fn}-1{base_ext}"  # as read
-        fn_tmp_2 = f"{base_fn}-2{base_ext}"  # pre-pandoc
-        fn_tmp_3 = f"{base_fn}-3.{args.write}"  # post-pandoc copy
-        fn_result = base_fn + "." + args.write
-        cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
-
-        pandoc_opts.extend(["-o", fn_result])
-        pandoc_opts.extend(["--mathjax"])
-
-        if args.style_csl:
-            if args.bibtex:
-                bib_fn = HOME + "/joseph/readings.bib"
-                bib_ext = ".bib"
-                parse_func = md2bib.chunk_bibtex
-                subset_func = md2bib.subset_bibtex
-                emit_subset_func = md2bib.emit_bibtex_subset
-            else:
-                bib_fn = HOME + "/joseph/readings.yaml"
-                bib_ext = ".yaml"
-                parse_func = md2bib.chunk_yaml
-                subset_func = md2bib.subset_yaml
-                emit_subset_func = md2bib.emit_yaml_subset
-
-            pandoc_opts.extend([f"--csl={args.style_csl[0]}"])
-            log.info("generate temporary subset bib for speed")
-            bib_subset_tmp_fn = base_fn + bib_ext
-            cleanup_tmp_fns.append(bib_subset_tmp_fn)
-            keys = md2bib.get_keys_from_file(Path(abs_fn))
-            log.debug(f"keys = {keys}")
-            if keys:
-                entries = parse_func(open(bib_fn).readlines())
-                subset = subset_func(entries, keys)
-                emit_subset_func(subset, open(bib_subset_tmp_fn, "w"))
-                pandoc_opts.extend(
-                    [
-                        f"--bibliography={bib_subset_tmp_fn}",
-                    ]
-                )
-                pandoc_opts.extend(
-                    [
-                        "--citeproc",
-                    ]
-                )
-
-        shutil.copyfile(abs_fn, fn_tmp_1)
-        f1 = codecs.open(fn_tmp_1, "r", "UTF-8", "replace")
-        content = f1.read()
-        if content[0] == codecs.BOM_UTF8.decode("utf8"):
-            content = content[1:]
-        f2 = codecs.open(fn_tmp_2, "w", "UTF-8", "replace")
-
-        # print(f"{abs_fn=}")
-
-        lines = content.split("\n")
-        new_lines = []
-
-        for line in lines:
-            # TODO: fix Wikicommons relative network-path references
-            # so the URLs work on local file system (i.e.,'file:///')
-            line = line.replace('src="//', 'src="http://')
-            # TODO: encode ampersands in URLs
-            line = process_commented_citations(line)
-            if args.bibliography:  # create hypertext refs from bib db
-                line = link_citations(line, bib_chunked)
-                log.debug(f"\n** line is now {line}")
-            if args.presentation:  # color some revealjs top of column slides
-                if line.startswith("# ") and "{data-" not in line:
-                    line = line.strip() + ' {data-background="LightBlue"}\n'
-            log.debug(f"END line: '{line}'")
-            new_lines.append(line)
-        f1.close()
-        f2.write("\n".join(new_lines))
-        f2.close()
-
-        ##############################
-        # pandoc
-        ##############################
-
-        pandoc_cmd = [
-            PANDOC_BIN,
-            "-r",
-            f"{args.read}",
-        ]
-        pandoc_cmd.extend(pandoc_opts)
-        pandoc_inputs.insert(0, fn_tmp_2)
-        pandoc_cmd.extend(pandoc_inputs)
-        # print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
-        call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
-        log.info("done pandoc_cmd")
-
-        if args.presentation:
-            create_talk_handout(abs_fn, fn_tmp_2)
-
-        ##############################
-        # post pandoc content
-        ##############################
-
-        if args.write == "html":
-            # final tweaks html file
-            shutil.copyfile(fn_result, fn_tmp_3)  # copy of html for debugging
-            content_html = open(fn_tmp_3).read()
-            if not content_html:
-                raise ValueError("post-pandoc content_html is empty")
-
-            # text alterations
-            if args.british_quotes:  # swap double/single quotes
-                content_html = content_html.replace('"', "&ldquo;").replace(
-                    '"', "&rdquo;"
-                )
-                single_quote_re = re.compile(r"(\W)'(.{2,40}?)'(\W)")
-                content_html = single_quote_re.sub(r'\1"\2"\3', content_html)
-                content_html = content_html.replace("&ldquo;", r"'").replace(
-                    "&rdquo;", "'"
-                )
-            # correct bibliography
-            content_html = content_html.replace(" Vs. ", " vs. ")
-
-            if args.presentation:
-                # convert to data-src for lazy loading
-                lazy_elements_re = re.compile(r"""(\<img|<iframe|<video)(.*?) src=""")
-                content_html = lazy_elements_re.sub(r"\1\2 data-src=", content_html)
-
-            # HTML alterations
-            if args.number_elements:
-                content_html = number_elements(content_html)
-
-            result_fn = f"{base_fn}.html"
-            log.info(f"result_fn = '{result_fn}'")
-            if args.output:
-                result_fn = args.output[0]
-            open(result_fn, "w").write(content_html)
-
-            if args.validate:
-                call(
-                    [
-                        "tidy",
-                        "-utf8",
-                        "-q",
-                        "-i",
-                        "-m",
-                        "-w",
-                        "0",
-                        "-asxhtml",
-                        result_fn,
-                    ]
-                )
-            if args.launch_browser:
-                log.info(f"launching {result_fn}")
-                Popen([BROWSER, result_fn])
+        if args.write == "html" and args.launch_browser:
+            log.info(f"launching {result_fn}")
+            Popen([BROWSER, result_fn])
 
         if not args.keep_tmp:
             log.info("removing tmp files")
             for cleanup_fn in cleanup_tmp_fns:
                 if exists(cleanup_fn):
                     remove(cleanup_fn)
+
+
+def set_pandoc_options(args, fn_path):
+    ##############################
+    # initial pandoc configuration based on arguments
+    ##############################
+    pandoc_inputs = []
+    pandoc_opts = ["-w", args.write]
+    # if args.write == 'markdown-citations':
+    #     pandoc_opts.extend(['--csl=sage-harvard.csl',
+    #         '--bibliography=/home/reagle/joseph/readings.yaml'])
+    pandoc_opts.extend(
+        [
+            "--defaults",
+            "base.yaml",  # include tab stop, lang, etc.
+            "--standalone",
+            "--lua-filter",
+            "pandoc-quotes.lua",  # specify quote marks and lang
+            "--strip-comments",
+            "--wrap=auto",
+            "--columns=120",
+            "-c",
+            make_relpath(
+                "https://reagle.org/joseph/talks/_custom/"
+                + "fontawesome/css/all.min.css",
+                fn_path,
+            ),
+        ]
+    )
+    # npm install --global mermaid-filter
+    if args.mermaid:
+        pandoc_opts.extend(
+            [
+                "-F",
+                "mermaid-filter",  # creates png/svg
+                # "--lua-filter",  # does not work presently
+                # "mermaid-figure.lua",  # uses fig and figcaption
+            ]
+        )
+    if args.pantable:
+        pandoc_opts.extend(
+            [
+                "-F",
+                "pantable",  # allows tables as CSV, slows by 50%
+            ]
+        )
+    if args.presentation:
+        args.validate = False
+        args.css = False
+        pandoc_opts.extend(
+            [
+                "-c",
+                "../_custom/reveal4js.css",
+                "-t",
+                "revealjs",
+                "--slide-level=2",
+                "-V",
+                "revealjs-url=../_reveal4.js",
+                "-V",
+                "theme=beige",
+                "-V",
+                "transition=linear",
+                "-V",
+                "history=true",
+                "-V",
+                "zoomKey=shift",
+                # '--no-highlight', # conflicts with reveal's highlight.js
+            ]
+        )
+    elif args.write.startswith("html") and args.css:
+        # ?DO NOT use relpath as this is a commandline argument?
+        # pandoc_opts.extend(["-c", args.css])
+        pandoc_opts.extend(["-c", make_relpath(args.css, fn_path)])
+
+    elif args.write.startswith("docx"):
+        pandoc_opts.extend(
+            ["--reference-doc", HOME / ".pandoc/reference-mit-press.docx"]
+        )
+    if args.condensed:
+        pandoc_opts.extend(
+            [
+                "-c",
+                make_relpath(
+                    "https://reagle.org/joseph/2003/papers-condensed.css",
+                    fn_path,
+                ),
+            ]
+        )
+    if args.toc:
+        pandoc_opts.extend(["--toc"])
+        if args.toc_depth:
+            pandoc_opts.extend([f"--toc-depth={args.toc_depth[0]}"])
+    if args.embed_resources:
+        pandoc_opts.extend(["--embed-resources"])
+    if args.divs:
+        pandoc_opts.extend(["--section-divs"])
+    if args.include_after_body:
+        pandoc_opts.extend([f"--include-after-body={args.include_after_body[0]}"])
+    if args.lua_filter:
+        pandoc_opts.extend(["--lua-filter", args.lua_filter[0]])
+    if args.metadata:
+        pandoc_opts.extend(["--metadata", args.metadata[0]])
+    if args.style_chicago:
+        args.style_csl = ["chicago-author-date.csl"]
+    return pandoc_inputs, pandoc_opts
+
+
+def pre_pandoc_processing(abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_opts):
+    ##############################
+    # pre pandoc
+    ##############################
+    bib_subset_tmp_fn = None  # fn of subset of main biblio
+    fn_tmp_1 = f"{base_fn}-1{base_ext}"  # as read
+    fn_tmp_2 = f"{base_fn}-2{base_ext}"  # pre-pandoc
+    fn_tmp_3 = f"{base_fn}-3.{args.write}"  # post-pandoc copy
+    fn_result = base_fn + "." + args.write
+    cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
+    pandoc_opts.extend(["-o", fn_result])
+    pandoc_opts.extend(["--mathjax"])
+    if args.style_csl:
+        if args.bibtex:
+            bib_fn = HOME / "joseph/readings.bib"
+            bib_ext = ".bib"
+            parse_func = md2bib.chunk_bibtex
+            subset_func = md2bib.subset_bibtex
+            emit_subset_func = md2bib.emit_bibtex_subset
+        else:
+            bib_fn = HOME / "joseph/readings.yaml"
+            bib_ext = ".yaml"
+            parse_func = md2bib.chunk_yaml
+            subset_func = md2bib.subset_yaml
+            emit_subset_func = md2bib.emit_yaml_subset
+
+        pandoc_opts.extend([f"--csl={args.style_csl[0]}"])
+        log.info("generate temporary subset bib for speed")
+        bib_subset_tmp_fn = base_fn + bib_ext
+        cleanup_tmp_fns.append(bib_subset_tmp_fn)
+        keys = md2bib.get_keys_from_file(Path(abs_fn))
+        log.debug(f"keys = {keys}")
+        if keys:
+            entries = parse_func(open(bib_fn).readlines())
+            subset = subset_func(entries, keys)
+            emit_subset_func(subset, open(bib_subset_tmp_fn, "w"))
+            pandoc_opts.extend(
+                [
+                    f"--bibliography={bib_subset_tmp_fn}",
+                ]
+            )
+            pandoc_opts.extend(
+                [
+                    "--citeproc",
+                ]
+            )
+    shutil.copyfile(abs_fn, fn_tmp_1)
+    f1 = codecs.open(fn_tmp_1, "r", "UTF-8", "replace")
+    content = f1.read()
+    if content[0] == codecs.BOM_UTF8.decode("utf8"):
+        content = content[1:]
+    f2 = codecs.open(fn_tmp_2, "w", "UTF-8", "replace")
+    # print(f"{abs_fn=}")
+    lines = content.split("\n")
+    new_lines = []
+    for line in lines:
+        # TODO: fix Wikicommons relative network-path references
+        # so the URLs work on local file system (i.e.,'file:///')
+        line = line.replace('src="//', 'src="http://')
+        # TODO: encode ampersands in URLs
+        line = process_commented_citations(line)
+        if args.bibliography:  # create hypertext refs from bib db
+            line = link_citations(line, bib_chunked)
+            log.debug(f"\n** line is now {line}")
+        if args.presentation:  # color some revealjs top of column slides
+            if line.startswith("# ") and "{data-" not in line:
+                line = line.strip() + ' {data-background="LightBlue"}\n'
+        log.debug(f"END line: '{line}'")
+        new_lines.append(line)
+    f1.close()
+    f2.write("\n".join(new_lines))
+    f2.close()
+    return cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3
+
+
+def pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts):
+    ##############################
+    # pandoc
+    ##############################
+    pandoc_cmd = [
+        PANDOC_BIN,
+        "-r",
+        f"{args.read}",
+    ]
+    pandoc_cmd.extend(pandoc_opts)
+    pandoc_inputs.insert(0, fn_tmp_2)
+    pandoc_cmd.extend(pandoc_inputs)
+    # print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
+    call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
+    log.info("done pandoc_cmd")
+    if args.presentation:
+        create_talk_handout(abs_fn, fn_tmp_2)
+
+
+def post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3):
+    if args.write == "html":
+        # final tweaks html file
+        shutil.copyfile(fn_result, fn_tmp_3)  # copy of html for debugging
+        content_html = open(fn_tmp_3).read()
+        if not content_html:
+            raise ValueError("post-pandoc content_html is empty")
+
+        # text alterations
+        if args.british_quotes:  # swap double/single quotes
+            content_html = content_html.replace('"', "&ldquo;").replace('"', "&rdquo;")
+            single_quote_re = re.compile(r"(\W)'(.{2,40}?)'(\W)")
+            content_html = single_quote_re.sub(r'\1"\2"\3', content_html)
+            content_html = content_html.replace("&ldquo;", r"'").replace("&rdquo;", "'")
+        # correct bibliography
+        content_html = content_html.replace(" Vs. ", " vs. ")
+
+        if args.presentation:
+            # convert to data-src for lazy loading
+            lazy_elements_re = re.compile(r"""(\<img|<iframe|<video)(.*?) src=""")
+            content_html = lazy_elements_re.sub(r"\1\2 data-src=", content_html)
+
+        # HTML alterations
+        if args.number_elements:
+            content_html = number_elements(content_html)
+
+        result_fn = f"{base_fn}.html"
+        log.info(f"result_fn = '{result_fn}'")
+        if args.output:
+            result_fn = args.output[0]
+        open(result_fn, "w").write(content_html)
+
+        if args.validate:
+            call(
+                [
+                    "tidy",
+                    "-utf8",
+                    "-q",
+                    "-i",
+                    "-m",
+                    "-w",
+                    "0",
+                    "-asxhtml",
+                    result_fn,
+                ]
+            )
+    return result_fn
 
 
 if __name__ == "__main__":
@@ -600,7 +603,7 @@ if __name__ == "__main__":
         description="Markdown wrapper with slide and bibliographic options",
         #  formatter_class=argparse.RawTextHelpFormatter,
     )
-    arg_parser.add_argument("files", nargs="+", metavar="FILE", type=Path)
+    arg_parser.add_argument("files", nargs="*", metavar="FILE", type=Path)
     arg_parser.add_argument(
         "-b",
         "--bibliography",
@@ -670,7 +673,9 @@ if __name__ == "__main__":
         nargs=1,
         help="metadata (pandoc pass-through)",
     )
-    arg_parser.add_argument("-o", "--output", nargs=1, help="output file path")
+    arg_parser.add_argument(
+        "-o", "--output", nargs=1, help="output file path", type=Path
+    )
     arg_parser.add_argument(
         "-n",
         "--number-elements",
