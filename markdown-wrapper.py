@@ -33,12 +33,6 @@ import sys
 
 # from sh import chmod # http://amoffat.github.com/sh/
 from io import StringIO
-from os import environ, remove
-from os.path import (
-    abspath,
-    exists,
-    splitext,
-)
 from pathlib import Path
 from subprocess import Popen, call
 from urllib.parse import urlparse
@@ -50,10 +44,10 @@ from lxml.html import tostring  # type: ignore
 import md2bib
 
 HOME = Path.home()
-WEBROOT = HOME / "/e/clear/data/2web/reagle.org"
-BROWSER = environ["BROWSER"].replace("*", " ")
-PANDOC_BIN = Path(shutil.which("pandoc"))
-MD_BIN = Path(shutil.which("markdown-wrapper.py"))
+WEBROOT = HOME / "e/clear/data/2web/reagle.org"
+BROWSER = os.environ["BROWSER"].replace("*", " ")
+PANDOC_BIN = Path(shutil.which("pandoc"))  # type: ignore # test for None below
+MD_BIN = Path(shutil.which("markdown-wrapper.py"))  # type: ignore # test for None below
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
@@ -151,13 +145,12 @@ def process_commented_citations(line):
         re.VERBOSE,
     )
 
-    log.debug(f"old_line = {line}")
+    # log.debug(f"old_line = {line}")
     new_line = PARENS_BRACKET_PAIR.subn(quash, line)[0]
-    log.debug(f"new_line = {new_line}")
+    # log.debug(f"new_line = {new_line}")
     # if I quashed a citation completely, I might have a period after a quote
-    if args.quash_citations:
-        if "]." in line and '".' in new_line:  # imperfect test
-            new_line = new_line.replace('".', '."')
+    if args.quash_citations and ("]." in line and '".' in new_line):  # imperfect test
+        new_line = new_line.replace('".', '."')
     return new_line
 
 
@@ -279,8 +272,8 @@ def make_relpath(path_to, path_from):
     """
     log.info(f"argument {path_to=}")
     if path_to.startswith("http"):
-        path_to = Path(WEBROOT) / urlparse(path_to).path.lstrip("/")
-    log.info(f"realpath {path_to=}")
+        path_to = WEBROOT / urlparse(path_to).path.lstrip("/")
+    log.info(f"file {path_to=}")
 
     path_from = Path(path_from)
     if path_from.is_file():
@@ -305,10 +298,10 @@ def make_relpath(path_to, path_from):
 
 
 def process(args):
+    """Process files."""
     if args.bibliography:
         bib_fn = HOME / "joseph/readings.yaml"
-        bib_chunked = md2bib.chunk_yaml(open(bib_fn).readlines())
-        log.debug(f"bib_chunked = {bib_chunked}")
+        bib_chunked = md2bib.chunk_yaml(bib_fn.read_text().splitlines())
     else:
         bib_chunked = None
 
@@ -317,13 +310,15 @@ def process(args):
         if not in_file:
             continue
         log.info(f"in_file = '{in_file}'")
-        abs_fn = abspath(in_file)
+        abs_fn = in_file.resolve()
         log.info(f"abs_fn = '{abs_fn}'")
 
-        base_fn, base_ext = splitext(abs_fn)
+        # base_fn, base_ext = splitext(abs_fn)
+        base_fn, base_ext = abs_fn.with_suffix(""), abs_fn.suffix
         log.info(f"base_fn = '{base_fn}'")
 
-        fn_path = os.path.split(abs_fn)[0]
+        # os.path.split(abs_fn)[0]
+        fn_path = abs_fn.with_suffix("")
         log.info(f"fn_path = '{fn_path}'")
 
         # ##############################
@@ -337,24 +332,22 @@ def process(args):
         result_fn = post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3)
         # ##############################
 
-        if args.write == "html" and args.launch_browser:
+        if args.write_format == "html" and args.launch_browser:
             log.info(f"launching {result_fn}")
             Popen([BROWSER, result_fn])
 
         if not args.keep_tmp:
             log.info("removing tmp files")
             for cleanup_fn in cleanup_tmp_fns:
-                if exists(cleanup_fn):
-                    remove(cleanup_fn)
+                if Path(cleanup_fn).exists():
+                    Path(cleanup_fn).unlink()
 
 
 def set_pandoc_options(args, fn_path):
-    ##############################
-    # initial pandoc configuration based on arguments
-    ##############################
+    """Configure pandoc configuration based on arguments."""
     pandoc_inputs = []
-    pandoc_opts = ["-w", args.write]
-    # if args.write == 'markdown-citations':
+    pandoc_opts = ["-w", args.write_format]
+    # if args.write_format == 'markdown-citations':
     #     pandoc_opts.extend(['--csl=sage-harvard.csl',
     #         '--bibliography=/home/reagle/joseph/readings.yaml'])
     pandoc_opts.extend(
@@ -415,12 +408,12 @@ def set_pandoc_options(args, fn_path):
                 # '--no-highlight', # conflicts with reveal's highlight.js
             ]
         )
-    elif args.write.startswith("html") and args.css:
+    elif args.write_format.startswith("html") and args.css:
         # ?DO NOT use relpath as this is a commandline argument?
         # pandoc_opts.extend(["-c", args.css])
         pandoc_opts.extend(["-c", make_relpath(args.css, fn_path)])
 
-    elif args.write.startswith("docx"):
+    elif args.write_format.startswith("docx"):
         pandoc_opts.extend(
             ["--reference-doc", HOME / ".pandoc/reference-mit-press.docx"]
         )
@@ -454,14 +447,13 @@ def set_pandoc_options(args, fn_path):
 
 
 def pre_pandoc_processing(abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_opts):
-    ##############################
-    # pre pandoc
-    ##############################
-    bib_subset_tmp_fn = None  # fn of subset of main biblio
-    fn_tmp_1 = f"{base_fn}-1{base_ext}"  # as read
-    fn_tmp_2 = f"{base_fn}-2{base_ext}"  # pre-pandoc
-    fn_tmp_3 = f"{base_fn}-3.{args.write}"  # post-pandoc copy
-    fn_result = base_fn + "." + args.write
+    """Perform textual processing before pandoc."""
+    bib_subset_tmp_fn = None  # a subset of main biblio
+    target_sufix = "." + args.write_format
+    fn_tmp_1 = Path(f"{base_fn}-1{base_ext}")  # as read
+    fn_tmp_2 = Path(f"{base_fn}-2{base_ext}")  # pre-pandoc
+    fn_tmp_3 = Path(f"{base_fn}-3{target_sufix}")  # post-pandoc copy
+    fn_result = base_fn.with_suffix(target_sufix)
     cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
     pandoc_opts.extend(["-o", fn_result])
     pandoc_opts.extend(["--mathjax"])
@@ -481,34 +473,26 @@ def pre_pandoc_processing(abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_o
 
         pandoc_opts.extend([f"--csl={args.style_csl[0]}"])
         log.info("generate temporary subset bib for speed")
-        bib_subset_tmp_fn = base_fn + bib_ext
+        bib_subset_tmp_fn = base_fn.with_suffix(bib_ext)
         cleanup_tmp_fns.append(bib_subset_tmp_fn)
-        keys = md2bib.get_keys_from_file(Path(abs_fn))
+        keys = md2bib.get_keys_from_file(abs_fn)
         log.debug(f"keys = {keys}")
         if keys:
-            entries = parse_func(open(bib_fn).readlines())
+            entries = parse_func(bib_fn.read_text().splitlines())
             subset = subset_func(entries, keys)
-            emit_subset_func(subset, open(bib_subset_tmp_fn, "w"))
+            emit_subset_func(subset, bib_subset_tmp_fn.open(mode="w"))
             pandoc_opts.extend(
                 [
                     f"--bibliography={bib_subset_tmp_fn}",
-                ]
-            )
-            pandoc_opts.extend(
-                [
                     "--citeproc",
                 ]
             )
     shutil.copyfile(abs_fn, fn_tmp_1)
-    f1 = codecs.open(fn_tmp_1, "r", "UTF-8", "replace")
-    content = f1.read()
+    content = fn_tmp_1.read_text(encoding="UTF-8", errors="replace")
     if content[0] == codecs.BOM_UTF8.decode("utf8"):
         content = content[1:]
-    f2 = codecs.open(fn_tmp_2, "w", "UTF-8", "replace")
-    # print(f"{abs_fn=}")
-    lines = content.split("\n")
     new_lines = []
-    for line in lines:
+    for line in content.split("\n"):
         # TODO: fix Wikicommons relative network-path references
         # so the URLs work on local file system (i.e.,'file:///')
         line = line.replace('src="//', 'src="http://')
@@ -516,22 +500,20 @@ def pre_pandoc_processing(abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_o
         line = process_commented_citations(line)
         if args.bibliography:  # create hypertext refs from bib db
             line = link_citations(line, bib_chunked)
-            log.debug(f"\n** line is now {line}")
-        if args.presentation:  # color some revealjs top of column slides
-            if line.startswith("# ") and "{data-" not in line:
-                line = line.strip() + ' {data-background="LightBlue"}\n'
-        log.debug(f"END line: '{line}'")
+            # log.debug(f"\n** line is now {line}")
+        # Color some revealjs top of column slides
+        if args.presentation and line.startswith("# ") and "{data-" not in line:
+            line = line.strip() + ' {data-background="LightBlue"}\n'
+        # log.debug(f"END line: '{line}'")
         new_lines.append(line)
-    f1.close()
-    f2.write("\n".join(new_lines))
-    f2.close()
+
+    fn_tmp_2.write_text("\n".join(new_lines), encoding="UTF-8", errors="replace")
+
     return cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3
 
 
 def pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts):
-    ##############################
-    # pandoc
-    ##############################
+    """Execute pandoc."""
     pandoc_cmd = [
         PANDOC_BIN,
         "-r",
@@ -548,10 +530,11 @@ def pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts):
 
 
 def post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3):
-    if args.write == "html":
+    """Complete HTML processing after pandoc."""
+    if args.write_format == "html":
         # final tweaks html file
         shutil.copyfile(fn_result, fn_tmp_3)  # copy of html for debugging
-        content_html = open(fn_tmp_3).read()
+        content_html = fn_tmp_3.read_text()
         if not content_html:
             raise ValueError("post-pandoc content_html is empty")
 
@@ -573,11 +556,11 @@ def post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3):
         if args.number_elements:
             content_html = number_elements(content_html)
 
-        result_fn = f"{base_fn}.html"
+        result_fn = base_fn.with_suffix(".html")
         log.info(f"result_fn = '{result_fn}'")
         if args.output:
             result_fn = args.output[0]
-        open(result_fn, "w").write(content_html)
+        result_fn.write_text(content_html)
 
         if args.validate:
             call(
@@ -763,7 +746,7 @@ if __name__ == "__main__":
     )
     arg_parser.add_argument(
         "-w",
-        "--write",
+        "--write_format",
         default="html",
         help="write format and extensions (default: %(default)s). ",
         # TODO: for short _md_opts_, implement diff extension specification

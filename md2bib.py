@@ -11,7 +11,6 @@ using keys found in a markdown file or specified in argument.
 import logging as log
 import re
 import sys
-from collections import OrderedDict
 from inspect import cleandoc  # better than dedent
 from pathlib import Path
 
@@ -25,14 +24,14 @@ def chunk_yaml(text):
     entries dict only supports the keys 'url' and 'title-short' for lookups
     and '_yaml_block' for quick subsetting/emitting.
     """
-    entries = OrderedDict()
+    entries = {}
     yaml_block = []
     key = None
 
     lines = iter(text[1:])  # skip first two lines of YAML
     for line in lines:
         line = line.rstrip()
-        # debug("line = %s" % (line))
+        # log.debug(f"{line=}")
         if line == "...":  # last line
             # final chunk
             entries[key]["_yaml_block"] = "\n".join(yaml_block)
@@ -56,7 +55,7 @@ def chunk_yaml(text):
                 next_line = next(lines)  # year is on next line
                 if "year" in next_line:
                     entries[key]["original-date"] = next_line[10:-1]
-    # debug("entries = '%s'" % (entries))
+    # log.debug(f"{entries=}")
     return entries
 
 
@@ -72,12 +71,13 @@ def emit_yaml_subset(entries, outfd):
 
 def subset_yaml(entries, keys):
     """Emit a susbet of a YAML file based on keys."""
-    subset = OrderedDict()
+    subset = {}
     for key in sorted(keys):
         if key in entries:
             subset[key] = entries[key]
         else:
-            log.critical(f"{key} not in entries")
+            log.critical(f"{key} not in yaml entries")
+            log.critical(f"{entries=}")
     return subset
 
 
@@ -87,7 +87,7 @@ def chunk_bibtex(text):
     The parser is simple/fast *and* inflexible, unlike the proper but
     slow parsers bibstuff and pyparsing-based parsers.
     """
-    entries = OrderedDict()
+    entries = {}
     key_pat = re.compile(r"@(\w+){(.*),")
     value_pat = re.compile(r"[ ]*(\w+)[ ]*=[ ]*{(.*)},")
     for line in text:
@@ -95,7 +95,7 @@ def chunk_bibtex(text):
         if key_match:
             entry_type = key_match.group(1)
             key = key_match.group(2)
-            entries[key] = OrderedDict({"entry_type": entry_type})
+            entries[key] = {"entry_type": entry_type}
             continue
         value_match = value_pat.match(line)
         if value_match:
@@ -122,19 +122,19 @@ def emit_bibtex_subset(entries, outfd):
 
 def subset_bibtex(entries, keys):
     """Emit a susbet of a biblatex file based on keys."""
-    subset = OrderedDict()
+    subset = {}
     for key in sorted(keys):
         if key in entries:
             subset[key] = entries[key]
         else:
-            log.critical(f"{key} not in entries")
+            log.critical(f"{key} not in bibtex entries")
     return subset
 
 
-def get_keys_from_file(filename: Path) -> list[str]:
+def get_keys_from_file(source_filename: Path) -> list[str]:
     """Return a list of keys used in a markdown file."""
-    log.debug(f"{filename=}'")
-    text = filename.read_text()
+    log.debug(f"{source_filename=}'")
+    text = source_filename.read_text()
     return get_keys_from_string(text)
 
 
