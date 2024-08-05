@@ -24,20 +24,18 @@
 #       a. `-f` argument to disable citations
 #       b. append output of md2bib.py
 
+import argparse
 import codecs
 import logging as log
 import os
 import re
 import shutil
 import sys
-
-# from sh import chmod # http://amoffat.github.com/sh/
 from io import StringIO
 from pathlib import Path
 from subprocess import Popen, call
 from urllib.parse import urlparse
 
-# from lxml.etree import *
 import lxml.etree as et  # type: ignore
 from lxml.html import tostring  # type: ignore
 
@@ -51,8 +49,11 @@ MD_BIN = Path(shutil.which("markdown-wrapper.py"))  # type: ignore # test for No
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
+FONTAWESOME_URL = "https://reagle.org/joseph/talks/_custom/fontawesome/css/all.min.css"
+HANDOUTS_URL = "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css"
 
-def hyperize(cite_match, bib_chunked):
+
+def hyperize(cite_match: re.Match[str], bib_chunked: dict[str, dict[str, str]]) -> str:
     """Hyperize every non-overlapping occurrence and return to PARENS_KEY.sub."""
     cite_replacement = []
     url = None
@@ -93,7 +94,7 @@ def hyperize(cite_match, bib_chunked):
     return "".join(cite_replacement)
 
 
-def link_citations(line, bib_chunked):
+def link_citations(line: str, bib_chunked: dict[str, dict[str, str]]) -> str:
     """Turn pandoc/markdown citations into links within parenthesis.
 
     Used only with citations in presentations.
@@ -125,12 +126,12 @@ def link_citations(line, bib_chunked):
     return line
 
 
-def make_parens(cite_match):
+def make_parens(cite_match: re.Match[str]) -> str:
     """Convert to balanced parens."""
     return "(" + cite_match.group(0)[1:-1] + ")"
 
 
-def process_commented_citations(line):
+def process_commented_citations(args: argparse.Namespace, line: str) -> str:
     """Match stuff within a bracket that has no other brackets within."""
     # TODO 2021-06-18: replace this with a pandoc filter?
 
@@ -154,7 +155,7 @@ def process_commented_citations(line):
     return new_line
 
 
-def quash(cite_match):
+def quash(cite_match: re.Match[str]) -> str:
     """Collect and rewrite citations.
 
     if args.quash_citations drop commented citations, eg [#@Reagle2012foo]
@@ -185,36 +186,76 @@ def quash(cite_match):
         return ""
 
 
-def create_talk_handout(abs_fn, fn_tmp_2):
-    """If a talk, create a (partial) handout."""
+def create_handout(ori_md_f: Path, intermedia_md_f: Path):
+    """Create handout version of the slide."""
     log.info("HANDOUT START")
-    EM_RE = re.compile(r"(?<=\s)_\S+?_(?=[\s\.,])")
-    STRONG_RE = re.compile(r"(?<=\s)\*\*\S+?\*\*(?=[\s\.,])")
+    log.info(f"{ori_md_f=}")
+    log.info(f"{intermedia_md_f=}")
+    EM_RE = re.compile(r"(?<! _)_([^_]+?)_ ")
 
-    handout_fn = Path(abs_fn).with_suffix(".handout.html")
-    with handout_fn.open("w", encoding="utf-8") as handout:
-        handout.write("<html><body>\n")
-        handout.write("<h1>Handout</h1>\n")
-
-        with Path(fn_tmp_2).open(encoding="utf-8") as f:
-            for line in f:
-                if line.startswith("#"):
-                    handout.write(line)
-                elif line.startswith("---"):
-                    handout.write("<hr/>\n")
-                elif line.startswith("!"):
-                    handout.write(line)
+    md_dir = ori_md_f.parent
+    log.info(f"{md_dir=}")
+    if "/talks" in str(ori_md_f):
+        handout_f = Path(str(ori_md_f).replace("/talks/", "/handouts/"))
+        handout_dir = handout_f.parent
+        log.info(f"{handout_dir=}")
+        if not handout_dir.exists():
+            handout_dir.mkdir(parents=True)
+        skip_to_next_header = False
+        with handout_f.open("w") as handout_fd:
+            handout_content = intermedia_md_f.read_text()
+            log.info(f"md_dir = '{md_dir}', handout_dir = '{handout_dir}'")
+            relpath_prefix = make_relpath(md_dir, handout_dir)
+            log.info(f"media_relpath = '{relpath_prefix}'")
+            handout_content = (
+                handout_content.replace(" data-src=", " src=")
+                .replace("](media/", f"]({relpath_prefix}/media/")
+                .replace('="media/', f'="{relpath_prefix}/media/')
+            )
+            for line in handout_content.split("\n"):
+                if args.partial_handout:
+                    log.info("{args.partial_handout=}")
+                    line = line.replace("### ", " ")
+                    if line.startswith(("# ", "## ")):
+                        skip_to_next_header = " _" in line
+                        handout_fd.write(line)
+                    elif not skip_to_next_header:
+                        line = EM_RE.subn(em_mask, line)[0]
+                        log.debug(f"line = '{line}'")
+                        handout_fd.write(line)
+                    else:
+                        handout_fd.write("\n")
                 else:
-                    line = EM_RE.sub(lambda m: m.group().strip("_"), line)
-                    line = STRONG_RE.sub(lambda m: m.group().strip("*"), line)
-                    handout.write(line)
+                    handout_fd.write(line)
+                handout_fd.write("\n")  # new line at end of line
+            deck_link = f"{relpath_prefix}/{ori_md_f.with_suffix('.html').name}"
+            deck_link_markup = f"[▶]({deck_link}){{.decklink}}\n"
+            handout_fd.write(deck_link_markup)
+        md_cmd = [
+            MD_BIN,
+            "--divs",
+            "--toc",
+            "-w",
+            "html",
+            "-c",
+            HANDOUTS_URL,
+            str(handout_f),
+        ]
+        log.info(f" handout {md_cmd=}")
+        call(md_cmd)
+        if not args.keep_tmp:
+            handout_f.unlink()
+    log.info("HANDOUT DONE")
 
-        handout.write("</body></html>\n")
 
-    log.info("HANDOUT END")
+def em_mask(matchobj) -> str:
+    """Replace emphasis with underscores."""
+    log.debug("return replace function")
+    # underscore that pandoc will ignore
+    return "&#95;" * len(matchobj.group(0))
 
 
-def number_elements(content):
+def number_elements(content: str) -> str:
     """Add section and paragraph marks to content which is parsed as HTML."""
     log.info("parsing without comments")
     parser = et.HTMLParser(remove_comments=True, remove_blank_text=True)
@@ -260,7 +301,7 @@ def number_elements(content):
     return content
 
 
-def make_relpath(path_to, path_from):
+def make_relpath(path_to: Path | str, path_from: Path | str) -> str:
     """Return relative path that works on filesystem and server.
 
     >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
@@ -270,22 +311,27 @@ def make_relpath(path_to, path_from):
     ... '/Users/reagle/joseph/2021/pc/pc-syllabus-SP.html' )
     '../../2003/papers.css'
     """
-    log.info(f"argument {path_to=}")
-    if path_to.startswith("http"):
-        path_to = WEBROOT / urlparse(path_to).path.lstrip("/")
-    log.info(f"file {path_to=}")
+    log.debug(f"argument {path_to=}")
+    if isinstance(path_to, str):
+        if path_to.startswith("http"):
+            path_to = WEBROOT / urlparse(path_to).path.lstrip("/")
+        else:
+            path_to = Path(path_to)
+    log.debug(f"final {path_to=}")
 
-    path_from = Path(path_from)
+    log.debug(f"argument {path_from=}")
+    if isinstance(path_from, str):
+        path_from = Path(path_from)
     if path_from.is_file():
-        log.info(f"{path_from=} is a file, using parent!")
+        log.debug(f"is_file: {path_from=}")
         path_from = path_from.parent
     elif path_from.is_dir():
-        log.info(f"{path_from=} is a directory!")
+        log.debug(f"is_dir: {path_from=}")
     else:
-        log.info(f"{path_from=} I don't know what path_from is")
+        raise OSError(f"{path_from=} I don't know what this is path_from is.")
 
     path_from = path_from.resolve()
-    log.info(f"final {path_from=}")
+    log.debug(f"final {path_from=}")
 
     try:
         result = path_to.relative_to(path_from, walk_up=True)
@@ -297,7 +343,7 @@ def make_relpath(path_to, path_from):
     return str(result)
 
 
-def process(args):
+def process(args: argparse.Namespace):
     """Process files."""
     if args.bibliography:
         bib_fn = HOME / "joseph/readings.yaml"
@@ -324,7 +370,7 @@ def process(args):
         # ##############################
         # These functions result from breaking up an earlier massive function,
         # further refactoring should minimize the arguments being passed about.
-        pandoc_inputs, pandoc_opts = set_pandoc_options(args, fn_path)
+        pandoc_inputs, pandoc_opts = set_pandoc_options(args, abs_fn)
         cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3 = pre_pandoc_processing(
             abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_opts
         )
@@ -343,7 +389,7 @@ def process(args):
                     Path(cleanup_fn).unlink()
 
 
-def set_pandoc_options(args, fn_path):
+def set_pandoc_options(args: argparse.Namespace, fn_path: Path):
     """Configure pandoc configuration based on arguments."""
     pandoc_inputs = []
     pandoc_opts = ["-w", args.write_format]
@@ -362,8 +408,7 @@ def set_pandoc_options(args, fn_path):
             "--columns=120",
             "-c",
             make_relpath(
-                "https://reagle.org/joseph/talks/_custom/"
-                + "fontawesome/css/all.min.css",
+                FONTAWESOME_URL,
                 fn_path,
             ),
         ]
@@ -446,7 +491,9 @@ def set_pandoc_options(args, fn_path):
     return pandoc_inputs, pandoc_opts
 
 
-def pre_pandoc_processing(abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_opts):
+def pre_pandoc_processing(
+    abs_fn, args: argparse.Namespace, base_ext, base_fn, bib_chunked, pandoc_opts
+):
     """Perform textual processing before pandoc."""
     bib_subset_tmp_fn = None  # a subset of main biblio
     target_sufix = "." + args.write_format
@@ -497,7 +544,7 @@ def pre_pandoc_processing(abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_o
         # so the URLs work on local file system (i.e.,'file:///')
         line = line.replace('src="//', 'src="http://')
         # TODO: encode ampersands in URLs
-        line = process_commented_citations(line)
+        line = process_commented_citations(args, line)
         if args.bibliography:  # create hypertext refs from bib db
             line = link_citations(line, bib_chunked)
             # log.debug(f"\n** line is now {line}")
@@ -512,7 +559,13 @@ def pre_pandoc_processing(abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_o
     return cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3
 
 
-def pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts):
+def pandoc_processing(
+    abs_fn: Path,
+    args: argparse.Namespace,
+    fn_tmp_2: Path,
+    pandoc_inputs: list,
+    pandoc_opts: list,
+):
     """Execute pandoc."""
     pandoc_cmd = [
         PANDOC_BIN,
@@ -526,12 +579,16 @@ def pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts):
     call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
     log.info("done pandoc_cmd")
     if args.presentation:
-        create_talk_handout(abs_fn, fn_tmp_2)
+        create_handout(abs_fn, fn_tmp_2)
 
 
-def post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3):
+def post_pandoc_html_processing(
+    args: argparse.Namespace, base_fn: Path, fn_result: Path, fn_tmp_3: Path
+) -> Path:
     """Complete HTML processing after pandoc."""
-    if args.write_format == "html":
+    if args.write_format != "html":
+        return fn_result
+    else:
         # final tweaks html file
         shutil.copyfile(fn_result, fn_tmp_3)  # copy of html for debugging
         content_html = fn_tmp_3.read_text()
@@ -556,11 +613,11 @@ def post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3):
         if args.number_elements:
             content_html = number_elements(content_html)
 
-        result_fn = base_fn.with_suffix(".html")
-        log.info(f"result_fn = '{result_fn}'")
+        resulting_html_f = base_fn.with_suffix(".html")
+        log.info(f"result_fn = '{resulting_html_f}'")
         if args.output:
-            result_fn = args.output[0]
-        result_fn.write_text(content_html)
+            resulting_html_f = args.output[0]
+        resulting_html_f.write_text(content_html)
 
         if args.validate:
             call(
@@ -573,10 +630,10 @@ def post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3):
                     "-w",
                     "0",
                     "-asxhtml",
-                    result_fn,
+                    resulting_html_f,
                 ]
             )
-    return result_fn
+        return resulting_html_f
 
 
 if __name__ == "__main__":
