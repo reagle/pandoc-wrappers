@@ -94,6 +94,11 @@ def hyperize(cite_match: re.Match[str], bib_chunked: dict[str, dict[str, str]]) 
     return "".join(cite_replacement)
 
 
+def make_parens(cite_match: re.Match[str]) -> str:
+    """Convert to balanced parens."""
+    return "(" + cite_match.group(0)[1:-1] + ")"
+
+
 def link_citations(line: str, bib_chunked: dict[str, dict[str, str]]) -> str:
     """Turn pandoc/markdown citations into links within parenthesis.
 
@@ -124,11 +129,6 @@ def link_citations(line: str, bib_chunked: dict[str, dict[str, str]]) -> str:
     line = PARENS_KEY.sub(lambda match_obj: hyperize(match_obj, bib_chunked), line)
     log.debug(f"{line}")
     return line
-
-
-def make_parens(cite_match: re.Match[str]) -> str:
-    """Convert to balanced parens."""
-    return "(" + cite_match.group(0)[1:-1] + ")"
 
 
 def process_commented_citations(args: argparse.Namespace, line: str) -> str:
@@ -184,6 +184,55 @@ def quash(cite_match: re.Match[str]) -> str:
         return f"{prefix}[" + ";".join(citations_keep) + "]"
     else:
         return ""
+
+
+def em_mask(matchobj) -> str:
+    """Replace emphasis with underscores."""
+    log.debug("return replace function")
+    # underscore that pandoc will ignore
+    return "&#95;" * len(matchobj.group(0))
+
+
+def make_relpath(path_to: Path | str, path_from: Path | str) -> str:
+    """Return relative path that works on filesystem and server.
+
+    >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
+    ... '/Users/reagle/joseph/2021/pc/' )
+    '../../2003/papers.css'
+    >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
+    ... '/Users/reagle/joseph/2021/pc/pc-syllabus-SP.html' )
+    '../../2003/papers.css'
+    """
+    log.debug(f"argument {path_to=}")
+    if isinstance(path_to, str):
+        if path_to.startswith("http"):
+            path_to = WEBROOT / urlparse(path_to).path.lstrip("/")
+        else:
+            path_to = Path(path_to)
+    log.debug(f"final {path_to=}")
+
+    log.debug(f"argument {path_from=}")
+    if isinstance(path_from, str):
+        path_from = Path(path_from)
+    if path_from.is_file():
+        log.debug(f"is_file: {path_from=}")
+        path_from = path_from.parent
+    elif path_from.is_dir():
+        log.debug(f"is_dir: {path_from=}")
+    else:
+        raise OSError(f"{path_from=} I don't know what this is path_from is.")
+
+    path_from = path_from.resolve()
+    log.debug(f"final {path_from=}")
+
+    try:
+        result = path_to.relative_to(path_from, walk_up=True)
+    except ValueError:
+        # Pathlib path_to fails, convert to strings and use os.path.relpath
+        result = Path(os.path.relpath(str(path_to), str(path_from)))
+
+    log.info(f"{result=}")
+    return str(result)
 
 
 def create_handout(ori_md_f: Path, intermedia_md_f: Path):
@@ -248,13 +297,6 @@ def create_handout(ori_md_f: Path, intermedia_md_f: Path):
     log.info("HANDOUT DONE")
 
 
-def em_mask(matchobj) -> str:
-    """Replace emphasis with underscores."""
-    log.debug("return replace function")
-    # underscore that pandoc will ignore
-    return "&#95;" * len(matchobj.group(0))
-
-
 def number_elements(content: str) -> str:
     """Add section and paragraph marks to content which is parsed as HTML."""
     log.info("parsing without comments")
@@ -301,92 +343,72 @@ def number_elements(content: str) -> str:
     return content
 
 
-def make_relpath(path_to: Path | str, path_from: Path | str) -> str:
-    """Return relative path that works on filesystem and server.
-
-    >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
-    ... '/Users/reagle/joseph/2021/pc/' )
-    '../../2003/papers.css'
-    >>> make_relpath('https://reagle.org/joseph/2003/papers.css',
-    ... '/Users/reagle/joseph/2021/pc/pc-syllabus-SP.html' )
-    '../../2003/papers.css'
-    """
-    log.debug(f"argument {path_to=}")
-    if isinstance(path_to, str):
-        if path_to.startswith("http"):
-            path_to = WEBROOT / urlparse(path_to).path.lstrip("/")
+def pre_pandoc_processing(
+    abs_fn, args: argparse.Namespace, base_ext, base_fn, bib_chunked, pandoc_opts
+):
+    """Perform textual processing before pandoc."""
+    bib_subset_tmp_fn = None  # a subset of main biblio
+    target_sufix = "." + args.write_format
+    fn_tmp_1 = Path(f"{base_fn}-1{base_ext}")  # as read
+    fn_tmp_2 = Path(f"{base_fn}-2{base_ext}")  # pre-pandoc
+    fn_tmp_3 = Path(f"{base_fn}-3{target_sufix}")  # post-pandoc copy
+    fn_result = base_fn.with_suffix(target_sufix)
+    cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
+    pandoc_opts.extend(["-o", fn_result])
+    pandoc_opts.extend(["--mathjax"])
+    if args.style_csl:
+        if args.bibtex:
+            bib_fn = HOME / "joseph/readings.bib"
+            bib_ext = ".bib"
+            parse_func = md2bib.chunk_bibtex
+            subset_func = md2bib.subset_bibtex
+            emit_subset_func = md2bib.emit_bibtex_subset
         else:
-            path_to = Path(path_to)
-    log.debug(f"final {path_to=}")
+            bib_fn = HOME / "joseph/readings.yaml"
+            bib_ext = ".yaml"
+            parse_func = md2bib.chunk_yaml
+            subset_func = md2bib.subset_yaml
+            emit_subset_func = md2bib.emit_yaml_subset
 
-    log.debug(f"argument {path_from=}")
-    if isinstance(path_from, str):
-        path_from = Path(path_from)
-    if path_from.is_file():
-        log.debug(f"is_file: {path_from=}")
-        path_from = path_from.parent
-    elif path_from.is_dir():
-        log.debug(f"is_dir: {path_from=}")
-    else:
-        raise OSError(f"{path_from=} I don't know what this is path_from is.")
+        pandoc_opts.extend([f"--csl={args.style_csl[0]}"])
+        log.info("generate temporary subset bib for speed")
+        bib_subset_tmp_fn = base_fn.with_suffix(bib_ext)
+        cleanup_tmp_fns.append(bib_subset_tmp_fn)
+        keys = md2bib.get_keys_from_file(abs_fn)
+        log.debug(f"keys = {keys}")
+        if keys:
+            entries = parse_func(bib_fn.read_text().splitlines())
+            subset = subset_func(entries, keys)
+            emit_subset_func(subset, bib_subset_tmp_fn.open(mode="w"))
+            pandoc_opts.extend(
+                [
+                    f"--bibliography={bib_subset_tmp_fn}",
+                    "--citeproc",
+                ]
+            )
+    shutil.copyfile(abs_fn, fn_tmp_1)
+    content = fn_tmp_1.read_text(encoding="UTF-8", errors="replace")
+    if content[0] == codecs.BOM_UTF8.decode("utf8"):
+        content = content[1:]
+    new_lines = []
+    for line in content.split("\n"):
+        # TODO: fix Wikicommons relative network-path references
+        # so the URLs work on local file system (i.e.,'file:///')
+        line = line.replace('src="//', 'src="http://')
+        # TODO: encode ampersands in URLs
+        line = process_commented_citations(args, line)
+        if args.bibliography:  # create hypertext refs from bib db
+            line = link_citations(line, bib_chunked)
+            # log.debug(f"\n** line is now {line}")
+        # Color some revealjs top of column slides
+        if args.presentation and line.startswith("# ") and "{data-" not in line:
+            line = line.strip() + ' {data-background="LightBlue"}\n'
+        # log.debug(f"END line: '{line}'")
+        new_lines.append(line)
 
-    path_from = path_from.resolve()
-    log.debug(f"final {path_from=}")
+    fn_tmp_2.write_text("\n".join(new_lines), encoding="UTF-8", errors="replace")
 
-    try:
-        result = path_to.relative_to(path_from, walk_up=True)
-    except ValueError:
-        # Pathlib path_to fails, convert to strings and use os.path.relpath
-        result = Path(os.path.relpath(str(path_to), str(path_from)))
-
-    log.info(f"{result=}")
-    return str(result)
-
-
-def process(args: argparse.Namespace):
-    """Process files."""
-    if args.bibliography:
-        bib_fn = HOME / "joseph/readings.yaml"
-        bib_chunked = md2bib.chunk_yaml(bib_fn.read_text().splitlines())
-    else:
-        bib_chunked = None
-
-    log.info(f"args.files = '{args.files}'")
-    for in_file in args.files:
-        if not in_file:
-            continue
-        log.info(f"in_file = '{in_file}'")
-        abs_fn = in_file.resolve()
-        log.info(f"abs_fn = '{abs_fn}'")
-
-        # base_fn, base_ext = splitext(abs_fn)
-        base_fn, base_ext = abs_fn.with_suffix(""), abs_fn.suffix
-        log.info(f"base_fn = '{base_fn}'")
-
-        # os.path.split(abs_fn)[0]
-        fn_path = abs_fn.with_suffix("")
-        log.info(f"fn_path = '{fn_path}'")
-
-        # ##############################
-        # These functions result from breaking up an earlier massive function,
-        # further refactoring should minimize the arguments being passed about.
-        pandoc_inputs, pandoc_opts = set_pandoc_options(args, abs_fn)
-        cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3 = pre_pandoc_processing(
-            abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_opts
-        )
-        pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts)
-        result_fn = post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3)
-        # ##############################
-
-        if args.write_format == "html" and args.launch_browser:
-            log.info(f"launching {result_fn}")
-            Popen([BROWSER, result_fn])
-
-        if not args.keep_tmp:
-            log.info("removing tmp files")
-            for cleanup_fn in cleanup_tmp_fns:
-                if Path(cleanup_fn).exists():
-                    Path(cleanup_fn).unlink()
+    return cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3
 
 
 def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
@@ -491,97 +513,6 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
     return pandoc_inputs, pandoc_opts
 
 
-def pre_pandoc_processing(
-    abs_fn, args: argparse.Namespace, base_ext, base_fn, bib_chunked, pandoc_opts
-):
-    """Perform textual processing before pandoc."""
-    bib_subset_tmp_fn = None  # a subset of main biblio
-    target_sufix = "." + args.write_format
-    fn_tmp_1 = Path(f"{base_fn}-1{base_ext}")  # as read
-    fn_tmp_2 = Path(f"{base_fn}-2{base_ext}")  # pre-pandoc
-    fn_tmp_3 = Path(f"{base_fn}-3{target_sufix}")  # post-pandoc copy
-    fn_result = base_fn.with_suffix(target_sufix)
-    cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
-    pandoc_opts.extend(["-o", fn_result])
-    pandoc_opts.extend(["--mathjax"])
-    if args.style_csl:
-        if args.bibtex:
-            bib_fn = HOME / "joseph/readings.bib"
-            bib_ext = ".bib"
-            parse_func = md2bib.chunk_bibtex
-            subset_func = md2bib.subset_bibtex
-            emit_subset_func = md2bib.emit_bibtex_subset
-        else:
-            bib_fn = HOME / "joseph/readings.yaml"
-            bib_ext = ".yaml"
-            parse_func = md2bib.chunk_yaml
-            subset_func = md2bib.subset_yaml
-            emit_subset_func = md2bib.emit_yaml_subset
-
-        pandoc_opts.extend([f"--csl={args.style_csl[0]}"])
-        log.info("generate temporary subset bib for speed")
-        bib_subset_tmp_fn = base_fn.with_suffix(bib_ext)
-        cleanup_tmp_fns.append(bib_subset_tmp_fn)
-        keys = md2bib.get_keys_from_file(abs_fn)
-        log.debug(f"keys = {keys}")
-        if keys:
-            entries = parse_func(bib_fn.read_text().splitlines())
-            subset = subset_func(entries, keys)
-            emit_subset_func(subset, bib_subset_tmp_fn.open(mode="w"))
-            pandoc_opts.extend(
-                [
-                    f"--bibliography={bib_subset_tmp_fn}",
-                    "--citeproc",
-                ]
-            )
-    shutil.copyfile(abs_fn, fn_tmp_1)
-    content = fn_tmp_1.read_text(encoding="UTF-8", errors="replace")
-    if content[0] == codecs.BOM_UTF8.decode("utf8"):
-        content = content[1:]
-    new_lines = []
-    for line in content.split("\n"):
-        # TODO: fix Wikicommons relative network-path references
-        # so the URLs work on local file system (i.e.,'file:///')
-        line = line.replace('src="//', 'src="http://')
-        # TODO: encode ampersands in URLs
-        line = process_commented_citations(args, line)
-        if args.bibliography:  # create hypertext refs from bib db
-            line = link_citations(line, bib_chunked)
-            # log.debug(f"\n** line is now {line}")
-        # Color some revealjs top of column slides
-        if args.presentation and line.startswith("# ") and "{data-" not in line:
-            line = line.strip() + ' {data-background="LightBlue"}\n'
-        # log.debug(f"END line: '{line}'")
-        new_lines.append(line)
-
-    fn_tmp_2.write_text("\n".join(new_lines), encoding="UTF-8", errors="replace")
-
-    return cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3
-
-
-def pandoc_processing(
-    abs_fn: Path,
-    args: argparse.Namespace,
-    fn_tmp_2: Path,
-    pandoc_inputs: list,
-    pandoc_opts: list,
-):
-    """Execute pandoc."""
-    pandoc_cmd = [
-        PANDOC_BIN,
-        "-r",
-        f"{args.read}",
-    ]
-    pandoc_cmd.extend(pandoc_opts)
-    pandoc_inputs.insert(0, fn_tmp_2)
-    pandoc_cmd.extend(pandoc_inputs)
-    # print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
-    call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
-    log.info("done pandoc_cmd")
-    if args.presentation:
-        create_handout(abs_fn, fn_tmp_2)
-
-
 def post_pandoc_html_processing(
     args: argparse.Namespace, base_fn: Path, fn_result: Path, fn_tmp_3: Path
 ) -> Path:
@@ -634,6 +565,75 @@ def post_pandoc_html_processing(
                 ]
             )
         return resulting_html_f
+
+
+def process(args: argparse.Namespace):
+    """Process files."""
+    if args.bibliography:
+        bib_fn = HOME / "joseph/readings.yaml"
+        bib_chunked = md2bib.chunk_yaml(bib_fn.read_text().splitlines())
+    else:
+        bib_chunked = None
+
+    log.info(f"args.files = '{args.files}'")
+    for in_file in args.files:
+        if not in_file:
+            continue
+        log.info(f"in_file = '{in_file}'")
+        abs_fn = in_file.resolve()
+        log.info(f"abs_fn = '{abs_fn}'")
+
+        # base_fn, base_ext = splitext(abs_fn)
+        base_fn, base_ext = abs_fn.with_suffix(""), abs_fn.suffix
+        log.info(f"base_fn = '{base_fn}'")
+
+        # os.path.split(abs_fn)[0]
+        fn_path = abs_fn.with_suffix("")
+        log.info(f"fn_path = '{fn_path}'")
+
+        # ##############################
+        # These functions result from breaking up an earlier massive function,
+        # further refactoring should minimize the arguments being passed about.
+        pandoc_inputs, pandoc_opts = set_pandoc_options(args, abs_fn)
+        cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3 = pre_pandoc_processing(
+            abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_opts
+        )
+        pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts)
+        result_fn = post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3)
+        # ##############################
+
+        if args.write_format == "html" and args.launch_browser:
+            log.info(f"launching {result_fn}")
+            Popen([BROWSER, result_fn])
+
+        if not args.keep_tmp:
+            log.info("removing tmp files")
+            for cleanup_fn in cleanup_tmp_fns:
+                if Path(cleanup_fn).exists():
+                    Path(cleanup_fn).unlink()
+
+
+def pandoc_processing(
+    abs_fn: Path,
+    args: argparse.Namespace,
+    fn_tmp_2: Path,
+    pandoc_inputs: list,
+    pandoc_opts: list,
+):
+    """Execute pandoc."""
+    pandoc_cmd = [
+        PANDOC_BIN,
+        "-r",
+        f"{args.read}",
+    ]
+    pandoc_cmd.extend(pandoc_opts)
+    pandoc_inputs.insert(0, fn_tmp_2)
+    pandoc_cmd.extend(pandoc_inputs)
+    # print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
+    call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
+    log.info("done pandoc_cmd")
+    if args.presentation:
+        create_handout(abs_fn, fn_tmp_2)
 
 
 if __name__ == "__main__":
