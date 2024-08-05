@@ -389,7 +389,7 @@ def process(args: argparse.Namespace):
                     Path(cleanup_fn).unlink()
 
 
-def set_pandoc_options(args: argparse.Namespace, fn_path: Path):
+def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
     """Configure pandoc configuration based on arguments."""
     pandoc_inputs = []
     pandoc_opts = ["-w", args.write_format]
