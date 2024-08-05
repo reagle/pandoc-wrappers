@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
-"""Build the static portions of my website by looking for source
-    files newer than existing HTML files.
+"""Build static portions of website.
+
+It looks for and rebuilds source files newer than their existing HTML files.
 
 ob-/* (obsidian) -> html
 *.md (pandoc)-> html
@@ -215,16 +216,15 @@ def transclude(
 
 
 def has_dir_changed(path: Path) -> bool:
-    """Check if content of folder has changed.
-    """
+    """Check if content of folder has changed."""
     info(f"{path=}")
     if not path.is_dir():
         raise NotADirectoryError(f"{path} is not a directory")
 
     checksum_file = path / ".dirs.md5sum"
-    checksum = Popen(
-        ["ls -R {} | md5sum".format(path)], shell=True, stdout=PIPE
-    ).communicate()[0]
+    checksum = Popen([f"ls -R {path} | md5sum"], shell=True, stdout=PIPE).communicate()[
+        0
+    ]
     checksum = checksum.split()[0].decode("utf-8")
 
     if not checksum_file.exists():
