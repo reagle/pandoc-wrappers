@@ -187,9 +187,8 @@ def quash(cite_match: re.Match[str]) -> str:
 
 
 def em_mask(matchobj) -> str:
-    """Replace emphasis with underscores."""
+    """Replace emphasis with underscores that pandoc will ignore."""
     log.debug("return replace function")
-    # underscore that pandoc will ignore
     return "&#95;" * len(matchobj.group(0))
 
 
@@ -344,7 +343,12 @@ def number_elements(content: str) -> str:
 
 
 def pre_pandoc_processing(
-    abs_fn, args: argparse.Namespace, base_ext, base_fn, bib_chunked, pandoc_opts
+    abs_fn: Path,
+    args: argparse.Namespace,
+    base_ext: str,
+    base_fn: Path,
+    bib_chunked: str,
+    pandoc_opts: list,
 ):
     """Perform textual processing before pandoc."""
     bib_subset_tmp_fn = None  # a subset of main biblio
