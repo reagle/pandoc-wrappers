@@ -17,7 +17,7 @@ from pathlib import Path
 HOME = Path.home()
 
 
-def chunk_yaml(text):
+def chunk_yaml(text) -> dict[str, dict[str, str]]:
     """Return a dictionary of YAML chunks.
 
     This does *not* parse the YAML but chunks syntactically constrained YAML for speed.
@@ -88,6 +88,7 @@ def chunk_bibtex(text):
     slow parsers bibstuff and pyparsing-based parsers.
     """
     entries = {}
+    key = None
     key_pat = re.compile(r"@(\w+){(.*),")
     value_pat = re.compile(r"[ ]*(\w+)[ ]*=[ ]*{(.*)},")
     for line in text:
