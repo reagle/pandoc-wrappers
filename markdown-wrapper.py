@@ -347,7 +347,7 @@ def pre_pandoc_processing(
     args: argparse.Namespace,
     base_ext: str,
     base_fn: Path,
-    bib_chunked: str,
+    bib_chunked: dict[str, dict[str, str]],
     pandoc_opts: list,
 ):
     """Perform textual processing before pandoc."""
@@ -577,7 +577,7 @@ def process(args: argparse.Namespace):
         bib_fn = HOME / "joseph/readings.yaml"
         bib_chunked = md2bib.chunk_yaml(bib_fn.read_text().splitlines())
     else:
-        bib_chunked = None
+        bib_chunked = {"": {"": ""}}
 
     log.info(f"args.files = '{args.files}'")
     for in_file in args.files:
