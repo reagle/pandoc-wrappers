@@ -444,9 +444,16 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
         pandoc_opts.extend(
             [
                 "-F",
-                "mermaid-filter",  # creates png/svg
-                # "--lua-filter",  # does not work presently
-                # "mermaid-figure.lua",  # uses fig and figcaption
+                "mermaid-filter",
+            ]
+        )
+    # npm update -g @mermaid-js/mermaid-cli
+    # wget -P ~/.pandoc/filters https://raw.githubusercontent.com/pandoc-ext/diagram/main/_extensions/diagram/diagram.lua
+    if args.diagram:
+        pandoc_opts.extend(
+            [
+                "--lua-filter",
+                "diagram.lua",  # supports many diagram types
             ]
         )
     if args.pantable:
@@ -688,6 +695,12 @@ if __name__ == "__main__":
         help="use pandoc's --section-divs",
     )
     arg_parser.add_argument(
+        "--diagram",
+        action="store_true",
+        default=False,
+        help="use diagram filter",
+    )
+    arg_parser.add_argument(
         "--lua-filter",
         nargs=1,
         help="lua filter (pandoc pass-through)",
@@ -721,6 +734,12 @@ if __name__ == "__main__":
         "-o", "--output", nargs=1, help="output file path", type=Path
     )
     arg_parser.add_argument(
+        "--mermaid",
+        action="store_true",
+        default=False,
+        help="use mermaid filter",
+    )
+    arg_parser.add_argument(
         "-n",
         "--number-elements",
         action="store_true",
@@ -739,12 +758,6 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="use pantable filter",
-    )
-    arg_parser.add_argument(
-        "--mermaid",
-        action="store_true",
-        default=False,
-        help="use mermaid filter",
     )
     arg_parser.add_argument(
         "--partial-handout",
