@@ -33,7 +33,7 @@ import shutil
 import sys
 from io import StringIO
 from pathlib import Path
-from subprocess import Popen, call
+from subprocess import Popen, call, run
 from urllib.parse import urlparse
 
 import lxml.etree as et  # type: ignore
@@ -511,6 +511,8 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
             pandoc_opts.extend([f"--toc-depth={args.toc_depth[0]}"])
     if args.embed_resources:
         pandoc_opts.extend(["--embed-resources"])
+    if args.extract_media:
+        pandoc_opts.extend(["--extract-media=media"])
     if args.divs:
         pandoc_opts.extend(["--section-divs"])
     if args.include_after_body:
@@ -640,8 +642,8 @@ def pandoc_processing(
     pandoc_cmd.extend(pandoc_opts)
     pandoc_inputs.insert(0, fn_tmp_2)
     pandoc_cmd.extend(pandoc_inputs)
-    # print("joined pandoc_cmd: " + " ".join(pandoc_cmd) + "\n")
-    call(pandoc_cmd)  # , stdout=open(fn_tmp_3, 'w')
+    print(f"joined pandoc_cmd: {' '.join(str(item) for item in pandoc_cmd)}")
+    pandoc_result = run(pandoc_cmd)
     log.info("done pandoc_cmd")
     if args.presentation:
         create_handout(abs_fn, fn_tmp_2)
@@ -799,6 +801,12 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="incorporate links: scripts, images, & CSS (pandoc pass-through)",
+    )
+    arg_parser.add_argument(
+        "--extract-media",
+        action="store_true",
+        default=False,
+        help="extract internally specified media, e.g., diagrams, to files (pandoc pass-through)",
     )
     arg_parser.add_argument(
         "--toc",
