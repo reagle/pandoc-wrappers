@@ -77,7 +77,7 @@ def subset_yaml(entries, keys):
             subset[key] = entries[key]
         else:
             log.critical(f"{key} not in yaml entries")
-            log.critical(f"{entries=}")
+            log.debug(f"{entries=}")
     return subset
 
 

@@ -30,10 +30,10 @@ import logging as log
 import os
 import re
 import shutil
+import subprocess
 import sys
 from io import StringIO
 from pathlib import Path
-from subprocess import Popen, call, run
 from urllib.parse import urlparse
 
 import lxml.etree as et  # type: ignore
@@ -290,7 +290,7 @@ def create_handout(ori_md_f: Path, intermedia_md_f: Path):
             str(handout_f),
         ]
         log.info(f" handout {md_cmd=}")
-        call(md_cmd)
+        subprocess.run(md_cmd)
         if not args.keep_tmp:
             handout_f.unlink()
     log.info("HANDOUT DONE")
@@ -564,7 +564,7 @@ def post_pandoc_html_processing(
         resulting_html_f.write_text(content_html)
 
         if args.validate:
-            call(
+            subprocess.run(
                 [
                     "tidy",
                     "-utf8",
@@ -617,7 +617,7 @@ def process(args: argparse.Namespace):
 
         if args.write_format == "html" and args.launch_browser:
             log.info(f"launching {result_fn}")
-            Popen([BROWSER, result_fn])
+            subprocess.run([BROWSER, result_fn])
 
         if not args.keep_tmp:
             log.info("removing tmp files")
@@ -642,8 +642,9 @@ def pandoc_processing(
     pandoc_cmd.extend(pandoc_opts)
     pandoc_inputs.insert(0, fn_tmp_2)
     pandoc_cmd.extend(pandoc_inputs)
-    print(f"joined pandoc_cmd: {' '.join(str(item) for item in pandoc_cmd)}")
-    pandoc_result = run(pandoc_cmd)
+    pandoc_result = subprocess.run(pandoc_cmd)
+    if pandoc_result.returncode:
+        raise ValueError(f"pandoc returned {pandoc_result.returncode}")
     log.info("done pandoc_cmd")
     if args.presentation:
         create_handout(abs_fn, fn_tmp_2)
