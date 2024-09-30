@@ -265,12 +265,12 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
     has_changed = False
     log.info(f"checking for new markdown files in {dst_path}")
     for dst_md_file in dst_path.glob("**/*.md"):
-        log.info(f"  {dst_md_file=}")
+        log.debug(f"  {dst_md_file=}")
         html_file = dst_md_file.with_suffix(".html")
         if not html_file.exists():
             html_file.touch()
             os.utime(html_file, (0, 0))
-            log.info(f"created {html_file}")
+            log.debug(f"created {html_file}")
             has_changed = True
 
     log.info(f"checking for deleted markdown files in {src_path}")
@@ -279,7 +279,7 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
         if not src_md_file.exists():
             dst_md_file.unlink()
             dst_md_file.with_suffix(".html").unlink()
-            log.info(f"deleted {dst_md_file}")
+            log.debug(f"deleted {dst_md_file}")
             has_changed = True
 
     return has_changed
@@ -378,7 +378,7 @@ if __name__ == "__main__":
         "--verbose",
         action="count",
         default=0,
-        help="Increase verbosity (specify multiple times for more)",
+        help="increase verbosity from critical though error, warning, info, and debug",
     )
     arg_parser.add_argument("--version", action="version", version="1.0")
     args = arg_parser.parse_args()
