@@ -439,14 +439,9 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
             ),
         ]
     )
-    # npm install --global mermaid-filter
-    if args.mermaid:
-        pandoc_opts.extend(
-            [
-                "-F",
-                "mermaid-filter",
-            ]
-        )
+    ## Use diagram or mermaid filter
+    # Diagram can use cache, but doesn't take .mermaid-config.json
+    # https://github.com/pandoc-ext/diagram/issues/31
     # npm update -g @mermaid-js/mermaid-cli
     # wget -P ~/.pandoc/filters https://raw.githubusercontent.com/pandoc-ext/diagram/main/_extensions/diagram/diagram.lua
     if args.diagram:
@@ -454,6 +449,16 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
             [
                 "--lua-filter",
                 "diagram.lua",  # supports many diagram types
+            ]
+        )
+    # Mermaid filter has no cache and a number of issues
+    # https://github.com/raghur/mermaid-filter/issues
+    # npm install --global mermaid-filter
+    if args.mermaid:
+        pandoc_opts.extend(
+            [
+                "-F",
+                "mermaid-filter",
             ]
         )
     if args.pantable:
@@ -642,9 +647,12 @@ def pandoc_processing(
     pandoc_cmd.extend(pandoc_opts)
     pandoc_inputs.insert(0, fn_tmp_2)
     pandoc_cmd.extend(pandoc_inputs)
-    pandoc_result = subprocess.run(pandoc_cmd)
+    log.warning(" ".join(str(item) for item in pandoc_cmd))
+    pandoc_result = subprocess.run(pandoc_cmd, capture_output=True, text=True)
     if pandoc_result.returncode:
-        raise ValueError(f"pandoc returned {pandoc_result.returncode}")
+        raise ValueError(
+            f"pandoc returned {pandoc_result.returncode}: {pandoc_result.stderr}"
+        )
     log.info("done pandoc_cmd")
     if args.presentation:
         create_handout(abs_fn, fn_tmp_2)
@@ -851,7 +859,7 @@ if __name__ == "__main__":
         "--verbose",
         action="count",
         default=0,
-        help="increase verbosity (specify multiple times for more)",
+        help="increase verbosity from critical though error, warning, info, and debug",
     )
     arg_parser.add_argument("--version", action="version", version="1.0")
     args = arg_parser.parse_args()
