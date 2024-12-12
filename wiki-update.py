@@ -34,7 +34,7 @@ if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, OBS_EXPORT_BIN, TEMPLATES_FOLDER]
 
 def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
     """Call obsidian-export on source; copy source's mtimes to target."""
-    export_cmd = f"{OBS_EXPORT_BIN} {vault_dir} {export_dir}"
+    export_cmd = f"{OBS_EXPORT_BIN} --preserve-mtime {vault_dir} {export_dir}"
     log.info(f"{export_cmd=}")
 
     print(f"exporting {vault_dir}")
@@ -42,7 +42,6 @@ def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
     results_out, results_sdterr = results.communicate()
     if results_sdterr:
         print(f"{results_sdterr}")
-    copy_mtime(vault_dir, export_dir)
 
     remove_empty_or_hidden_folders(export_dir)
     review_created_or_deleted_files(vault_dir, export_dir)
@@ -260,7 +259,7 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
     their corresponding markdown in src_path.
     Created HTML is set with an early mtime so find_convert_md_files() knows
     to process it.
-    (Renamed files are simply deleted and created.)
+    (Renamed files are simply deleted and created in this process.)
     """
     has_changed = False
     log.info(f"checking for new markdown files in {dst_path}")
@@ -296,29 +295,6 @@ def chmod_recursive(
             item.chmod(dir_perms)
         elif item.is_file():
             item.chmod(file_perms)
-
-
-def copy_mtime(src_path: Path, dst_path: Path) -> None:
-    """Copy mtime from source_dir to target_dir.
-
-    This lets `find_convert_md_files` know what changed.
-    """
-    log.debug("copying mtimes")
-    if not src_path.is_dir() or not dst_path.is_dir():
-        raise ValueError("Both arguments should be valid directory paths.")
-
-    for src_fn in src_path.glob("**/*"):
-        if src_fn.is_file():
-            # Create a corresponding target file path
-            relative_path = src_fn.relative_to(src_path)
-            dst_fn = dst_path.joinpath(relative_path)
-
-            if dst_fn.exists() and dst_fn.is_file():
-                # find_convert_md_f time of the source file
-                src_mtime = src_fn.stat().st_mtime
-
-                # Apply the modified time to the destination file
-                os.utime(dst_fn, (dst_fn.stat().st_atime, src_mtime))
 
 
 def reset_folder(folder_path: Path) -> None:
