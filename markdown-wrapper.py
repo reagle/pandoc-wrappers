@@ -202,7 +202,7 @@ def make_relpath(path_to: Path | str, path_from: Path | str) -> str:
     ... '/Users/reagle/joseph/2021/pc/pc-syllabus-SP.html' )
     '../../2003/papers.css'
     """
-    log.debug(f"argument {path_to=}")
+    log.debug(f"arguments {path_to=} {path_from=}")
     if isinstance(path_to, str):
         if path_to.startswith("http"):
             path_to = WEBROOT / urlparse(path_to).path.lstrip("/")
