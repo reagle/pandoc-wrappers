@@ -1,38 +1,37 @@
 #! /usr/bin/env python3
-"""Document transformation wrapper"""
+"""Document transformation wrapper."""
 
-import logging
+import logging as log
 import os
 import shutil
-import sys
 import textwrap
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
 from subprocess import PIPE, Popen, call
 from urllib.request import urlopen
 
-HOME = os.path.expanduser("~")
-DST_FILE = HOME + "/tmp/.pw/dt-result.txt"
+HOME = Path.home()
+TMP_DIR = Path(HOME) / "tmp" / ".pw"
+TMP_DIR.mkdir(parents=True, exist_ok=True)
 PANDOC_BIN = shutil.which("pandoc")
 VISUAL = os.environ["VISUAL"]
 if not all([HOME, VISUAL, PANDOC_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
-log_level = 100  # default
-critical = logging.critical
-info = logging.info
-dbg = logging.debug
 
-
-def rotate_files(filename, max_rot=5):
+def rotate_files(file_path: Path | str, max_rot: int = 5) -> None:
     """Create at most {max_rot} rotating files."""
-    bare, ext = os.path.splitext(filename)
+    path = Path(file_path)
+    bare = path.parent / path.stem
+    ext = path.suffix
+
     for counter in reversed(range(2, max_rot + 1)):
-        old_filename = f"{bare}{counter-1}{ext}"
-        new_filename = f"{bare}{counter}{ext}"
-        if os.path.exists(old_filename):
-            os.rename(old_filename, new_filename)
-    if os.path.exists(filename):
-        os.rename(filename, f"{bare}1{ext}")
+        old_file = Path(f"{bare}{counter-1}{ext}")
+        new_file = Path(f"{bare}{counter}{ext}")
+        if old_file.exists():
+            old_file.rename(new_file)
+
+    if path.exists():
+        path.rename(f"{bare}1{ext}")
 
 
 if __name__ == "__main__":
@@ -43,7 +42,7 @@ if __name__ == "__main__":
             "Document transformation wrapper which (by default) converts HTML to text"
         )
     )
-    arg_parser.add_argument("filename", nargs=1, metavar="FILE_NAME")
+    arg_parser.add_argument("input_arg", nargs=1, metavar="URL or FILE")
     arg_parser.add_argument(
         "-m",
         "--markdown",
@@ -86,10 +85,6 @@ if __name__ == "__main__":
         default=False,
         help="doc2txt  via antiword",
     )
-    # arg_parser.add_argument(  # deprecated, not on homebrew
-    #     "-c", "--catdoc",
-    #     action="store_true", default=False,
-    #     help="doc2txt  via catdoc")
     arg_parser.add_argument(
         "-d",
         "--docx2txt",
@@ -132,44 +127,44 @@ if __name__ == "__main__":
 
     args = arg_parser.parse_args()
 
-    if args.verbose == 1:
-        log_level = logging.CRITICAL
-    elif args.verbose == 2:
-        log_level = logging.INFO
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG
+    log_level = (log.CRITICAL) - (args.verbose * 10)
     LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     if args.log_to_file:
-        logging.basicConfig(
-            filename="doi_query.log",
+        print("logging to file")
+        log.basicConfig(
+            filename="markdown-wrapper.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
         )
     else:
-        logging.basicConfig(level=log_level, format=LOG_FORMAT)
-    info(args)
+        log.basicConfig(level=log_level, format=LOG_FORMAT)
+    log.info(args)
 
-    file_name = args.filename[0]
-    extension = Path(file_name).suffix[1:]
-    info(f"** file_name = {file_name}")
-    info(f"** extension = {extension}")
-    if file_name.startswith("http"):
-        url = file_name
+    input_arg = args.input_arg[0]
+    log.info(f"** input_fp = {input_arg}")
+
+    if input_arg.startswith("http"):
+        url = input_arg
         if "docs.google.com" in url:
             url = url.replace("/edit", "/export")
-    elif os.path.exists(file_name):
-        file_path = os.path.abspath(file_name)
-        info(f"path = {file_path}")
+        dst_file = TMP_DIR / "dt-result.txt"
+        extension = "html"
+    elif Path(input_arg).exists():
+        file_path = Path(input_arg).resolve()
+        log.info(f"path = {file_path}")
         url = f"file://{file_path}"
+        extension = file_path.suffix[1:]
+        dst_file = file_path.with_suffix(".txt")
     else:
-        print(f"ERROR: Cannot find {file_name}")
-        sys.exit()
-    info(f"** url = {url}")
+        raise FileNotFoundError(f"Cannot find {input_arg}")
+
+    log.info(f"** dst_file = {dst_file}")
+    log.info(f"** extension = {extension}")
+    log.info(f"** url = {url}")
 
     content = None
-    rotate_files(DST_FILE)
-    # os.remove(DST_FILE) if os.path.exists(DST_FILE) else None
+    rotate_files(dst_file)
 
     # default is lynx; args.catdoc now removed
     if not any(
@@ -189,7 +184,7 @@ if __name__ == "__main__":
     if extension == "md":
         extension = "markdown"
     extension = "html" if not extension else extension
-    info(f"** extension = {extension}")
+    log.info(f"** extension = {extension}")
 
     # I prefer to use the programs native wrap if possible
     if args.markdown:
@@ -207,7 +202,7 @@ if __name__ == "__main__":
             "--columns",
             f"{columns}",
             "-o",
-            DST_FILE,
+            dst_file,
         ]
     elif args.plain:
         content = urlopen(url).read()
@@ -222,7 +217,7 @@ if __name__ == "__main__":
             "--columns",
             f"{columns}",
             "-o",
-            DST_FILE,
+            dst_file,
         ]
     elif args.lynx:
         wrap = "-width 70" if args.wrap else "-width 1024"
@@ -243,41 +238,38 @@ if __name__ == "__main__":
         wrap = "-w 70" if args.wrap else "-w 0"
         url = url[7:]  # remove 'file://'
         command = ["antiword", url]
-    # elif args.catdoc:  # now deprecated, not available on homebrew
-    #     wrap = '' if args.wrap else '-w'
-    #     command = ['catdoc', url]
     elif args.docx2txt:
         wrap = ""  # maybe use fold instead?
-        command = ["docx2txt.pl", file_name, "-"]
+        command = ["docx2txt.pl", input_arg, "-"]
     elif args.pdftotext:
         wrap = ""
-        command = ["pdftotext", "-layout", "-nopgbrk", file_name, "-"]
+        command = ["pdftotext", "-layout", "-nopgbrk", input_arg, "-"]
     else:
-        print("ERROR: no conversion program specified")
+        raise TypeError("Error: No conversion specified.")
 
     command[1:1] = wrap.split()  # insert wrap args after command
     print(f"** command = {command} on {url}")
-    process = Popen(command, stdin=PIPE, stdout=open(DST_FILE, "w"))
+    process = Popen(command, stdin=PIPE, stdout=open(dst_file, "w"))
     process.communicate(input=content)
 
     if args.wrap or args.quote:
-        with open(DST_FILE) as f:
+        with open(dst_file) as f:
             new_content = []
             for line in f.readlines():
                 if line.isspace():
                     line = "\n"
                 if args.wrap and wrap == "":  # wrap if no native wrap
-                    info("wrapping")
+                    log.info("wrapping")
                     line = textwrap.fill(line, 70).strip() + "\n"
                 if args.quote:
-                    info("quoting")
+                    log.info("quoting")
                     line = line.replace("\n", "\n> ")
                 new_content.append(line)
             content = "".join(new_content)
             if args.quote:
                 content = "> " + content
-        with open(DST_FILE, "w") as f:
+        with open(dst_file, "w") as f:
             f.write(content)
 
-    os.chmod(DST_FILE, 0o600)
-    call([VISUAL, DST_FILE])
+    os.chmod(dst_file, 0o600)
+    call([VISUAL, dst_file])
