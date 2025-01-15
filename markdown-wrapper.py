@@ -36,8 +36,7 @@ from io import StringIO
 from pathlib import Path
 from urllib.parse import urlparse
 
-import lxml.etree as et  # type: ignore
-from lxml.html import tostring  # type: ignore
+from lxml import etree as et
 
 import md2bib
 
@@ -331,12 +330,11 @@ def number_elements(content: str) -> str:
         para.insert(0, span)
         para_num += 1
 
-    content = tostring(
-        doc,
+    content = et.tostring(
+        doc.getroot(),
         method="xml",
         encoding="utf-8",
         pretty_print=True,
-        include_meta_content_type=True,
     ).decode("utf-8")
 
     return content
@@ -816,6 +814,12 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="extract internally specified media, e.g., diagrams, to files (pandoc pass-through)",
+    )
+    arg_parser.add_argument(
+        "--stylize-names",
+        action="store_true",
+        default=False,
+        help="stylize subreddit and user names",
     )
     arg_parser.add_argument(
         "--toc",
