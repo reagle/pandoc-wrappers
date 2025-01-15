@@ -138,16 +138,21 @@ def invoke_md_wrapper(files_to_process: list[Path]) -> None:
             )
         else:
             md_args.extend(["-c", "https://reagle.org/joseph/2003/papers.css"])
-        # check for a multimarkdown metadata line with extra build options
+        # Check for a multimarkdown metadata line with extra build options
+        # that is optionally quoted
         match_md_opts = re.search('^md_opts_: "?(.*)"?', content, re.MULTILINE)
         if match_md_opts:
             md_opts = match_md_opts.group(1).strip().split(" ")
+            if len(md_opts) != len(set(md_opts)):
+                raise ValueError(
+                    f"Duplicate options specified in md_opts_ {md_opts} {fn_md}"
+                )
             log.debug(f"{md_opts=}")
             md_args.extend(md_opts)
         md_cmd.extend(md_args)
         md_cmd.extend([path_md])
         md_cmd = list(filter(None, md_cmd))  # remove any empty strings
-        # print("running pandoc")
+        print(f"{md_cmd=}")
         call(md_cmd)
         if tmp_body_fn:
             Path(tmp_body_fn).unlink()
