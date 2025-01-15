@@ -340,6 +340,15 @@ def number_elements(content: str) -> str:
     return content
 
 
+def stylize_names(content: str) -> str:
+    """Use regex to stylize forum and user names.
+
+    Presently, this includes Reddit subs and usernames.
+    """
+    NAME_PATTERN = re.compile(r" ([urp]/)([\w\d_-]+)")
+    return NAME_PATTERN.sub(r" `\1\2`", content)
+
+
 def pre_pandoc_processing(
     abs_fn: Path,
     args: argparse.Namespace,
@@ -399,6 +408,8 @@ def pre_pandoc_processing(
         line = line.replace('src="//', 'src="http://')
         # TODO: encode ampersands in URLs
         line = process_commented_citations(args, line)
+        if args.stylize_names:
+            line = stylize_names(line)
         if args.bibliography:  # create hypertext refs from bib db
             line = link_citations(line, bib_chunked)
             # log.debug(f"\n** line is now {line}")
@@ -495,9 +506,12 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
         pandoc_opts.extend(["-c", make_relpath(args.css, fn_path)])
 
     elif args.write_format.startswith("docx"):
-        pandoc_opts.extend(
-            ["--reference-doc", HOME / ".pandoc/reference-mit-press.docx"]
-        )
+        if args.reference_doc:
+            pandoc_opts.extend(["--reference-doc", args.reference_doc])
+        else:
+            pandoc_opts.extend(
+                ["--reference-doc", HOME / ".pandoc/custom-reference.docx"]
+            )
     if args.condensed:
         pandoc_opts.extend(
             [
@@ -814,6 +828,11 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="extract internally specified media, e.g., diagrams, to files (pandoc pass-through)",
+    )
+    arg_parser.add_argument(
+        "--reference-doc",
+        nargs=1,
+        help="path to a custom-reference.docx file",
     )
     arg_parser.add_argument(
         "--stylize-names",
