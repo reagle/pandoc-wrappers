@@ -152,7 +152,7 @@ def invoke_md_wrapper(files_to_process: list[Path]) -> None:
         md_cmd.extend(md_args)
         md_cmd.extend([path_md])
         md_cmd = list(filter(None, md_cmd))  # remove any empty strings
-        print(f"{md_cmd=}")
+        log.warning(f"{md_cmd=}")
         call(md_cmd)
         if tmp_body_fn:
             Path(tmp_body_fn).unlink()
