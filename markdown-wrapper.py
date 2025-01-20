@@ -345,8 +345,8 @@ def stylize_names(content: str) -> str:
 
     Presently, this includes Reddit subs and usernames.
     """
-    NAME_PATTERN = re.compile(r" ([urp]/)([\w\d_-]+)")
-    return NAME_PATTERN.sub(r" `\1\2`", content)
+    NAME_PATTERN = re.compile(r"\b([urp]/)([\w\d_-]+)")
+    return NAME_PATTERN.sub(r"`\1\2`", content)
 
 
 def pre_pandoc_processing(
