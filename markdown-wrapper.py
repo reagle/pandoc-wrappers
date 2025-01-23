@@ -64,7 +64,7 @@ def hyperize(cite_match: re.Match[str], bib_chunked: dict[str, dict[str, str]]) 
         print(f"WARNING: key {key} not found")
         return key
     else:
-        log.info(reference.keys())
+        log.info(reference.items())
     url = reference.get("url")
     log.info(f"{url=}")
     title = reference.get("title-short")
@@ -75,7 +75,7 @@ def hyperize(cite_match: re.Match[str], bib_chunked: dict[str, dict[str, str]]) 
 
     if "original-date" in reference:
         year = f"{reference['original-date']}/{year}"
-        log.info("original-date!")
+        log.info(f"!original_date={year}")
     if citation.startswith("-"):
         key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
     else:
@@ -108,7 +108,7 @@ def link_citations(line: str, bib_chunked: dict[str, dict[str, str]]) -> str:
         r"""
         (-?@        # at-sign with optional negative
         (?<!\\@)    # negative look behind for escape slash
-        [\w|-]+)    # one or more alhanumberics or hyphens
+        [\w|-]+)    # one or more alphanumerics or hyphens
         """,
         re.VERBOSE,
     )  # -@Clark-Flory2010fpo
@@ -261,7 +261,6 @@ def create_handout(ori_md_f: Path, intermedia_md_f: Path):
             )
             for line in handout_content.split("\n"):
                 if args.partial_handout:
-                    log.info("{args.partial_handout=}")
                     line = line.replace("### ", " ")
                     if line.startswith(("# ", "## ")):
                         skip_to_next_header = " _" in line

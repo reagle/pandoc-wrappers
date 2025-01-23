@@ -54,7 +54,7 @@ def chunk_yaml(text) -> dict[str, dict[str, str]]:
             elif line.startswith("  original-date:"):
                 next_line = next(lines)  # year is on next line
                 if "year" in next_line:
-                    entries[key]["original-date"] = next_line[10:-1]
+                    entries[key]["original-date"] = next_line[10:]
     # log.debug(f"{entries=}")
     return entries
 
