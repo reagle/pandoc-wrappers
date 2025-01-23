@@ -15,6 +15,7 @@ from inspect import cleandoc  # better than dedent
 from pathlib import Path
 
 HOME = Path.home()
+logger = log.getLogger(__name__)
 
 
 def chunk_yaml(text) -> dict[str, dict[str, str]]:
@@ -31,7 +32,7 @@ def chunk_yaml(text) -> dict[str, dict[str, str]]:
     lines = iter(text[1:])  # skip first two lines of YAML
     for line in lines:
         line = line.rstrip()
-        # log.debug(f"{line=}")
+        log.debug(f"{line=}")
         if line == "...":  # last line
             # final chunk
             entries[key]["_yaml_block"] = "\n".join(yaml_block)
