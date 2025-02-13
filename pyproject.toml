@@ -80,13 +80,9 @@ lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 max-complexity = 10
 
 [tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-r a -q --doctest-modules"
-testpaths = [
-    "biblio", "formats", "tests"
-]
-filterwarnings = "ignore::DeprecationWarning"
-enable_assertion_pass_hook = true
+testpaths = ["."]
+python_files = ["test_*.py", "*_test.py", "markdown-wrapper.py"]
+addopts = "--doctest-modules"
 
 [tool.pyright]
 reportMissingImports = false
