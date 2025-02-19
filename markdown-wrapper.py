@@ -66,6 +66,7 @@ def hyperize(cite_match: re.Match[str], bib_chunked: dict[str, dict[str, str]]) 
     else:
         log.info(reference.items())
     url = reference.get("url")
+    url = url[1:-1] if url and url.startswith("<") and url.endswith(">") else url
     log.info(f"{url=}")
     title = reference.get("title-short")
     log.info(f"{title=}")
