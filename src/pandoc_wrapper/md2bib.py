@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-# (c) Copyright 2011-2014 by Joseph Reagle
+# (c) Copyright 2011-2025 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
 """Extract a subset of bibliographic keys.
@@ -8,6 +8,7 @@ UExtract a subset of bibliographic keys from BIB_FILE
 using keys found in a markdown file or specified in argument.
 """
 
+import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging as log
 import re
 import sys
@@ -209,9 +210,8 @@ TEST_OUT = [
 ]
 
 
-if __name__ == "__main__":
-    import argparse  # http://docs.python.org/dev/library/argparse.html
-
+def main():
+    """Parse command line arguments and call the appropriate functions."""
     arg_parser = argparse.ArgumentParser(
         description=(
             "Extract a subset of bibliographic keys "
@@ -334,3 +334,7 @@ if __name__ == "__main__":
     else:
         subset = subset_yaml(entries, keys)
         emit_yaml_subset(subset, outfd)
+
+
+if __name__ == "__main__":
+    main()

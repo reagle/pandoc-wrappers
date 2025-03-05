@@ -1,16 +1,34 @@
 [project]
 
-requires-python = ">=3.12"
+name = "pandoc_wrapper"
+version = "1.0.0"
+description = "Wrappers for pandoc"
+authors = [{ name = "Joseph Reagle"}]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "beautifulsoup4>=4.13.3",
+    "lxml>=5.3.1",
+]
 
-[tool.black]
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
 
-line-length = 88
-preview = true
+
+[project.scripts]
+doc2txt = "pandoc_wrapper.doc2txt:main"
+markdown-wrapper = "pandoc_wrapper.markdown_wrapper:main"
+md2bib = "pandoc_wrapper.md2bib:main"
+wiki-update = "pandoc_wrapper.wiki_update:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.ruff]
 
-# Same as Black.
-line-length = 88
+line-length = 88 # Same as Black
 
 lint.select = [
 "A", # flake8-builtins        https://tinyurl.com/ruff-rules#flake8-builtins-a
@@ -35,6 +53,8 @@ lint.select = [
 
 lint.ignore = [
 "D102", # Missing docstring in public method
+"D203", # one-blank-line-before-class
+"D213", # multi-line-summary-second-line
 "D107", # Missing docstring in __init__
 "E501", # doctests need long lines
 "PLR0912", # Too many branches in function or method
@@ -48,6 +68,9 @@ lint.ignore = [
 lint.unfixable = [
 "F401", # keep unused modules as I'm likely to use them shortly
 ]
+
+# Allow unused variables when underscore-prefixed.
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -73,18 +96,13 @@ exclude = [
     "_old",
 ]
 
-# Allow unused variables when underscore-prefixed.
-lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
 [tool.ruff.lint.mccabe] # enabled via "C90" above
 max-complexity = 10
 
 [tool.pytest.ini_options]
-testpaths = ["."]
-python_files = ["test_*.py", "*_test.py", "markdown-wrapper.py"]
 addopts = "--doctest-modules"
 
 [tool.pyright]
 reportMissingImports = false
 reportMissingTypeStubs = false
-pythonVersion = '3.12'
+pythonVersion = '3.13'
