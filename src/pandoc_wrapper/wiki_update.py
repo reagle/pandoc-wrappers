@@ -7,6 +7,7 @@ ob-/* (obsidian) -> html
 *.md (pandoc)-> html
 """
 
+import argparse
 import logging as log
 import os
 import re
@@ -18,7 +19,7 @@ from bs4 import BeautifulSoup  # type: ignore
 
 BROWSER = Path(os.environ["BROWSER"])
 HOME = Path.home()
-MD_BIN = HOME / "bin/pw/markdown-wrapper.py"
+MD_BIN = "markdown-wrapper"
 # https://github.com/zoni/obsidian-export
 OBS_EXPORT_BIN = HOME / "bin/obsidian-export"
 PANDOC_BIN = Path(shutil.which("pandoc"))  # type: ignore ; tested below
@@ -78,7 +79,7 @@ def create_index(vault_path: Path, export_path: Path) -> None:
 #################################
 
 
-def find_convert_md(source_path: Path) -> None:
+def find_convert_md(args: argparse.Namespace, source_path: Path) -> None:
     """Find and convert any markdown file whose HTML file is older than it."""
     # TODO: have this work when output format is docx or odt.
     #   2020-03-11: attempted but difficult, need to:
@@ -91,19 +92,18 @@ def find_convert_md(source_path: Path) -> None:
 
     for fn_md in source_path.glob("**/*.md"):
         fn_html = fn_md.with_suffix(".html")
-        if fn_html.exists():
-            if fn_md.stat().st_mtime > fn_html.stat().st_mtime:
-                log.debug(
-                    f"""{fn_md} {fn_md.stat().st_mtime} """
-                    + f"""> {fn_html} {fn_html.stat().st_mtime}"""
-                )
-                files_to_process.append(fn_md)
+        if fn_html.exists() and fn_md.stat().st_mtime > fn_html.stat().st_mtime:
+            log.debug(
+                f"""{fn_md} {fn_md.stat().st_mtime} """
+                + f"""> {fn_html} {fn_html.stat().st_mtime}"""
+            )
+            files_to_process.append(fn_md)
 
     log.info(f"{files_to_process=}")
-    invoke_md_wrapper(files_to_process)
+    invoke_md_wrapper(args, files_to_process)
 
 
-def invoke_md_wrapper(files_to_process: list[Path]) -> None:
+def invoke_md_wrapper(args: argparse.Namespace, files_to_process: list[Path]) -> None:
     """Configure arguments for `markdown-wrapper.py` and invoke."""
     for fn_md in files_to_process:
         log.info(f"updating fn_md {fn_md}")
@@ -317,7 +317,8 @@ def reset_folder(folder_path: Path) -> None:
 ##################################
 
 
-if __name__ == "__main__":
+def main():
+    """Provide main entry point."""
     import argparse  # http://docs.python.org/dev/library/argparse.html
 
     arg_parser = argparse.ArgumentParser(
@@ -392,10 +393,10 @@ if __name__ == "__main__":
     ## Markdown files ##
 
     # Private markdown files
-    find_convert_md(HOME / "data/1work/")
+    find_convert_md(args, HOME / "data/1work/")
 
     # Public markdown files
-    find_convert_md(HOME / "joseph/")
+    find_convert_md(args, HOME / "joseph/")
 
     # Transclude Obsidian Home.html into my planning page
     planning_page = HOME / "joseph/plan/index.html"
@@ -408,3 +409,7 @@ if __name__ == "__main__":
     )
     if modified_html:
         planning_page.write_text(modified_html)
+
+
+if __name__ == "__main__":
+    main()

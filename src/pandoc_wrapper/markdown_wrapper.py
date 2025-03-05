@@ -38,13 +38,13 @@ from urllib.parse import urlparse
 
 from lxml import etree as et
 
-import md2bib
+from pandoc_wrapper import md2bib
 
 HOME = Path.home()
 WEBROOT = HOME / "e/clear/data/2web/reagle.org"
 BROWSER = os.environ["BROWSER"].replace("*", " ")
 PANDOC_BIN = Path(shutil.which("pandoc"))  # type: ignore # test for None below
-MD_BIN = Path(shutil.which("markdown-wrapper.py"))  # type: ignore # test for None below
+MD_BIN = Path(shutil.which("markdown-wrapper"))  # type: ignore # test for None below
 if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
@@ -682,7 +682,8 @@ def pandoc_processing(
         create_handout(abs_fn, fn_tmp_2)
 
 
-if __name__ == "__main__":
+def main():
+    """Parse arguments and hand to functions."""
     import argparse  # http://docs.python.org/dev/library/argparse.html
 
     arg_parser = argparse.ArgumentParser(
@@ -918,3 +919,7 @@ if __name__ == "__main__":
         doctest.testmod()
         sys.exit()
     process(args)
+
+
+if __name__ == "__main__":
+    main()
