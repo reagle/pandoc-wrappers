@@ -26,6 +26,7 @@
 
 import argparse
 import codecs
+import functools
 import logging as log
 import os
 import re
@@ -146,16 +147,19 @@ def process_commented_citations(args: argparse.Namespace, line: str) -> str:
         re.VERBOSE,
     )
 
+    # Create a partial function with args bound to it
+    quash_with_args = functools.partial(quash, args=args)
+    # Pass the partial function to subn
     # log.debug(f"old_line = {line}")
-    new_line = PARENS_BRACKET_PAIR.subn(quash, line)[0]
+    new_line = PARENS_BRACKET_PAIR.subn(quash_with_args, line)[0]
     # log.debug(f"new_line = {new_line}")
-    # if I quashed a citation completely, I might have a period after a quote
+    # If I quashed a citation completely, I might have a period after a quote
     if args.quash_citations and ("]." in line and '".' in new_line):  # imperfect test
         new_line = new_line.replace('".', '."')
     return new_line
 
 
-def quash(cite_match: re.Match[str]) -> str:
+def quash(cite_match: re.Match[str], args: argparse.Namespace) -> str:
     """Collect and rewrite citations.
 
     if args.quash_citations drop commented citations, eg [#@Reagle2012foo]
@@ -234,7 +238,7 @@ def make_relpath(path_to: Path | str, path_from: Path | str) -> str:
     return str(result)
 
 
-def create_handout(ori_md_f: Path, intermedia_md_f: Path):
+def create_handout(args: argparse.Namespace, ori_md_f: Path, intermedia_md_f: Path):
     """Create handout version of the slide."""
     log.info("HANDOUT START")
     log.info(f"{ori_md_f=}")
@@ -679,7 +683,7 @@ def pandoc_processing(
         )
     log.info("done pandoc_cmd")
     if args.presentation:
-        create_handout(abs_fn, fn_tmp_2)
+        create_handout(args, abs_fn, fn_tmp_2)
 
 
 def main():
