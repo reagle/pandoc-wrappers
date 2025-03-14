@@ -559,6 +559,33 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
     return pandoc_inputs, pandoc_opts
 
 
+def pandoc_processing(
+    abs_fn: Path,
+    args: argparse.Namespace,
+    fn_tmp_2: Path,
+    pandoc_inputs: list,
+    pandoc_opts: list,
+):
+    """Execute pandoc."""
+    pandoc_cmd = [
+        PANDOC_BIN,
+        "-r",
+        f"{args.read}",
+    ]
+    pandoc_cmd.extend(pandoc_opts)
+    pandoc_inputs.insert(0, fn_tmp_2)
+    pandoc_cmd.extend(pandoc_inputs)
+    log.warning(" ".join(str(item) for item in pandoc_cmd))
+    pandoc_result = subprocess.run(pandoc_cmd, capture_output=True, text=True)
+    if pandoc_result.returncode:
+        raise ValueError(
+            f"pandoc returned {pandoc_result.returncode}: {pandoc_result.stderr}"
+        )
+    log.info("done pandoc_cmd")
+    if args.presentation:
+        create_handout(args, abs_fn, fn_tmp_2)
+
+
 def post_pandoc_html_processing(
     args: argparse.Namespace, base_fn: Path, fn_result: Path, fn_tmp_3: Path
 ) -> Path:
@@ -637,16 +664,12 @@ def process(args: argparse.Namespace):
         fn_path = abs_fn.with_suffix("")
         log.info(f"fn_path = '{fn_path}'")
 
-        # ##############################
-        # These functions result from breaking up an earlier massive function,
-        # further refactoring should minimize the arguments being passed about.
         pandoc_inputs, pandoc_opts = set_pandoc_options(args, abs_fn)
         cleanup_tmp_fns, fn_result, fn_tmp_2, fn_tmp_3 = pre_pandoc_processing(
             abs_fn, args, base_ext, base_fn, bib_chunked, pandoc_opts
         )
         pandoc_processing(abs_fn, args, fn_tmp_2, pandoc_inputs, pandoc_opts)
         result_fn = post_pandoc_html_processing(args, base_fn, fn_result, fn_tmp_3)
-        # ##############################
 
         if args.write_format == "html" and args.launch_browser:
             log.info(f"launching {result_fn}")
@@ -657,33 +680,6 @@ def process(args: argparse.Namespace):
             for cleanup_fn in cleanup_tmp_fns:
                 if Path(cleanup_fn).exists():
                     Path(cleanup_fn).unlink()
-
-
-def pandoc_processing(
-    abs_fn: Path,
-    args: argparse.Namespace,
-    fn_tmp_2: Path,
-    pandoc_inputs: list,
-    pandoc_opts: list,
-):
-    """Execute pandoc."""
-    pandoc_cmd = [
-        PANDOC_BIN,
-        "-r",
-        f"{args.read}",
-    ]
-    pandoc_cmd.extend(pandoc_opts)
-    pandoc_inputs.insert(0, fn_tmp_2)
-    pandoc_cmd.extend(pandoc_inputs)
-    log.warning(" ".join(str(item) for item in pandoc_cmd))
-    pandoc_result = subprocess.run(pandoc_cmd, capture_output=True, text=True)
-    if pandoc_result.returncode:
-        raise ValueError(
-            f"pandoc returned {pandoc_result.returncode}: {pandoc_result.stderr}"
-        )
-    log.info("done pandoc_cmd")
-    if args.presentation:
-        create_handout(args, abs_fn, fn_tmp_2)
 
 
 def main():
