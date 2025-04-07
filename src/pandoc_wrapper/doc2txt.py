@@ -1,6 +1,11 @@
 #! /usr/bin/env python3
 """Create plain text versions of documents using other tools such as text-based browsers and pandoc."""
 
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2009-2025 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "1.0"
+
 import argparse
 import logging as log
 import os
