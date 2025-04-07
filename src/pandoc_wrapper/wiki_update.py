@@ -7,6 +7,11 @@ ob-/* (obsidian) -> html
 *.md (pandoc)-> html
 """
 
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2009-2025 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "1.0"
+
 import argparse
 import logging as log
 import os
