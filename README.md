@@ -1,20 +1,20 @@
-These are wrappers for the wonderful [pandoc](http://johnmacfarlane.net/pandoc/) tool that I use for creating web pages, presentations, papers, and even books. I don't imagine they will be useful to others off-the-shelf but there might be handy techniques, particular the super simple, limited, but fast bibtex parser in `mdn2bib`.
+These are wrappers for the wonderful [pandoc](http://johnmacfarlane.net/pandoc/) tool that I use for creating web pages, presentations, papers, and even books. I don't imagine they will be useful to others off-the-shelf but there might be handy techniques, particular the super simple, limited, but fast bibtex chunker in `mdn2bib`.
 
 ## md2bib.py
 
-A set of bibtex utilities for parsing and manipulating bibtex files, especially in the context of my pandoc wrappers.
+Extract a subset of bibliographic keys from BIB_FILE (bib or yaml) using those keys found in a markdown file or specified in argument.
 
 ## markdown-wrapper.py
 
-A wrapper script for pandoc that handles my own issues:
+A wrapper script for pandoc that handles my own issues, including
 
-1. associates the result with a particular style sheet;
-2. can replace [@key] with hypertext'd refs from bibtex database;
-3. can create (partial) handouts for students from slides;
+1. associating the result with a particular style sheet;
+2. replacing [@key] with hypertext'd refs from bibtex database;
+3. creating handouts for students from slides;
 
 ## doc2txt.py
 
-Wraps many tools for converting documents to text.
+Create plain text versions of documents using other tools such as text-based browsers and pandoc
 
 ## wiki-update.py
 

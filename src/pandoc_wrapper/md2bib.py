@@ -8,6 +8,11 @@ UExtract a subset of bibliographic keys from BIB_FILE
 using keys found in a markdown file or specified in argument.
 """
 
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2009-2025 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "1.0"
+
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging as log
 import re
@@ -215,7 +220,7 @@ def main():
     arg_parser = argparse.ArgumentParser(
         description=(
             "Extract a subset of bibliographic keys "
-            "from BIB_FILE (bib or yaml) using those keys found "
+            "from BIB_FILE (bib or yaml) using keys found "
             "in a markdown file or specified in argument."
         )
     )

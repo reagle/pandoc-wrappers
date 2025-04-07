@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
-"""Document transformation wrapper."""
+"""Create plain text versions of documents using other tools such as text-based browsers and pandoc."""
 
+import argparse
 import logging as log
 import os
 import shutil
@@ -13,19 +14,22 @@ HOME = Path.home()
 TMP_DIR = Path(HOME) / "tmp" / ".pw"
 TMP_DIR.mkdir(parents=True, exist_ok=True)
 PANDOC_BIN = shutil.which("pandoc")
-VISUAL = os.environ["VISUAL"]
+VISUAL = os.environ.get("VISUAL")
 if not all([HOME, VISUAL, PANDOC_BIN]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
 
 def rotate_files(file_path: Path | str, max_rot: int = 5) -> None:
-    """Create at most {max_rot} rotating files."""
+    """Create at most {max_rot} rotating files.
+
+    >>> rotate_files(Path("/tmp/test.txt"), 3)  # Creates /tmp/test1.txt if test.txt exists
+    """
     path = Path(file_path)
     bare = path.parent / path.stem
     ext = path.suffix
 
     for counter in reversed(range(2, max_rot + 1)):
-        old_file = Path(f"{bare}{counter-1}{ext}")
+        old_file = Path(f"{bare}{counter - 1}{ext}")
         new_file = Path(f"{bare}{counter}{ext}")
         if old_file.exists():
             old_file.rename(new_file)
@@ -34,12 +38,11 @@ def rotate_files(file_path: Path | str, max_rot: int = 5) -> None:
         path.rename(f"{bare}1{ext}")
 
 
-if __name__ == "__main__":
-    import argparse  # http://docs.python.org/dev/library/argparse.html
-
+def parse_arguments() -> argparse.Namespace:
+    """Parse command line arguments and return namespace."""
     arg_parser = argparse.ArgumentParser(
         description=(
-            "Document transformation wrapper which (by default) converts HTML to text"
+            "Create plain text versions of documents using other tools such as text-based browsers and pandoc."
         )
     )
     arg_parser.add_argument("input_arg", nargs=1, metavar="URL or FILE")
@@ -125,10 +128,14 @@ if __name__ == "__main__":
     )
     arg_parser.add_argument("--version", action="version", version="TBD")
 
-    args = arg_parser.parse_args()
+    return arg_parser.parse_args()
 
+
+def setup_logging(args: argparse.Namespace) -> None:
+    """Configure logging based on command line arguments."""
     log_level = (log.CRITICAL) - (args.verbose * 10)
     LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
+
     if args.log_to_file:
         print("logging to file")
         log.basicConfig(
@@ -141,19 +148,18 @@ if __name__ == "__main__":
         log.basicConfig(level=log_level, format=LOG_FORMAT)
     log.info(args)
 
-    input_arg = args.input_arg[0]
-    log.info(f"** input_fp = {input_arg}")
 
+def process_input(input_arg: str) -> tuple[str, Path, str]:
+    """Process input argument and return URL, destination file, and extension."""
     if input_arg.startswith("http"):
         url = input_arg
         if "docs.google.com" in url:
             url = url.replace("/edit", "/export")
         dst_file = TMP_DIR / "dt-result.txt"
         extension = "html"
-    elif Path(input_arg).exists():
-        file_path = Path(input_arg).resolve()
+    elif (file_path := Path(input_arg)).exists():
         log.info(f"path = {file_path}")
-        url = f"file://{file_path}"
+        url = f"file://{file_path.resolve()}"
         extension = file_path.suffix[1:]
         dst_file = file_path.with_suffix(".txt")
     else:
@@ -163,10 +169,17 @@ if __name__ == "__main__":
     log.info(f"** extension = {extension}")
     log.info(f"** url = {url}")
 
-    content = None
-    rotate_files(dst_file)
+    return url, dst_file, extension
 
-    # default is lynx; args.catdoc now removed
+
+def get_command(
+    args: argparse.Namespace, url: str, dst_file: Path, extension: str, input_arg: str
+) -> tuple[list[str], bytes | None, str]:
+    """Generate command for document conversion based on arguments."""
+    content = None
+    wrap_option = ""
+
+    # default is lynx if no conversion option specified
     if not any(
         (
             args.lynx,
@@ -181,15 +194,15 @@ if __name__ == "__main__":
     ):
         args.lynx = True
 
-    if extension == "md":
-        extension = "markdown"
-    extension = "html" if not extension else extension
+    # Normalize extension
+    extension = "markdown" if extension == "md" else extension
+    extension = extension if extension else "html"
     log.info(f"** extension = {extension}")
 
-    # I prefer to use the programs native wrap if possible
+    # Configure command based on selected conversion options
     if args.markdown:
         content = urlopen(url).read()
-        wrap = "" if args.wrap else "--wrap=none"
+        wrap_option = "" if args.wrap else "--wrap=none"
         columns = 70
         command = [
             PANDOC_BIN,
@@ -202,11 +215,11 @@ if __name__ == "__main__":
             "--columns",
             f"{columns}",
             "-o",
-            dst_file,
+            str(dst_file),
         ]
     elif args.plain:
         content = urlopen(url).read()
-        wrap = "" if args.wrap else "--wrap=none"
+        wrap_option = "" if args.wrap else "--wrap=none"
         columns = 70
         command = [
             PANDOC_BIN,
@@ -217,59 +230,106 @@ if __name__ == "__main__":
             "--columns",
             f"{columns}",
             "-o",
-            dst_file,
+            str(dst_file),
         ]
     elif args.lynx:
-        wrap = "-width 70" if args.wrap else "-width 1024"
-        command = [
-            "lynx",
-            "-dump",
-            "-nonumbers",
-            "-display_charset=utf-8",
-            url,
-        ]
+        wrap_option = "-width 70" if args.wrap else "-width 1024"
+        command = ["lynx", "-dump", "-nonumbers", "-display_charset=utf-8", url]
     elif args.links:
-        wrap = "-width 70" if args.wrap else "-width 512"
+        wrap_option = "-width 70" if args.wrap else "-width 512"
         command = ["links", "-dump", url]
     elif args.w3m:
-        wrap = "-cols 70" if args.wrap else ""
+        wrap_option = "-cols 70" if args.wrap else ""
         command = ["w3m", "-dump", "-cols", "70", url]
     elif args.antiword:
-        wrap = "-w 70" if args.wrap else "-w 0"
-        url = url[7:]  # remove 'file://'
-        command = ["antiword", url]
+        wrap_option = "-w 70" if args.wrap else "-w 0"
+        url_no_prefix = url[7:]  # remove 'file://'
+        command = ["antiword", url_no_prefix]
     elif args.docx2txt:
-        wrap = ""  # maybe use fold instead?
+        wrap_option = ""  # maybe use fold instead?
         command = ["docx2txt.pl", input_arg, "-"]
     elif args.pdftotext:
-        wrap = ""
+        wrap_option = ""
         command = ["pdftotext", "-layout", "-nopgbrk", input_arg, "-"]
     else:
         raise TypeError("Error: No conversion specified.")
 
-    command[1:1] = wrap.split()  # insert wrap args after command
-    print(f"** command = {command} on {url}")
-    process = Popen(command, stdin=PIPE, stdout=open(dst_file, "w"))
-    process.communicate(input=content)
+    # Insert wrap options after command
+    if wrap_option:
+        command[1:1] = wrap_option.split()
 
-    if args.wrap or args.quote:
-        with open(dst_file) as f:
-            new_content = []
-            for line in f.readlines():
-                if line.isspace():
-                    line = "\n"
-                if args.wrap and wrap == "":  # wrap if no native wrap
-                    log.info("wrapping")
-                    line = textwrap.fill(line, 70).strip() + "\n"
-                if args.quote:
-                    log.info("quoting")
-                    line = line.replace("\n", "\n> ")
-                new_content.append(line)
-            content = "".join(new_content)
+    return command, content, wrap_option
+
+
+def post_process(
+    args: argparse.Namespace, dst_file: Path, wrap_option: str = ""
+) -> None:
+    """Apply additional text transformations if needed."""
+    if not (args.wrap or args.quote):
+        return
+
+    with dst_file.open() as f:
+        new_content = []
+        for line in f.readlines():
+            # Replace whitespace-only lines with newlines
+            line = "\n" if line.isspace() else line
+
+            # Apply wrapping if needed and no native wrapping available
+            if args.wrap and not wrap_option:  # wrap if no native wrap
+                log.info("wrapping")
+                line = textwrap.fill(line, 70).strip() + "\n"
+
+            # Add quote marks if requested
             if args.quote:
-                content = "> " + content
-        with open(dst_file, "w") as f:
-            f.write(content)
+                log.info("quoting")
+                line = line.replace("\n", "\n> ")
 
-    os.chmod(dst_file, 0o600)
-    call([VISUAL, dst_file])
+            new_content.append(line)
+
+        content = "".join(new_content)
+
+        # Add initial quote mark if quoting
+        if args.quote:
+            content = "> " + content
+
+    with dst_file.open("w") as f:
+        f.write(content)
+
+
+def main(args: argparse.Namespace | None = None) -> None:
+    """Execute the main document transformation workflow."""
+    if args is None:
+        args = parse_arguments()
+
+    setup_logging(args)
+
+    input_arg = args.input_arg[0]
+    log.info(f"** input_fp = {input_arg}")
+
+    url, dst_file, extension = process_input(input_arg)
+
+    rotate_files(dst_file)
+
+    command, content, wrap_option = get_command(
+        args, url, dst_file, extension, input_arg
+    )
+
+    print(f"** command = {command} on {url}")
+
+    # Use context manager for file operations
+    with dst_file.open("w") as output_file:
+        process = Popen(command, stdin=PIPE, stdout=output_file)
+        process.communicate(input=content)
+
+    post_process(args, dst_file, wrap_option)
+
+    # Set permissions and open in editor
+    dst_file.chmod(0o600)
+    if VISUAL is not None:  # Ensure VISUAL is not None before using it
+        call([VISUAL, str(dst_file)])
+    else:
+        log.warning("VISUAL environment variable is None, skipping opening editor")
+
+
+if __name__ == "__main__":
+    main()
