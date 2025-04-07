@@ -14,7 +14,7 @@ A wrapper script for pandoc that handles my own issues, including
 
 ## doc2txt.py
 
-Create plain text versions of documents using other tools such as text-based browsers and pandoc
+Create plain text versions of documents using other tools such as text-based browsers and pandoc.
 
 ## wiki-update.py
 
