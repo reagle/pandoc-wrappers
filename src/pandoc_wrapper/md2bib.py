@@ -4,7 +4,7 @@
 
 """Extract a subset of bibliographic keys.
 
-UExtract a subset of bibliographic keys from BIB_FILE
+Extract a subset of bibliographic keys from BIB_FILE
 using keys found in a markdown file or specified in argument.
 """
 
