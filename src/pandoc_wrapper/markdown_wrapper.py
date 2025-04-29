@@ -461,7 +461,7 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
             "pandoc-quotes.lua",  # specify quote marks and lang
             "--strip-comments",
             "--wrap=auto",
-            "--columns=120",
+            "--columns=100",
             "-c",
             make_relpath(
                 FONTAWESOME_URL,
