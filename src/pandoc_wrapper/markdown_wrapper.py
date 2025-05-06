@@ -353,20 +353,16 @@ def stylize_names(content: str) -> str:
     """Use regex to stylize forum and user names.
 
     Presently, this includes Reddit subs and usernames.
-
-    >>> stylize_names("Check out r/Python. Okay!")
-    'Check out `r/Python`. Okay!'
-
+    >>> stylize_names("Did you read r/Python. What about /r/python? Okay!")
+    'Did you read `r/Python`. What about `/r/python`? Okay!'
     >>> stylize_names("u/code_master posted in r/learnpython.")
     '`u/code_master` posted in `r/learnpython`.'
-
     >>> stylize_names("Multiple u/user1 and r/sub1 and p/user-2.")
     'Multiple `u/user1` and `r/sub1` and `p/user-2`.'
-
     >>> stylize_names("Works with u/dot.user and r/dot.sub.")
     'Works with `u/dot.user` and `r/dot.sub`.'
     """
-    NAME_PATTERN = re.compile(r"\b([urp]/)((?:[\w-]|\.(?=[\w.-]))+)")
+    NAME_PATTERN = re.compile(r"(/?\b[urp]/)((?:[\w-]|\.(?=[\w.-]))+)")
     return NAME_PATTERN.sub(r"`\1\2`", content)
 
 
