@@ -311,7 +311,7 @@ def main():
             args.filename = HOME / "joseph/readings.yaml"
             chunk_func = chunk_yaml
     else:
-        fn, ext = args.filename.stem, args.filename.suffix
+        _, ext = args.filename.stem, args.filename.suffix
         log.debug(f"ext = {ext}")
         if ext == ".bib":
             chunk_func = chunk_bibtex
@@ -327,7 +327,7 @@ def main():
         keys = [key.strip() for key in args.keys[0].split(",")]
         log.debug(f"arg keys = '{keys}'")
     elif args.find_keys:
-        keys = get_keys_from_file(args.find_keys[0])
+        keys = get_keys_from_file(Path(args.find_keys[0]))
         log.debug(f"md  keys = '{keys}'")
     else:
         print("No keys given")

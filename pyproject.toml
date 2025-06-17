@@ -16,6 +16,11 @@ dependencies = [
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+dev = [
+    "ipdb>=0.13.13",
+    "pytest>=7.4.0",
+]
 
 [project.scripts]
 doc2txt = "pandoc_wrapper.doc2txt:main"
