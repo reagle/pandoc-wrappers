@@ -465,7 +465,7 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
             ),
         ]
     )
-    ## Use diagram or mermaid filter
+    ################## Use diagram or mermaid filter
     # Diagram can use cache, but doesn't take .mermaid-config.json
     # https://github.com/pandoc-ext/diagram/issues/31
     # npm update -g @mermaid-js/mermaid-cli
@@ -477,7 +477,7 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
                 "diagram.lua",  # supports many diagram types
             ]
         )
-    # Mermaid filter has no cache and a number of issues
+    # Mermaid filter has no cache and a number of issues and no updates since 2023-Dec
     # https://github.com/raghur/mermaid-filter/issues
     # npm install --global mermaid-filter
     if args.mermaid:
@@ -487,6 +487,8 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
                 "mermaid-filter",
             ]
         )
+    ##################
+
     if args.pantable:
         pandoc_opts.extend(
             [
@@ -581,6 +583,7 @@ def pandoc_processing(
     if pandoc_result.returncode:
         raise ValueError(
             f"pandoc returned {pandoc_result.returncode}: {pandoc_result.stderr}"
+            f" on {pandoc_cmd}"
         )
     log.info("done pandoc_cmd")
     if args.presentation:
