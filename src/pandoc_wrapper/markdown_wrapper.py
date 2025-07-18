@@ -455,6 +455,8 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
             "--standalone",
             "--lua-filter",
             "pandoc-quotes.lua",  # specify quote marks and lang
+            "--filter",
+            "pandoc-plot",  # generate plots and figures, e.g., mermaid, dot
             "--strip-comments",
             "--wrap=auto",
             "--columns=100",
@@ -465,29 +467,6 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
             ),
         ]
     )
-    ################## Use diagram or mermaid filter
-    # Diagram can use cache, but doesn't take .mermaid-config.json
-    # https://github.com/pandoc-ext/diagram/issues/31
-    # npm update -g @mermaid-js/mermaid-cli
-    # wget -P ~/.pandoc/filters https://raw.githubusercontent.com/pandoc-ext/diagram/main/_extensions/diagram/diagram.lua
-    if args.diagram:
-        pandoc_opts.extend(
-            [
-                "--lua-filter",
-                "diagram.lua",  # supports many diagram types
-            ]
-        )
-    # Mermaid filter has no cache and a number of issues and no updates since 2023-Dec
-    # https://github.com/raghur/mermaid-filter/issues
-    # npm install --global mermaid-filter
-    if args.mermaid:
-        pandoc_opts.extend(
-            [
-                "-F",
-                "mermaid-filter",
-            ]
-        )
-    ##################
 
     if args.pantable:
         pandoc_opts.extend(
@@ -736,12 +715,6 @@ def main():
         help="use pandoc's --section-divs",
     )
     arg_parser.add_argument(
-        "--diagram",
-        action="store_true",
-        default=False,
-        help="use diagram filter",
-    )
-    arg_parser.add_argument(
         "--lua-filter",
         nargs=1,
         help="lua filter (pandoc pass-through)",
@@ -773,12 +746,6 @@ def main():
     )
     arg_parser.add_argument(
         "-o", "--output", nargs=1, help="output file path", type=Path
-    )
-    arg_parser.add_argument(
-        "--mermaid",
-        action="store_true",
-        default=False,
-        help="use mermaid filter",
     )
     arg_parser.add_argument(
         "-n",
