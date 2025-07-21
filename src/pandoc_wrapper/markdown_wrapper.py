@@ -557,14 +557,17 @@ def pandoc_processing(
     pandoc_cmd.extend(pandoc_opts)
     pandoc_inputs.insert(0, fn_tmp_2)
     pandoc_cmd.extend(pandoc_inputs)
-    log.warning(" ".join(str(item) for item in pandoc_cmd))
+    pandoc_cmd_str = " ".join(str(item) for item in pandoc_cmd)
+    log.warning(pandoc_cmd_str)
     pandoc_result = subprocess.run(pandoc_cmd, capture_output=True, text=True)
     # I want pandoc stderr warnings in addition to failures
-    if pandoc_result.stderr or pandoc_result.returncode:
+    if pandoc_result.returncode != 0:
         raise ValueError(
             f"pandoc returned {pandoc_result.returncode}: {pandoc_result.stderr}"
-            f" on {pandoc_cmd}"
+            f"\non {pandoc_cmd_str}"
         )
+    elif pandoc_result.stderr:
+        log.critical(f"pandoc stderr:\n{pandoc_result.stderr}\non {pandoc_cmd_str}")
     log.info("done pandoc_cmd")
     if args.presentation:
         create_handout(args, abs_fn, fn_tmp_2)
