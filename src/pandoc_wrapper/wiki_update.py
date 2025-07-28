@@ -158,7 +158,7 @@ def invoke_md_wrapper(args: argparse.Namespace, files_to_process: list[Path]) ->
         md_cmd.extend([path_md])
         md_cmd = list(filter(None, md_cmd))  # remove any empty strings
         log.warning(f"{md_cmd=}")
-        call(md_cmd)
+        call(md_cmd, cwd=path_md.parent)
         if tmp_body_fn:
             Path(tmp_body_fn).unlink()
 
