@@ -350,9 +350,8 @@ def number_elements(content: str) -> str:
 
 
 def stylize_names(content: str) -> str:
-    """Use regex to stylize forum and user names.
+    """Use regex to stylize r/forums, u/usernames, and p/pseudonyms.
 
-    Presently, this includes Reddit subs and usernames.
     >>> stylize_names("Did you read r/Python. What about /r/python? Okay!")
     'Did you read `r/Python`. What about `/r/python`? Okay!'
     >>> stylize_names("u/code_master posted in r/learnpython.")
@@ -361,8 +360,38 @@ def stylize_names(content: str) -> str:
     'Multiple `u/user1` and `r/sub1` and `p/user-2`.'
     >>> stylize_names("Works with u/dot.user and r/dot.sub.")
     'Works with `u/dot.user` and `r/dot.sub`.'
+    >>> stylize_names("Preserve https://www.reddit.com/r/reddit.com/comments/lghsk/ .")
+    'Preserve https://www.reddit.com/r/reddit.com/comments/lghsk/ .'
+    >>> stylize_names("The user/operator manual explains both roles.")
+    'The user/operator manual explains both roles.'
     """
-    NAME_PATTERN = re.compile(r"(/?\b[urp]/)((?:[\w-]|\.(?=[\w.-]))+)")
+    NAME_PATTERN = re.compile(
+        r"""
+        (?:                     # Non-capturing group for URLs and more
+            (?<=\s)             # Preceded by whitespace (fixed-width: 1)
+            |                   # OR
+            (?<=^)              # At start of string (fixed-width: 0)
+            |                   # OR
+            (?<=[^\w/])         # Preceded by non-word char that's not / (fixed-width: 1)
+        )
+        (                       # Group 1: Prefix (u/, r/, or p/)
+            /?                  # Optional starting slash, e.g., /r/foo
+            \b                  # Word boundary to avoid matching mid-word
+            [urp]               # Match 'u', 'r', or 'p' (user, reddit, or pseudo)
+            /                   # Required forward slash after the letter
+        )
+        (                       # Group 2: The actual name
+            (?:                 # Non-capturing group for the name characters
+                [\w-]           # Word characters (letters, numbers, underscore) or hyphen
+                |               # OR
+                \.              # A literal dot
+                (?=[\w.-])      # ...but only if followed by word char, dot, or hyphen
+                                # (prevents matching trailing dots)
+            )+                  # One or more of these characters
+        )
+        """,
+        re.VERBOSE,
+    )
     return NAME_PATTERN.sub(r"`\1\2`", content)
 
 
