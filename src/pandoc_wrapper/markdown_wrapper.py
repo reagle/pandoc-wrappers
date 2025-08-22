@@ -474,6 +474,11 @@ def set_pandoc_options(args: argparse.Namespace, fn_path: Path):  # noqa: C901
     """Configure pandoc configuration based on arguments."""
     pandoc_inputs = []
     pandoc_opts = ["-w", args.write_format]
+    if "html" not in args.write_format:
+        print(
+            f"[WARNING] MW: writing to non-HTML format "
+            f"'{args.write_format}' for '{fn_path.name}'"
+        )
     # if args.write_format == 'markdown-citations':
     #     pandoc_opts.extend(['--csl=sage-harvard.csl',
     #         '--bibliography=/home/reagle/joseph/readings.yaml'])
