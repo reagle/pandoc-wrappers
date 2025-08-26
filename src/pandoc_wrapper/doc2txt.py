@@ -138,19 +138,15 @@ def parse_arguments() -> argparse.Namespace:
 
 def setup_logging(args: argparse.Namespace) -> None:
     """Configure logging based on command line arguments."""
-    log_level = (log.CRITICAL) - (args.verbose * 10)
+    SCRIPT_STEM = Path(__file__).stem
+    # LOG_FORMAT https://loguru.readthedocs.io/en/stable/api/logger.html#record
+    log_level = log.ERROR - (args.verbose * 10)
     LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
-
+    log_config = {"level": log_level, "format": LOG_FORMAT}
     if args.log_to_file:
-        print("logging to file")
-        log.basicConfig(
-            filename="markdown-wrapper.log",
-            filemode="w",
-            level=log_level,
-            format=LOG_FORMAT,
-        )
-    else:
-        log.basicConfig(level=log_level, format=LOG_FORMAT)
+        log_config.update({"filename": f"{SCRIPT_STEM}.log", "filemode": "w"})
+        print(f"Logging to file: {SCRIPT_STEM}.log")
+    log.basicConfig(**log_config)
     log.info(args)
 
 
