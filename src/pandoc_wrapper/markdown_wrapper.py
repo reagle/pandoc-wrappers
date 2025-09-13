@@ -352,6 +352,11 @@ def number_elements(content: str) -> str:
 def stylize_names(content: str) -> str:
     """Use regex to stylize r/forums, u/usernames, and p/pseudonyms.
 
+    Note: This regex assumes names do not contain consecutive hyphens.
+    This aligns with Reddit's naming conventions (subreddits cannot have
+    hyphens; usernames cannot have consecutive hyphens) and ensures proper
+    handling of markdown en dashes (--) and em dashes (---).
+
     >>> stylize_names("Did you read r/Python. What about /r/python? Okay!")
     'Did you read `r/Python`. What about `/r/python`? Okay!'
     >>> stylize_names("u/code_master posted in r/learnpython.")
@@ -364,6 +369,8 @@ def stylize_names(content: str) -> str:
     'Preserve https://www.reddit.com/r/reddit.com/comments/lghsk/ .'
     >>> stylize_names("The user/operator manual explains both roles.")
     'The user/operator manual explains both roles.'
+    >>> stylize_names("The subreddit---r/AITAH---is funny.")
+    'The subreddit---`r/AITAH`---is funny.'
     """
     NAME_PATTERN = re.compile(
         r"""
@@ -381,13 +388,15 @@ def stylize_names(content: str) -> str:
             /                   # Required forward slash after the letter
         )
         (                       # Group 2: The actual name
-            (?:                 # Non-capturing group for the name characters
-                [\w-]           # Word characters (letters, numbers, underscore) or hyphen
+            \w                  # Must start with a word character
+            (?:                 # Non-capturing group for the middle part
+                [\w]            # More word characters
                 |               # OR
-                \.              # A literal dot
-                (?=[\w.-])      # ...but only if followed by word char, dot, or hyphen
-                                # (prevents matching trailing dots)
-            )+                  # One or more of these characters
+                (?:             # Non-capturing group
+                    [-.]        # Hyphen or dot
+                    (?=\w)      # ...but only if followed by a word char
+                )
+            )*                  # Zero or more of these
         )
         """,
         re.VERBOSE,
