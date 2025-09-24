@@ -40,6 +40,7 @@ import subprocess
 import sys
 from io import StringIO
 from pathlib import Path
+from typing import Any, cast
 from urllib.parse import urlparse
 
 from lxml import etree as et
@@ -311,7 +312,10 @@ def number_elements(content: str) -> str:
     doc = et.parse(StringIO(content), parser)
 
     log.debug("add heading marks")
-    headings = doc.xpath("//*[name()='h2' or name()='h3' or name()='h4']")
+    # Cast to list of Element objects
+    headings = cast(
+        list[et._Element], doc.xpath("//*[name()='h2' or name()='h3' or name()='h4']")
+    )
     heading_num = 1
     for heading in headings:
         span = et.Element("span")  # prepare span element for section #
@@ -325,7 +329,8 @@ def number_elements(content: str) -> str:
         heading_num += 1
 
     log.debug("add paragraph marks")
-    paras = doc.xpath("/html/body/p | /html/body/blockquote")
+    # Cast to list of Element objects
+    paras = cast(list[et._Element], doc.xpath("/html/body/p | /html/body/blockquote"))
     para_num = 1
     for para in paras:
         para_num_str = f"{para_num:0>2}"
@@ -922,7 +927,7 @@ def main():
     # LOG_FORMAT https://loguru.readthedocs.io/en/stable/api/logger.html#record
     log_level = log.ERROR - (args.verbose * 10)
     LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
-    log_config = {"level": log_level, "format": LOG_FORMAT}
+    log_config: dict[str, Any] = {"level": log_level, "format": LOG_FORMAT}
     if args.log_to_file:
         log_config.update({"filename": f"{SCRIPT_STEM}.log", "filemode": "w"})
         print(f"Logging to file: {SCRIPT_STEM}.log")
