@@ -28,41 +28,104 @@ def chunk_yaml(text) -> dict[str, dict[str, str]]:
     """Return a dictionary of YAML chunks.
 
     This does *not* parse the YAML but chunks syntactically constrained YAML for speed.
-    entries dict only supports the keys 'url' and 'title-short' for lookups
+    entries dict now supports 'url', 'title-short', 'author' (list of family names),
     and '_yaml_block' for quick subsetting/emitting.
+
+    >>> yaml_text = [
+    ...     '---',
+    ...     'references:',
+    ...     '- id: MartinChilds2011qmm',
+    ...     '  type: article-magazine',
+    ...     '  author:',
+    ...     '  - family: "Martin"',
+    ...     '    given: "Judith"',
+    ...     '  - family: "Childs"',
+    ...     '    given: "Arcynta Ali"',
+    ...     '  container-title: "Smithsonian Magazine"',
+    ...     '  issued:',
+    ...     '    year: 2011',
+    ...     '    month: 08',
+    ...     '    day: 10',
+    ...     '  title: "Q&A with Miss Manners"',
+    ...     '  URL: "<https://www.smithsonianmag.com/example/>"',
+    ...     '...'
+    ... ]
+    >>> result = chunk_yaml(yaml_text)
+    >>> result['MartinChilds2011qmm']['url']
+    '<https://www.smithsonianmag.com/example/>'
+    >>> result['MartinChilds2011qmm']['author']
+    ['Martin', 'Childs']
+    >>> '_yaml_block' in result['MartinChilds2011qmm']
+    True
     """
+    AUTHOR_FIELDS = (
+        "  - family",
+        "    given",
+        "    suffix",
+        "    non-dropping-particle",
+    )
+
     entries = {}
     yaml_block = []
     key = None
+    in_author = False
+    family_names = []
 
     lines = iter(text[1:])  # skip first two lines of YAML
     for line in lines:
         line = line.rstrip()
         log.debug(f"{line=}")
-        if line == "...":  # last line
-            # final chunk
+
+        if line == "...":
+            if in_author and family_names:
+                entries[key]["author"] = family_names
             entries[key]["_yaml_block"] = "\n".join(yaml_block)
             break
+
         if line.startswith("- id: "):
+            # Save previous entry
             if yaml_block and key:
-                # store previous yaml_block
+                if in_author and family_names:
+                    entries[key]["author"] = family_names
                 entries[key]["_yaml_block"] = "\n".join(yaml_block)
-                # create new key and entry
+            # Start new entry
             key = line[6:]
             entries[key] = {}
             yaml_block = [line]
+            in_author = False
+            family_names = []
         else:
             yaml_block.append(line)
-            if line.startswith("  URL: "):
-                entries[key]["url"] = line[8:-1]  # remove quotes too
-            elif line.startswith("  title-short: "):
-                entries[key]["title-short"] = line[16:-1]
-            # grab the original-date as well # 20201102 buggy?
-            elif line.startswith("  original-date:"):
-                next_line = next(lines)  # year is on next line
-                if "year" in next_line:
-                    entries[key]["original-date"] = next_line[10:]
-    # log.debug(f"{entries=}")
+
+            if in_author:
+                # Check if still in author block
+                if any(line.startswith(field) for field in AUTHOR_FIELDS):
+                    if line.startswith("  - family:"):
+                        # Extract: '  - family: "Martin"' → "Martin"
+                        family = line.split('"')[1]
+                        family_names.append(family)
+                else:
+                    # Exited author block - save names
+                    if family_names:
+                        entries[key]["author"] = family_names
+                    in_author = False
+                    family_names = []
+                    # Fall through to process this line normally
+
+            if not in_author:
+                if line.startswith("  URL: "):
+                    entries[key]["url"] = line[8:-1]
+                elif line.startswith("  title-short: "):
+                    entries[key]["title-short"] = line[16:-1]
+                elif line.startswith("  original-date:"):
+                    next_line = next(lines)
+                    yaml_block.append(next_line)
+                    if "year" in next_line:
+                        entries[key]["original-date"] = next_line[10:]
+                elif line.startswith("  author:"):
+                    in_author = True
+                    family_names = []
+
     return entries
 
 
