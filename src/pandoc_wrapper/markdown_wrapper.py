@@ -59,46 +59,89 @@ FONTAWESOME_URL = "https://reagle.org/joseph/talks/_custom/fontawesome/css/all.m
 HANDOUTS_URL = "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css"
 
 
+def format_authors(authors: list[str]) -> str:
+    """Format author family names with proper delimiters and et al.
+
+    >>> format_authors(['Smith'])
+    'Smith'
+    >>> format_authors(['Smith', 'Jones'])
+    'Smith & Jones'
+    >>> format_authors(['Smith', 'Jones', 'Brown'])
+    'Smith et al.'
+    """
+    if not authors:
+        return ""
+    elif len(authors) == 1:
+        return authors[0]
+    elif len(authors) == 2:
+        return f"{authors[0]} & {authors[1]}"
+    else:
+        return f"{authors[0]} et al."
+
+
 def hyperize(cite_match: re.Match[str], bib_chunked: dict[str, dict[str, str]]) -> str:
-    """Hyperize every non-overlapping occurrence and return to PARENS_KEY.sub."""
-    cite_replacement = []
-    url = None
+    """Hyperize citation with formatted author names and optional URL.
+
+    Uses the author field from bibliography if available, otherwise falls back
+    to parsing the citation key.
+    """
     citation = cite_match.group(0)
     key = citation.split("@", 1)[1]
     log.info(f"**   processing key: {key}")
+
     reference = bib_chunked.get(key)
     if reference is None:
         print(f"WARNING: key {key} not found")
         return key
-    else:
-        log.info(reference.items())
+
+    log.info(reference.items())
+
+    # Extract URL
     url = reference.get("url")
     url = url[1:-1] if url and url.startswith("<") and url.endswith(">") else url
     log.info(f"{url=}")
-    title = reference.get("title-short")
-    log.info(f"{title=}")
-    last_name, year, _ = re.split(r"(\d\d\d\d)", key)
-    if last_name.endswith("Etal"):
-        last_name = last_name[0:-4] + " et al."
 
+    # Extract year from key
+    year_match = re.search(r"(\d{4})", key)
+    year = year_match.group(1) if year_match else ""
+
+    # Handle original date
     if "original-date" in reference:
         year = f"{reference['original-date']}/{year}"
         log.info(f"!original_date={year}")
-    if citation.startswith("-"):
-        key_text = re.findall(r"\d\d\d\d.*", key)[0]  # year
-    else:
-        key_text = f"{last_name} {year}"
 
-    log.debug(f"**   url = {url}")
+    # Format authors - try bibliography first, then parse key
+    authors_list = reference.get("author")
+    if authors_list and isinstance(authors_list, list):
+        formatted_authors = format_authors(authors_list)
+        log.info(f"Using authors from bibliography: {formatted_authors}")
+    else:
+        # Fallback: parse from key
+        last_name = re.split(r"(\d{4})", key)[0]
+        if last_name.endswith("Etal"):
+            formatted_authors = last_name[0:-4] + " et al."
+        else:
+            formatted_authors = last_name
+        log.info(f"Using authors from key: {formatted_authors}")
+
+    # Construct citation text
+    if citation.startswith("-"):
+        key_text = year  # Suppress author, show year only
+    else:
+        key_text = f"{formatted_authors} {year}" if year else formatted_authors
+
+    # Build final output
+    title = reference.get("title-short")
     if url:
-        cite_replacement.append(f"[{key_text}]({url})")
+        cite_replacement = f"[{key_text}]({url})"
     elif title:
         title = title.replace("{", "").replace("}", "")
-        cite_replacement.append(f'{key_text}, "{title}"')
+        cite_replacement = f'{key_text}, "{title}"'
     else:
-        cite_replacement.append(f"{key_text}")
+        cite_replacement = key_text
+
     log.debug(f"**   using {cite_replacement}=")
-    return "".join(cite_replacement)
+    return cite_replacement
 
 
 def make_parens(cite_match: re.Match[str]) -> str:
