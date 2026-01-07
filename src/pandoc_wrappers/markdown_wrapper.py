@@ -339,8 +339,10 @@ def create_handout(args: argparse.Namespace, ori_md_f: Path, intermedia_md_f: Pa
             "html",
             "-c",
             HANDOUTS_URL,
-            str(handout_f),
         ]
+        if args.embed_resources:
+            md_cmd.append("--embed-resources")
+        md_cmd.append(str(handout_f))
         log.info(f" handout {md_cmd=}")
         subprocess.run(md_cmd)
         if not args.keep_tmp:
