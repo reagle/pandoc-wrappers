@@ -45,7 +45,7 @@ from urllib.parse import urlparse
 
 from lxml import etree as et
 
-from pandoc_wrapper import md2bib
+from pandoc_wrappers import md2bib
 
 HOME = Path.home()
 WEBROOT = HOME / "e/clear/data/2web/reagle.org"
