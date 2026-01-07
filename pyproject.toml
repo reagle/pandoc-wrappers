@@ -1,6 +1,6 @@
 [project]
 
-name = "pandoc_wrapper"
+name = "pandoc_wrappers"
 version = "1.0.0"
 description = "Wrappers for pandoc"
 authors = [{ name = "Joseph Reagle"}]
@@ -25,11 +25,11 @@ dev = [
 ]
 
 [project.scripts]
-doc2txt = "pandoc_wrapper.doc2txt:main"
-markdown-wrapper = "pandoc_wrapper.markdown_wrapper:main"
-md2bib = "pandoc_wrapper.md2bib:main"
-wiki-update = "pandoc_wrapper.wiki_update:main"
-chapters-merge = "pandoc_wrapper.chapters_merge:main"
+doc2txt = "pandoc_wrappers.doc2txt:main"
+markdown-wrapper = "pandoc_wrappers.markdown_wrapper:main"
+md2bib = "pandoc_wrappers.md2bib:main"
+wiki-update = "pandoc_wrappers.wiki_update:main"
+chapters-merge = "pandoc_wrappers.chapters_merge:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
