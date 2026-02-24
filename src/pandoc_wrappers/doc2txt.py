@@ -327,7 +327,7 @@ def main(args: argparse.Namespace | None = None) -> None:
     # Set permissions and open in editor
     dst_file.chmod(0o600)
     if VISUAL is not None:  # Ensure VISUAL is not None before using it
-        call([VISUAL, str(dst_file)])
+        call([*VISUAL.split(), str(dst_file)])
     else:
         log.warning("VISUAL environment variable is None, skipping opening editor")
 

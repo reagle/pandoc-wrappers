@@ -183,7 +183,12 @@ def transclude(
     source_selector: str,
     remove_selectors: list[str],
 ) -> str:
-    """Transclude the source_page into the receiving_page using CSS selectors."""
+    """Transclude the source_page into the receiving_page using CSS selectors.
+
+    Output is consumed by work.py (lxml.html) and tidy, so it must be
+    valid, parseable HTML5. BeautifulSoup's html.parser preserves the
+    DOCTYPE declaration and produces compatible output.
+    """
     content_receiving = Path(receiving_page).read_text().strip()
     content_source = Path(source_page).read_text().strip()
     receiving_soup = BeautifulSoup(content_receiving, "html.parser")
