@@ -176,18 +176,39 @@ def remove_chunks(soup, selectors: list[str]) -> None:
             chunk.extract()
 
 
+def rewrite_relative_urls(soup, container_selector: str, base_url: str) -> None:
+    """Prefix relative URLs in transcluded content with base_url.
+
+    This replaces the need for a <base> element, which conflicts with
+    <link> CSS resolution (W3C requires <base> before <link>, but that
+    breaks local file:// CSS loading). Instead, transcluded relative
+    links are rewritten to include the path prefix directly.
+    """
+    for tag in soup.select(f"{container_selector} [href], {container_selector} [src]"):
+        for attr in ("href", "src"):
+            val = tag.get(attr)
+            if val and not val.startswith(
+                ("http://", "https://", "mailto:", "data:", "#", "/")
+            ):
+                tag[attr] = base_url + val
+
+
 def transclude(
     receiving_page: Path,
     receiving_selector: str,
     source_page: Path,
     source_selector: str,
     remove_selectors: list[str],
+    base_url: str = "",
 ) -> str:
     """Transclude the source_page into the receiving_page using CSS selectors.
 
     Output is consumed by work.py (lxml.html) and tidy, so it must be
     valid, parseable HTML5. BeautifulSoup's html.parser preserves the
     DOCTYPE declaration and produces compatible output.
+
+    If base_url is provided, relative URLs in the transcluded content are
+    rewritten with this prefix, replacing the need for a <base> element.
     """
     content_receiving = Path(receiving_page).read_text().strip()
     content_source = Path(source_page).read_text().strip()
@@ -207,6 +228,9 @@ def transclude(
             embed_here_div.append(content.extract())
     else:
         raise RuntimeError("There was no embeddable content or location found.")
+
+    if base_url:
+        rewrite_relative_urls(receiving_soup, receiving_selector, base_url)
 
     return str(receiving_soup)
 
@@ -413,6 +437,7 @@ def main():
         source_page=HOME / "joseph/plan/ob-web/Home.html",
         source_selector="body > *",
         remove_selectors=["div#obsidian-footer", "header"],
+        base_url="ob-web/",
     )
     if modified_html:
         planning_page.write_text(modified_html)
