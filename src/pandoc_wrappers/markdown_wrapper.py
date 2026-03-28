@@ -1,6 +1,4 @@
 #! /usr/bin/env python3
-# (c) Copyright 2008-2012 by Joseph Reagle
-# Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
 """A wrapper script for pandoc that handles my own issues.
 
@@ -8,6 +6,12 @@
 2. can replace [@key] with hypertext'd refs from bibliographic DB.
 3. makes use of reveal.js for presentations.
 """
+
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2009-2026 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "3.0"
+
 
 # TODO:
 #  1. reduce redundant references: page only, if key already cited

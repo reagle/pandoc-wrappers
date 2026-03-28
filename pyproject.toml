@@ -6,7 +6,7 @@ description = "Wrappers for pandoc"
 authors = [{ name = "Joseph Reagle"}]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "beautifulsoup4>=4.13.3",
     "lxml>=5.3.1",
@@ -29,6 +29,7 @@ doc2txt = "pandoc_wrappers.doc2txt:main"
 markdown-wrapper = "pandoc_wrappers.markdown_wrapper:main"
 md2bib = "pandoc_wrappers.md2bib:main"
 wiki-update = "pandoc_wrappers.wiki_update:main"
+pelican-doctor = "pandoc_wrappers.pelican_doctor:main"
 chapters-merge = "pandoc_wrappers.chapters_merge:main"
 
 [tool.setuptools]
@@ -113,4 +114,4 @@ addopts = "--doctest-modules"
 [tool.pyright]
 reportMissingImports = false
 reportMissingTypeStubs = false
-pythonVersion = '3.13'
+pythonVersion = '3.14'

@@ -1,16 +1,17 @@
-#! /usr/bin/env python3
 """Build static portions of website.
 
-It looks for and rebuilds source files newer than their existing HTML files.
+Config-driven site builder that handles three types of sites:
+- garden: Obsidian vault → wikilink conversion → markdown-wrapper → HTML
+- blog: Obsidian vault → wikilink conversion → Pelican → HTML
+- markdown: plain markdown → markdown-wrapper → HTML
 
-ob-/* (obsidian) -> html
-*.md (pandoc)-> html
+Each site is checked for changes (mtime) before building.
 """
 
 __author__ = "Joseph Reagle"
-__copyright__ = "Copyright (C) 2009-2025 Joseph Reagle"
+__copyright__ = "Copyright (C) 2009-2026 Joseph Reagle"
 __license__ = "GLPv3"
-__version__ = "1.0"
+__version__ = "3.0"
 
 import argparse
 import logging as log
@@ -18,42 +19,102 @@ import os
 import re
 import shutil
 from pathlib import Path
-from subprocess import PIPE, Popen, call
+from subprocess import call
 
 from bs4 import BeautifulSoup  # type: ignore
 
-BROWSER = Path(os.environ["BROWSER"])
+from pandoc_wrappers.obsidian_utils import (
+    build_note_index,
+    clear_directory,
+    copy_vault,
+    needs_build,
+    process_garden_files,
+    remove_empty_or_hidden_folders,
+)
+from pandoc_wrappers.pelican_build import BLOG_CONFIGS, build_blog
+
 HOME = Path.home()
+BROWSER = Path(os.environ["BROWSER"])
 MD_BIN = "markdown-wrapper"
-# https://github.com/zoni/obsidian-export
-OBS_EXPORT_BIN = HOME / "bin/obsidian-export"
 PANDOC_BIN = Path(shutil.which("pandoc"))  # type: ignore ; tested below
 TEMPLATES_FOLDER = HOME / ".pandoc/templates"
+WEB_ROOT = HOME / "data/2web"
 
-if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, OBS_EXPORT_BIN, TEMPLATES_FOLDER]):
+if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, TEMPLATES_FOLDER]):
     raise FileNotFoundError("Your environment is not configured correctly")
 
-#################################
-# Export Obsidian markdown to standard markdown.
-#################################
+
+# ─── Site configurations ───────────────────────────────────────────────
+
+SITE_CONFIGS: dict[str, dict] = {
+    "plan-garden": {
+        "type": "garden",
+        "source": HOME / "joseph/plan/ob-plan",
+        "output": HOME / "joseph/plan/ob-web",
+    },
+    "codex-garden": {
+        "type": "garden",
+        "source": HOME / "joseph/ob-codex",
+        "output": HOME / "joseph/ob-web",
+    },
+}
+
+# Derive blog site configs from canonical BLOG_CONFIGS (between gardens and markdown)
+for _blog_name, _blog_cfg in BLOG_CONFIGS.items():
+    SITE_CONFIGS[f"{_blog_name}-blog"] = {"type": "blog", **_blog_cfg}
+
+SITE_CONFIGS.update(
+    {
+        "work-markdown": {
+            "type": "markdown",
+            "source": HOME / "data/1work",
+        },
+        "joseph-markdown": {
+            "type": "markdown",
+            "source": HOME / "joseph",
+        },
+    }
+)
+
+# Post-build hooks run after specific sites
+POST_BUILD_HOOKS: dict[str, str] = {
+    "plan-garden": "transclude_planning_page",
+}
 
 
-def export_obsidian(vault_dir: Path, export_dir: Path) -> None:
-    """Call obsidian-export on source; copy source's mtimes to target."""
-    export_cmd = f"{OBS_EXPORT_BIN} --preserve-mtime {vault_dir} {export_dir}"
-    log.info(f"{export_cmd=}")
+# ─── Garden building ──────────────────────────────────────────────────
 
-    print(f"exporting {vault_dir}")
-    results = Popen((export_cmd), stdout=PIPE, stderr=PIPE, shell=True, text=True)
-    results_out, results_sdterr = results.communicate()
-    if results_sdterr:
-        print(f"{results_sdterr}")
 
-    remove_empty_or_hidden_folders(export_dir)
-    review_created_or_deleted_files(vault_dir, export_dir)
-    if has_dir_changed(export_dir):
-        log.warning(f"{dir=} has changed")
-        create_index(vault_dir, export_dir)
+def build_garden(
+    _name: str, config: dict, args: argparse.Namespace, *, trigger: Path | None = None
+) -> str:
+    """Build a garden site: copy vault, convert wikilinks, then markdown-wrapper."""
+    source = Path(config["source"])
+    output = Path(config["output"])
+
+    if args.force_update:
+        clear_directory(output)
+
+    copy_vault(source, output)
+    remove_empty_or_hidden_folders(output)
+
+    note_index = build_note_index(output)
+    wikilinks_converted = process_garden_files(output, note_index)
+
+    review_created_or_deleted_files(source, output)
+    create_index(source, output)
+
+    n_files = find_convert_md(args, output)
+
+    parts = []
+    if wikilinks_converted:
+        parts.append(f"{wikilinks_converted} wikilinks converted")
+    if n_files:
+        parts.append(f"{n_files} files via markdown-wrapper")
+    else:
+        why = f"triggered by {trigger.name}" if trigger else "forced"
+        parts.append(f"nothing to convert ({why})")
+    return ", ".join(parts)
 
 
 def create_index(vault_path: Path, export_path: Path) -> None:
@@ -73,232 +134,15 @@ def create_index(vault_path: Path, export_path: Path) -> None:
 
     shutil.copy2(vault_index_file, export_index_file)
     log.info(f"created {output_file=} and {export_index_file=}")
-    log.debug(
-        f"{vault_index_file} {vault_index_file.stat().st_mtime} "
-        f"> {export_index_file} {export_index_file.stat().st_mtime}"
-    )
-
-
-#################################
-# Convert all new/modified markdown files to HTML via `markdown-wrapper.py`
-#################################
-
-
-def find_convert_md(args: argparse.Namespace, source_path: Path) -> None:
-    """Find and convert any markdown file whose HTML file is older than it."""
-    # TODO: have this work when output format is docx or odt.
-    #   2020-03-11: attempted but difficult, need to:
-    #     - ignore when a docx was converted to html (impossible?)
-    #     - don't create outputs if they don't already exist
-    #     - don't update where docx is newer than md, but older than html?
-    #   2020-09-17: possible hack: always generate HTML in addition to docx
-
-    files_to_process = []
-
-    for fn_md in source_path.glob("**/*.md"):
-        fn_html = fn_md.with_suffix(".html")
-        if fn_html.exists() and fn_md.stat().st_mtime > fn_html.stat().st_mtime:
-            log.debug(
-                f"""{fn_md} {fn_md.stat().st_mtime} """
-                + f"""> {fn_html} {fn_html.stat().st_mtime}"""
-            )
-            files_to_process.append(fn_md)
-
-    log.info(f"{files_to_process=}")
-    invoke_md_wrapper(args, files_to_process)
-
-
-def invoke_md_wrapper(args: argparse.Namespace, files_to_process: list[Path]) -> None:
-    """Configure arguments for `markdown-wrapper.py` and invoke."""
-    for fn_md in files_to_process:
-        log.info(f"updating fn_md {fn_md}")
-        path_md = Path(fn_md)
-        content = path_md.read_text()
-        md_cmd = [MD_BIN]
-        md_args = []
-        # TODO: instead of this pass-through hack, use MD_BIN as a library
-        if args.verbose > 0:
-            md_args.extend([f"-{args.verbose * 'V'}"])
-        tmp_body_fn = None  # temporary store body of MM HTML
-
-        if "talks" in str(path_md):
-            md_args.extend(["--presentation"])
-            COURSES = ["/oc/", "/cda/"]
-            if any(course in str(path_md) for course in COURSES):
-                md_args.extend(["--partial-handout"])
-            if "[@" in content:
-                md_args.extend(["--bibliography"])
-        elif "cc/" in str(path_md):
-            md_args.extend(["--quash"])
-            md_args.extend(["--number-elements"])
-            md_args.extend(["--style-csl", "chicago-fullnote-nobib.csl"])
-        elif "ob-" in str(path_md):
-            md_args.extend(["--metadata", f"title={path_md.stem}"])
-            md_args.extend(["--lua-filter", "obsidian-export.lua"])
-            md_args.extend(
-                [
-                    "--include-after-body",
-                    f"{TEMPLATES_FOLDER}/obsidian-footer.html",
-                ]
-            )
-        else:
-            md_args.extend(["-c", "https://reagle.org/joseph/2003/papers.css"])
-        # Check for a multimarkdown metadata line with extra build options
-        # that is optionally quoted
-        match_md_opts = re.search('^md_opts_: "?(.*)"?', content, re.MULTILINE)
-        if match_md_opts:
-            md_opts = match_md_opts.group(1).strip().split(" ")
-            if len(md_opts) != len(set(md_opts)):
-                raise ValueError(
-                    f"Duplicate options specified in md_opts_ {md_opts} {fn_md}"
-                )
-            log.debug(f"{md_opts=}")
-            md_args.extend(md_opts)
-        md_cmd.extend(md_args)
-        md_cmd.extend([path_md])
-        md_cmd = list(filter(None, md_cmd))  # remove any empty strings
-        log.warning(f"{md_cmd=}")
-        call(md_cmd, cwd=path_md.parent)
-        if tmp_body_fn:
-            Path(tmp_body_fn).unlink()
-
-
-#################################
-# XML/HTML utilities
-#################################
-
-
-def remove_chunks(soup, selectors: list[str]) -> None:
-    """Remove chunks of HTML give CSS selectors."""
-    for selector in selectors:
-        chunks = soup.select(selector)
-        for chunk in chunks:
-            chunk.extract()
-
-
-def rewrite_relative_urls(soup, container_selector: str, base_url: str) -> None:
-    """Prefix relative URLs in transcluded content with base_url.
-
-    This replaces the need for a <base> element, which conflicts with
-    <link> CSS resolution (W3C requires <base> before <link>, but that
-    breaks local file:// CSS loading). Instead, transcluded relative
-    links are rewritten to include the path prefix directly.
-    """
-    for tag in soup.select(f"{container_selector} [href], {container_selector} [src]"):
-        for attr in ("href", "src"):
-            val = tag.get(attr)
-            if val and not val.startswith(
-                ("http://", "https://", "mailto:", "data:", "#", "/")
-            ):
-                tag[attr] = base_url + val
-
-
-def transclude(
-    receiving_page: Path,
-    receiving_selector: str,
-    source_page: Path,
-    source_selector: str,
-    remove_selectors: list[str],
-    base_url: str = "",
-) -> str:
-    """Transclude the source_page into the receiving_page using CSS selectors.
-
-    Output is consumed by work.py (lxml.html) and tidy, so it must be
-    valid, parseable HTML5. BeautifulSoup's html.parser preserves the
-    DOCTYPE declaration and produces compatible output.
-
-    If base_url is provided, relative URLs in the transcluded content are
-    rewritten with this prefix, replacing the need for a <base> element.
-    """
-    content_receiving = Path(receiving_page).read_text().strip()
-    content_source = Path(source_page).read_text().strip()
-    receiving_soup = BeautifulSoup(content_receiving, "html.parser")
-    source_soup = BeautifulSoup(content_source, "html.parser")
-
-    # Remove Obsidian header and footer
-    remove_chunks(source_soup, remove_selectors)
-
-    # Get chunk to be transcluded and location of embed
-    source_body_contents: list = source_soup.select(source_selector)
-    embed_here_div = receiving_soup.select_one(receiving_selector)
-
-    if source_body_contents and embed_here_div:
-        embed_here_div.clear()
-        for content in source_body_contents:
-            embed_here_div.append(content.extract())
-    else:
-        raise RuntimeError("There was no embeddable content or location found.")
-
-    if base_url:
-        rewrite_relative_urls(receiving_soup, receiving_selector, base_url)
-
-    return str(receiving_soup)
-
-
-#################################
-# Filesystem utilities
-#################################
-
-
-def has_dir_changed(path: Path) -> bool:
-    """Check if content of folder has changed."""
-    log.info(f"{path=}")
-    if not path.is_dir():
-        raise NotADirectoryError(f"{path} is not a directory")
-
-    checksum_file = path / ".dirs.md5sum"
-    checksum = Popen([f"ls -R {path} | md5sum"], shell=True, stdout=PIPE).communicate()[
-        0
-    ]
-    checksum = checksum.split()[0].decode("utf-8")
-
-    if not checksum_file.exists():
-        with checksum_file.open("w") as file:
-            file.write(checksum)
-        log.debug(f"checksum created {checksum}")
-        return True
-    else:
-        log.debug(f"{checksum_file=}")
-        state = checksum_file.read_text()
-        log.debug(f"{state=}")
-        if checksum == state:
-            log.debug("checksum == state")
-            return False
-        else:
-            with checksum_file.open("w") as file:
-                file.write(checksum)
-            log.debug("checksum updated")
-            return True
-
-
-def remove_empty_or_hidden_folders(path: Path, hide_prefix: str = "_") -> bool:
-    """Remove empty or hidden folders in path.
-
-    Pandoc chokes on Obsidian template files, so remove.
-    """
-
-    def is_empty(folder: Path) -> bool:
-        return not any(folder.iterdir())
-
-    log.info(f"check for empty or hidden folders {path=}")
-    did_remove = False
-    folders = sorted(path.rglob("**/"))  # returns all descendant folders
-    for folder in folders:
-        if is_empty(folder) or folder.name.startswith(hide_prefix):
-            shutil.rmtree(folder)
-            did_remove = True
-            log.info(f"  Removed folder: {folder}")
-    return did_remove
 
 
 def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
-    """Review for created or deleted file.
+    """Review for created or deleted files.
 
     Check dst_path and create or delete HTML files based on the presence of
     their corresponding markdown in src_path.
-    Created HTML is set with an early mtime so find_convert_md_files() knows
+    Created HTML is set with an early mtime so find_convert_md() knows
     to process it.
-    (Renamed files are simply deleted and created in this process.)
     """
     has_changed = False
     log.info(f"checking for new markdown files in {dst_path}")
@@ -323,12 +167,226 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
     return has_changed
 
 
+# ─── Markdown building ────────────────────────────────────────────────
+
+
+def build_markdown(
+    _name: str, config: dict, args: argparse.Namespace, *, trigger: Path | None = None
+) -> str:
+    """Build markdown sites: convert changed .md → .html via markdown-wrapper."""
+    source = Path(config["source"])
+    n_files = find_convert_md(args, source)
+    if n_files:
+        return f"{n_files} files via markdown-wrapper"
+    why = f"triggered by {trigger.name}" if trigger else "forced"
+    return f"nothing to convert ({why})"
+
+
+def find_convert_md(args: argparse.Namespace, source_path: Path) -> int:
+    """Find and convert any markdown file whose HTML file is older than it.
+
+    Returns the number of files processed.
+    """
+    files_to_process = []
+
+    for fn_md in source_path.glob("**/*.md"):
+        fn_html = fn_md.with_suffix(".html")
+        if fn_html.exists() and fn_md.stat().st_mtime > fn_html.stat().st_mtime:
+            log.debug(
+                f"""{fn_md} {fn_md.stat().st_mtime} """
+                + f"""> {fn_html} {fn_html.stat().st_mtime}"""
+            )
+            files_to_process.append(fn_md)
+
+    log.info(f"{files_to_process=}")
+    invoke_md_wrapper(args, files_to_process)
+    return len(files_to_process)
+
+
+def invoke_md_wrapper(args: argparse.Namespace, files_to_process: list[Path]) -> None:
+    """Configure arguments for `markdown-wrapper.py` and invoke."""
+    for fn_md in files_to_process:
+        log.info(f"updating fn_md {fn_md}")
+        path_md = Path(fn_md)
+        content = path_md.read_text()
+        md_cmd = [MD_BIN]
+        md_args = []
+        if args.verbose > 0:
+            md_args.extend([f"-{args.verbose * 'V'}"])
+        tmp_body_fn = None
+
+        if "talks" in str(path_md):
+            md_args.extend(["--presentation"])
+            COURSES = ["/oc/", "/cda/"]
+            if any(course in str(path_md) for course in COURSES):
+                md_args.extend(["--partial-handout"])
+            if "[@" in content:
+                md_args.extend(["--bibliography"])
+        elif "cc/" in str(path_md):
+            md_args.extend(["--quash"])
+            md_args.extend(["--number-elements"])
+            md_args.extend(["--style-csl", "chicago-fullnote-nobib.csl"])
+        elif "ob-" in str(path_md):
+            md_args.extend(["--metadata", f"title={path_md.stem}"])
+            md_args.extend(["--lua-filter", "obsidian-export.lua"])
+            md_args.extend(
+                [
+                    "--include-after-body",
+                    f"{TEMPLATES_FOLDER}/obsidian-footer.html",
+                ]
+            )
+        else:
+            md_args.extend(["-c", "https://reagle.org/joseph/2003/papers.css"])
+        match_md_opts = re.search('^md_opts_: "?(.*)"?', content, re.MULTILINE)
+        if match_md_opts:
+            md_opts = match_md_opts.group(1).strip().split(" ")
+            if len(md_opts) != len(set(md_opts)):
+                raise ValueError(
+                    f"Duplicate options specified in md_opts_ {md_opts} {fn_md}"
+                )
+            log.debug(f"{md_opts=}")
+            md_args.extend(md_opts)
+        md_cmd.extend(md_args)
+        md_cmd.extend([str(path_md)])
+        md_cmd = list(filter(None, md_cmd))
+        log.warning(f"{md_cmd=}")
+        call(md_cmd, cwd=path_md.parent)
+        if tmp_body_fn:
+            Path(tmp_body_fn).unlink()
+
+
+# ─── Blog building (delegates to pelican_build) ──────────────────────
+
+
+def build_blog_site(
+    _name: str, config: dict, _args: argparse.Namespace, *, trigger: Path | None = None
+) -> str:
+    """Build a blog site via pelican_build."""
+    build_blog(config, force=True)  # needs_build already checked in dispatch
+    return (
+        f"rebuilt via pelican (triggered by {trigger.name})"
+        if trigger
+        else "rebuilt via pelican"
+    )
+
+
+# ─── HTML utilities (transclusion) ───────────────────────────────────
+
+
+def remove_chunks(soup, selectors: list[str]) -> None:
+    """Remove chunks of HTML given CSS selectors."""
+    for selector in selectors:
+        chunks = soup.select(selector)
+        for chunk in chunks:
+            chunk.extract()
+
+
+def rewrite_relative_urls(soup, container_selector: str, base_url: str) -> None:
+    """Prefix relative URLs in transcluded content with base_url."""
+    for tag in soup.select(f"{container_selector} [href], {container_selector} [src]"):
+        for attr in ("href", "src"):
+            val = tag.get(attr)
+            if val and not val.startswith(
+                ("http://", "https://", "mailto:", "data:", "#", "/")
+            ):
+                tag[attr] = base_url + val
+
+
+def transclude(
+    receiving_page: Path,
+    receiving_selector: str,
+    source_page: Path,
+    source_selector: str,
+    remove_selectors: list[str],
+    base_url: str = "",
+) -> str:
+    """Transclude the source_page into the receiving_page using CSS selectors.
+
+    If base_url is provided, relative URLs in the transcluded content are
+    rewritten with this prefix, replacing the need for a <base> element.
+    """
+    content_receiving = Path(receiving_page).read_text().strip()
+    content_source = Path(source_page).read_text().strip()
+    receiving_soup = BeautifulSoup(content_receiving, "html.parser")
+    source_soup = BeautifulSoup(content_source, "html.parser")
+
+    remove_chunks(source_soup, remove_selectors)
+
+    source_body_contents: list = source_soup.select(source_selector)
+    embed_here_div = receiving_soup.select_one(receiving_selector)
+
+    if source_body_contents and embed_here_div:
+        embed_here_div.clear()
+        for content in source_body_contents:
+            embed_here_div.append(content.extract())
+    else:
+        raise RuntimeError("There was no embeddable content or location found.")
+
+    if base_url:
+        rewrite_relative_urls(receiving_soup, receiving_selector, base_url)
+
+    return str(receiving_soup)
+
+
+def transclude_planning_page() -> None:
+    """Transclude Obsidian Home.html into the planning page."""
+    planning_page = HOME / "joseph/plan/index.html"
+    modified_html = transclude(
+        receiving_page=planning_page,
+        receiving_selector="div#embed-here",
+        source_page=HOME / "joseph/plan/ob-web/Home.html",
+        source_selector="body > *",
+        remove_selectors=["div#obsidian-footer", "header"],
+        base_url="ob-web/",
+    )
+    if modified_html:
+        planning_page.write_text(modified_html)
+
+
+# ─── Utilities ────────────────────────────────────────────────────────
+
+
+def _find_newest(directory: Path, glob: str = "*.html") -> Path:
+    """Find the newest file matching glob in directory.
+
+    Returns a nonexistent path if no files found (triggers build).
+    """
+    newest = None
+    newest_mtime = 0.0
+    for f in directory.rglob(glob):
+        try:
+            mtime = f.stat().st_mtime
+        except FileNotFoundError, OSError:
+            continue
+        if mtime > newest_mtime:
+            newest = f
+            newest_mtime = mtime
+    return newest if newest else directory / ".no-sentinel"
+
+
+def get_sentinel(config: dict) -> Path:
+    """Return an output file whose mtime represents "last build time" for this site.
+
+    needs_build() compares source .md files against this sentinel to decide
+    whether a rebuild is needed. Each site type uses a different sentinel:
+      - garden: newest .html in the export output dir
+      - blog: Pelican's index.html (regenerated on every blog build)
+      - markdown: newest .html in source tree (sits alongside .md files)
+    """
+    site_type = config["type"]
+    if site_type == "garden":
+        return _find_newest(Path(config["output"]), "*.html")
+    elif site_type == "blog":
+        return Path(config["output"])
+    else:  # markdown
+        return _find_newest(Path(config["source"]), "*.html")
+
+
 def chmod_recursive(
     path: Path, dir_perms: int = 0o755, file_perms: int = 0o644
 ) -> None:
     """Fix permissions on a generated/exported tree if needed."""
     log.debug(f"changing perms to {dir_perms:o};{file_perms:o} on {path=}")
-
     for item in path.rglob("*"):
         if item.is_dir():
             item.chmod(dir_perms)
@@ -336,34 +394,32 @@ def chmod_recursive(
             item.chmod(file_perms)
 
 
-def reset_folder(folder_path: Path) -> None:
-    """Remove and remake a folder."""
-    log.info(f"removing/recreating {folder_path=}")
-    if folder_path.exists():
-        shutil.rmtree(folder_path)
-    folder_path.mkdir(parents=True, exist_ok=True)
-    if folder_path.exists():
-        log.info(f"{folder_path} creation succeeded.")
-    else:
-        log.info(f"{folder_path} creation failed.")
+# ─── Dispatch ─────────────────────────────────────────────────────────
 
-
-##################################
+BUILD_FN = {
+    "garden": build_garden,
+    "blog": build_blog_site,
+    "markdown": build_markdown,
+}
 
 
 def main():
     """Provide main entry point."""
-    import argparse  # http://docs.python.org/dev/library/argparse.html
-
     arg_parser = argparse.ArgumentParser(
-        description="Build static HTML versions of various files"
+        description="Build static HTML versions of various sites"
+    )
+    arg_parser.add_argument(
+        "sites",
+        nargs="*",
+        metavar="SITE",
+        help=f"Sites to build (default: all). Choices: {', '.join(SITE_CONFIGS)}",
     )
     arg_parser.add_argument(
         "-f",
         "--force-update",
         action="store_true",
         default=False,
-        help="Force fresh build of Obsidian export.",
+        help="Force rebuild even if no files changed",
     )
     arg_parser.add_argument(
         "-n",
@@ -371,16 +427,6 @@ def main():
         action="store_true",
         default=False,
         help="Force creation of notes handout even if not class slide",
-    )
-    arg_parser.add_argument(
-        "-s",
-        "--sequential",
-        action="store_true",
-        default=False,
-        help=(
-            "Forces sequential invocation of pandoc, rather than default"
-            " behavior which is often parallel"
-        ),
     )
     arg_parser.add_argument(
         "-L",
@@ -396,11 +442,10 @@ def main():
         default=0,
         help="increase verbosity from critical though error, warning, info, and debug",
     )
-    arg_parser.add_argument("--version", action="version", version="1.0")
+    arg_parser.add_argument("--version", action="version", version=__version__)
     args = arg_parser.parse_args()
 
     SCRIPT_STEM = Path(__file__).stem
-    # LOG_FORMAT https://loguru.readthedocs.io/en/stable/api/logger.html#record
     log_level = log.ERROR - (args.verbose * 10)
     LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     log_config = {"level": log_level, "format": LOG_FORMAT}
@@ -409,38 +454,42 @@ def main():
         print(f"Logging to file: {SCRIPT_STEM}.log")
     log.basicConfig(**log_config)
 
-    ## Obsidian vault ##
+    # Select sites to build
+    if args.sites:
+        unknown = set(args.sites) - set(SITE_CONFIGS)
+        if unknown:
+            arg_parser.error(
+                f"Unknown sites: {', '.join(unknown)}. "
+                f"Choices: {', '.join(SITE_CONFIGS)}"
+            )
+        selected = {name: SITE_CONFIGS[name] for name in args.sites}
+    else:
+        selected = SITE_CONFIGS
 
-    if args.force_update:
-        reset_folder(HOME / "joseph/ob-web")
-        reset_folder(HOME / "joseph/plan/ob-web")
+    skipped = []
+    for name, config in selected.items():
+        source = Path(config["source"])
+        sentinel = get_sentinel(config)
+        # For markdown sites, only consider .md files that have a .html sibling
+        sibling = ".html" if config["type"] == "markdown" else ""
+        trigger = needs_build(source, sentinel, require_sibling=sibling)
 
-    # Private planning vault
-    export_obsidian(HOME / "joseph/plan/ob-plan/", HOME / "joseph/plan/ob-web")
+        if not args.force_update and not trigger:
+            skipped.append(name)
+            continue
 
-    # Public codex vault
-    export_obsidian(HOME / "joseph/ob-codex/", HOME / "joseph/ob-web")
+        build_fn = BUILD_FN[config["type"]]
+        summary = build_fn(name, config, args, trigger=trigger)
+        print(f"  {name}: {summary}")
 
-    ## Markdown files ##
+        # Run post-build hooks
+        hook_name = POST_BUILD_HOOKS.get(name)
+        if hook_name:
+            hook_fn = globals()[hook_name]
+            hook_fn()
 
-    # Private markdown files
-    find_convert_md(args, HOME / "data/1work/")
-
-    # Public markdown files
-    find_convert_md(args, HOME / "joseph/")
-
-    # Transclude Obsidian Home.html into my planning page
-    planning_page = HOME / "joseph/plan/index.html"
-    modified_html = transclude(
-        receiving_page=planning_page,
-        receiving_selector="div#embed-here",
-        source_page=HOME / "joseph/plan/ob-web/Home.html",
-        source_selector="body > *",
-        remove_selectors=["div#obsidian-footer", "header"],
-        base_url="ob-web/",
-    )
-    if modified_html:
-        planning_page.write_text(modified_html)
+    if skipped:
+        print(f"  skipped (no changes): {', '.join(skipped)}")
 
 
 if __name__ == "__main__":
