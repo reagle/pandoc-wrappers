@@ -72,6 +72,7 @@ lint.ignore = [
 "PLR2004", # Magic value used in comparison
 "RUF001", # String contains ambiguous Unicode character (curly quotes)
 "RUF002", # Docstring contains ambiguous Unicode character (curly quotes)
+"SIM105", # I don't mind try/except
 ]
 
 lint.unfixable = [
