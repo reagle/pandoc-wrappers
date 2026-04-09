@@ -87,7 +87,7 @@ POST_BUILD_HOOKS: dict[str, str] = {
 
 def build_garden(
     _name: str, config: dict, args: argparse.Namespace, *, trigger: Path | None = None
-) -> str:
+) -> tuple[int, list[Path]]:
     """Build a garden site: copy vault, convert wikilinks, then markdown-wrapper."""
     source = Path(config["source"])
     output = Path(config["output"])
@@ -99,22 +99,12 @@ def build_garden(
     remove_empty_or_hidden_folders(output)
 
     note_index = build_note_index(output)
-    wikilinks_converted = process_garden_files(output, note_index)
+    process_garden_files(output, note_index)
 
     review_created_or_deleted_files(source, output)
     create_index(source, output)
 
-    n_files = find_convert_md(args, output)
-
-    parts = []
-    if wikilinks_converted:
-        parts.append(f"{wikilinks_converted} wikilinks converted")
-    if n_files:
-        parts.append(f"{n_files} files via markdown-wrapper")
-    else:
-        why = f"triggered by {trigger.name}" if trigger else "forced"
-        parts.append(f"nothing to convert ({why})")
-    return ", ".join(parts)
+    return find_convert_md(args, output)
 
 
 def create_index(vault_path: Path, export_path: Path) -> None:
@@ -172,20 +162,18 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
 
 def build_markdown(
     _name: str, config: dict, args: argparse.Namespace, *, trigger: Path | None = None
-) -> str:
+) -> tuple[int, list[Path]]:
     """Build markdown sites: convert changed .md → .html via markdown-wrapper."""
     source = Path(config["source"])
-    n_files = find_convert_md(args, source)
-    if n_files:
-        return f"{n_files} files via markdown-wrapper"
-    why = f"triggered by {trigger.name}" if trigger else "forced"
-    return f"nothing to convert ({why})"
+    return find_convert_md(args, source)
 
 
-def find_convert_md(args: argparse.Namespace, source_path: Path) -> int:
+def find_convert_md(
+    args: argparse.Namespace, source_path: Path
+) -> tuple[int, list[Path]]:
     """Find and convert any markdown file whose HTML file is older than it.
 
-    Returns the number of files processed.
+    Returns (number of files processed, list of file paths).
     """
     files_to_process = []
 
@@ -200,7 +188,7 @@ def find_convert_md(args: argparse.Namespace, source_path: Path) -> int:
 
     log.info(f"{files_to_process=}")
     invoke_md_wrapper(args, files_to_process)
-    return len(files_to_process)
+    return len(files_to_process), files_to_process
 
 
 def invoke_md_wrapper(args: argparse.Namespace, files_to_process: list[Path]) -> None:
@@ -260,14 +248,10 @@ def invoke_md_wrapper(args: argparse.Namespace, files_to_process: list[Path]) ->
 
 def build_blog_site(
     _name: str, config: dict, _args: argparse.Namespace, *, trigger: Path | None = None
-) -> str:
+) -> tuple[int, list[Path]]:
     """Build a blog site via pelican_build."""
     build_blog(config, force=True)  # needs_build already checked in dispatch
-    return (
-        f"rebuilt via pelican (triggered by {trigger.name})"
-        if trigger
-        else "rebuilt via pelican"
-    )
+    return (1, [])
 
 
 # ─── HTML utilities (transclusion) ───────────────────────────────────
@@ -402,6 +386,26 @@ BUILD_FN = {
     "markdown": build_markdown,
 }
 
+GREEN = "\033[32m"
+RESET = "\033[0m"
+
+
+def print_summary(results: list[tuple[str, int, list[Path]]], verbose: int) -> None:
+    """Print a single-line build summary; with -V, list files per project."""
+    parts = []
+    for name, n_files, _ in results:
+        if n_files:
+            parts.append(f"{GREEN}{name} {n_files}{RESET}")
+        else:
+            parts.append(name)
+    print("  " + " | ".join(parts))
+
+    if verbose:
+        for name, _n_files, files in results:
+            if files:
+                filenames = ", ".join(f.name for f in files)
+                print(f"    {name}: {filenames}")
+
 
 def main():
     """Provide main entry point."""
@@ -466,7 +470,7 @@ def main():
     else:
         selected = SITE_CONFIGS
 
-    skipped = []
+    results: list[tuple[str, int, list[Path]]] = []
     for name, config in selected.items():
         source = Path(config["source"])
         sentinel = get_sentinel(config)
@@ -475,12 +479,12 @@ def main():
         trigger = needs_build(source, sentinel, require_sibling=sibling)
 
         if not args.force_update and not trigger:
-            skipped.append(name)
+            results.append((name, 0, []))
             continue
 
         build_fn = BUILD_FN[config["type"]]
-        summary = build_fn(name, config, args, trigger=trigger)
-        print(f"  {name}: {summary}")
+        n_files, files = build_fn(name, config, args, trigger=trigger)
+        results.append((name, n_files, files))
 
         # Run post-build hooks
         hook_name = POST_BUILD_HOOKS.get(name)
@@ -488,8 +492,7 @@ def main():
             hook_fn = globals()[hook_name]
             hook_fn()
 
-    if skipped:
-        print(f"  skipped (no changes): {', '.join(skipped)}")
+    print_summary(results, args.verbose)
 
 
 if __name__ == "__main__":
