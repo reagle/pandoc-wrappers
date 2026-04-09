@@ -1,1 +1,1 @@
-../thunderdell/AGENTS.md
+/Users/reagle/.config/agents/AGENTS.md
