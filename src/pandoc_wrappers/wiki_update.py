@@ -340,7 +340,7 @@ def _find_newest(directory: Path, glob: str = "*.html") -> Path:
     for f in directory.rglob(glob):
         try:
             mtime = f.stat().st_mtime
-        except FileNotFoundError, OSError:
+        except (FileNotFoundError, OSError):
             continue
         if mtime > newest_mtime:
             newest = f
