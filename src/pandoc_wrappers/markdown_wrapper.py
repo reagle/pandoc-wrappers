@@ -508,7 +508,7 @@ def pre_pandoc_processing(
             )
     shutil.copyfile(abs_fn, fn_tmp_1)
     content = fn_tmp_1.read_text(encoding="UTF-8", errors="replace")
-    if content[0] == codecs.BOM_UTF8.decode("utf8"):
+    if content.startswith(codecs.BOM_UTF8.decode("utf8")):
         content = content[1:]
     new_lines = []
     for line in content.split("\n"):
