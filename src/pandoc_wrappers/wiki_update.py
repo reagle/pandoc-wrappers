@@ -47,6 +47,19 @@ if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN, TEMPLATES_FOLDER]):
 # ─── Site configurations ───────────────────────────────────────────────
 
 SITE_CONFIGS: dict[str, dict] = {
+    # Pandoc sites run first: their source trees may contain other sites'
+    # outputs (garden exports, post-build hook targets). Running them first
+    # means any sentinel read from the source tree isn't polluted by writes
+    # earlier in this invocation — though note that pandoc sites also bypass
+    # the sentinel gate in main() in favor of a direct per-file mtime check.
+    "work-markdown": {
+        "type": "markdown",
+        "source": HOME / "data/1work",
+    },
+    "joseph-markdown": {
+        "type": "markdown",
+        "source": HOME / "joseph",
+    },
     "plan-garden": {
         "type": "garden",
         "source": HOME / "joseph/plan/ob-plan",
@@ -59,22 +72,9 @@ SITE_CONFIGS: dict[str, dict] = {
     },
 }
 
-# Derive blog site configs from canonical BLOG_CONFIGS (between gardens and markdown)
+# Derive blog site configs from canonical BLOG_CONFIGS (appended after gardens)
 for _blog_name, _blog_cfg in BLOG_CONFIGS.items():
     SITE_CONFIGS[f"{_blog_name}-blog"] = {"type": "blog", **_blog_cfg}
-
-SITE_CONFIGS.update(
-    {
-        "work-markdown": {
-            "type": "markdown",
-            "source": HOME / "data/1work",
-        },
-        "joseph-markdown": {
-            "type": "markdown",
-            "source": HOME / "joseph",
-        },
-    }
-)
 
 # Post-build hooks run after specific sites
 POST_BUILD_HOOKS: dict[str, str] = {
@@ -86,7 +86,7 @@ POST_BUILD_HOOKS: dict[str, str] = {
 
 
 def build_garden(
-    _name: str, config: dict, args: argparse.Namespace, *, trigger: Path | None = None
+    _name: str, config: dict, args: argparse.Namespace
 ) -> tuple[int, list[Path]]:
     """Build a garden site: copy vault, convert wikilinks, then markdown-wrapper."""
     source = Path(config["source"])
@@ -161,7 +161,7 @@ def review_created_or_deleted_files(src_path: Path, dst_path: Path) -> bool:
 
 
 def build_markdown(
-    _name: str, config: dict, args: argparse.Namespace, *, trigger: Path | None = None
+    _name: str, config: dict, args: argparse.Namespace
 ) -> tuple[int, list[Path]]:
     """Build markdown sites: convert changed .md → .html via markdown-wrapper."""
     source = Path(config["source"])
@@ -247,7 +247,7 @@ def invoke_md_wrapper(args: argparse.Namespace, files_to_process: list[Path]) ->
 
 
 def build_blog_site(
-    _name: str, config: dict, _args: argparse.Namespace, *, trigger: Path | None = None
+    _name: str, config: dict, _args: argparse.Namespace
 ) -> tuple[int, list[Path]]:
     """Build a blog site via pelican_build."""
     build_blog(config, force=True)  # needs_build already checked in dispatch
@@ -351,19 +351,19 @@ def _find_newest(directory: Path, glob: str = "*.html") -> Path:
 def get_sentinel(config: dict) -> Path:
     """Return an output file whose mtime represents "last build time" for this site.
 
-    needs_build() compares source .md files against this sentinel to decide
-    whether a rebuild is needed. Each site type uses a different sentinel:
+    needs_build() compares source files against this sentinel to decide
+    whether a rebuild is needed. Only garden and blog sites use sentinels
+    (pandoc sites bypass this in favor of per-file mtime checks in
+    find_convert_md()):
       - garden: newest .html in the export output dir
       - blog: Pelican's index.html (regenerated on every blog build)
-      - markdown: newest .html in source tree (sits alongside .md files)
     """
     site_type = config["type"]
     if site_type == "garden":
         return _find_newest(Path(config["output"]), "*.html")
-    elif site_type == "blog":
+    if site_type == "blog":
         return Path(config["output"])
-    else:  # markdown
-        return _find_newest(Path(config["source"]), "*.html")
+    raise ValueError(f"get_sentinel: unexpected site type {site_type!r}")
 
 
 def chmod_recursive(
@@ -473,17 +473,24 @@ def main():
     results: list[tuple[str, int, list[Path]]] = []
     for name, config in selected.items():
         source = Path(config["source"])
-        sentinel = get_sentinel(config)
-        # For markdown sites, only consider .md files that have a .html sibling
-        sibling = ".html" if config["type"] == "markdown" else ""
-        trigger = needs_build(source, sentinel, require_sibling=sibling)
+        # Pandoc sites skip the sentinel gate: find_convert_md() compares each
+        # .md directly against its own .html sibling, which is more precise
+        # than any tree-wide sentinel and immune to other sites' outputs nested
+        # in the source tree. Garden and blog builds still use the sentinel to
+        # avoid their expensive pre-steps (vault copy, Pelican run) when
+        # nothing changed.
+        if config["type"] == "markdown":
+            trigger = source  # truthy sentinel; per-file check runs in find_convert_md
+        else:
+            sentinel = get_sentinel(config)
+            trigger = needs_build(source, sentinel)
 
         if not args.force_update and not trigger:
             results.append((name, 0, []))
             continue
 
         build_fn = BUILD_FN[config["type"]]
-        n_files, files = build_fn(name, config, args, trigger=trigger)
+        n_files, files = build_fn(name, config, args)
         results.append((name, n_files, files))
 
         # Run post-build hooks

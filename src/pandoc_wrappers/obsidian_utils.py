@@ -67,8 +67,6 @@ def needs_build(
     source: Path,
     sentinel: Path,
     glob: str = "**/*.md",
-    *,
-    require_sibling: str = "",
 ) -> Path | None:
     """Return the first source file newer than sentinel, or None.
 
@@ -77,11 +75,6 @@ def needs_build(
     Each site type picks its own sentinel via get_sentinel():
       - garden: newest .html in the export dir
       - blog: the Pelican index.html
-      - markdown: newest .html sibling of a .md in the source tree
-
-    If require_sibling is set (e.g. ".html"), only consider source files
-    that have a sibling with that extension. This prevents orphan .md files
-    (with no existing .html) from triggering unnecessary builds.
 
     >>> import tempfile, time
     >>> with tempfile.TemporaryDirectory() as d:
@@ -99,8 +92,6 @@ def needs_build(
         return source  # sentinel missing, return source as trigger
     sentinel_mtime = sentinel.stat().st_mtime
     for f in source.rglob(glob):
-        if require_sibling and not f.with_suffix(require_sibling).exists():
-            continue
         if f.stat().st_mtime > sentinel_mtime:
             return f
     return None
