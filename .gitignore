@@ -7,4 +7,4 @@ dist/
 build/
 .envrc
 .aider*
-.claude/settings.local.json
+.claude/
