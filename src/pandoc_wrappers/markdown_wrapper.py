@@ -61,6 +61,9 @@ if not all([HOME, BROWSER, PANDOC_BIN, MD_BIN]):
 
 FONTAWESOME_URL = "https://reagle.org/joseph/talks/_custom/fontawesome/css/all.min.css"
 HANDOUTS_URL = "https://reagle.org/joseph/talks/_custom/class-handouts-201306.css"
+# Resolve a book's ISBN to a Google Books record (reliable, searchable inside).
+# Only used for presentation citations; CSL/document bibliographies are unaffected.
+GOOGLE_BOOKS_ISBN_URL = "https://books.google.com/books?vid=ISBN"
 
 
 def format_authors(authors: list[str]) -> str:
@@ -136,8 +139,11 @@ def hyperize(cite_match: re.Match[str], bib_chunked: dict[str, dict[str, str]]) 
 
     # Build final output
     title = reference.get("title-short")
+    isbn = reference.get("isbn")
     if url:
         cite_replacement = f"[{key_text}]({url})"
+    elif isbn:  # books lack a URL by design; link to Google Books via ISBN
+        cite_replacement = f"[{key_text}]({GOOGLE_BOOKS_ISBN_URL}{isbn})"
     elif title:
         title = title.replace("{", "").replace("}", "")
         cite_replacement = f'{key_text}, "{title}"'

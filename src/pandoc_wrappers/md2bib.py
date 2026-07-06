@@ -24,12 +24,12 @@ HOME = Path.home()
 logger = log.getLogger(__name__)
 
 
-def chunk_yaml(text) -> dict[str, dict[str, str]]:
+def chunk_yaml(text) -> dict[str, dict[str, str]]:  # noqa: C901
     """Return a dictionary of YAML chunks.
 
     This does *not* parse the YAML but chunks syntactically constrained YAML for speed.
-    entries dict now supports 'url', 'title-short', 'author' (list of family names),
-    and '_yaml_block' for quick subsetting/emitting.
+    entries dict now supports 'url', 'title-short', 'isbn', 'author' (list of
+    family names), and '_yaml_block' for quick subsetting/emitting.
 
     >>> yaml_text = [
     ...     '---',
@@ -48,6 +48,13 @@ def chunk_yaml(text) -> dict[str, dict[str, str]]:
     ...     '    day: 10',
     ...     '  title: "Q&A with Miss Manners"',
     ...     '  URL: "<https://www.smithsonianmag.com/example/>"',
+    ...     '- id: Milligan2019haa',
+    ...     '  type: book',
+    ...     '  author:',
+    ...     '  - family: "Milligan"',
+    ...     '    given: "Ian"',
+    ...     '  title: "History in the age of abundance?"',
+    ...     '  ISBN: "9780773558212"',
     ...     '...'
     ... ]
     >>> result = chunk_yaml(yaml_text)
@@ -57,6 +64,8 @@ def chunk_yaml(text) -> dict[str, dict[str, str]]:
     ['Martin', 'Childs']
     >>> '_yaml_block' in result['MartinChilds2011qmm']
     True
+    >>> result['Milligan2019haa']['isbn']
+    '9780773558212'
     """
     AUTHOR_FIELDS = (
         "  - family",
@@ -117,6 +126,8 @@ def chunk_yaml(text) -> dict[str, dict[str, str]]:
                     entries[key]["url"] = line[8:-1]
                 elif line.startswith("  title-short: "):
                     entries[key]["title-short"] = line[16:-1]
+                elif line.startswith("  ISBN: "):
+                    entries[key]["isbn"] = line[9:-1]
                 elif line.startswith("  original-date:"):
                     next_line = next(lines)
                     yaml_block.append(next_line)
