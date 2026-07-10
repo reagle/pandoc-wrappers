@@ -198,12 +198,19 @@ def parse_wikilink_target(target: str) -> tuple[str, str]:
 def note_path_to_url(rel_path: Path, base_url: str) -> str:
     """Convert a note's relative path to its URL.
 
+    Lowercases the filename stem to match Pelican's `SLUGIFY_SOURCE =
+    "basename"` setting, which always lowercases the slug regardless of
+    the source file's own case.
+
     >>> note_path_to_url(Path("2023/my-note.md"), "https://example.com/blog")
     'https://example.com/blog/2023/my-note.html'
     >>> note_path_to_url(Path("note.md"), "https://example.com")
     'https://example.com/note.html'
+    >>> note_path_to_url(Path("2026/Student-AI-Use.md"), "https://example.com")
+    'https://example.com/2026/student-ai-use.html'
     """
-    url_path = str(rel_path).removesuffix(".md") + ".html"
+    lowered = rel_path.with_name(rel_path.stem.lower() + rel_path.suffix)
+    url_path = str(lowered).removesuffix(".md") + ".html"
     return f"{base_url}/{url_path}"
 
 
