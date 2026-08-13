@@ -20,6 +20,7 @@ from pathlib import Path
 
 from pandoc_wrappers.obsidian_utils import (
     build_note_index,
+    build_photo_index,
     clear_directory,
     copy_vault,
     needs_build,
@@ -48,6 +49,9 @@ BLOG_CONFIGS: dict[str, BlogConfig] = {
         "cache_path": WEB_ROOT / "pelican/goatee-cache",
         "base_url": "https://goatee.net/blog",
         "output": WEB_ROOT / "goatee.net/blog/index.html",
+        # vault symlink to the gallery, and the URL it publishes as
+        "photo_dir": "photo",
+        "photo_url": "https://goatee.net/photo/gallery",
     },
 }
 
@@ -75,7 +79,17 @@ def build_blog(config: dict[str, Path | str], *, force: bool = False) -> bool:
     copy_vault(source, export_dir)
 
     note_index = build_note_index(export_dir)
-    process_blog_files(export_dir, base_url, note_index)
+    photo_dir = str(config["photo_dir"]) if "photo_dir" in config else None
+    photo_url = str(config["photo_url"]) if "photo_url" in config else None
+    photo_index = build_photo_index(source / photo_dir, photo_dir) if photo_dir else None
+    process_blog_files(
+        export_dir,
+        base_url,
+        note_index,
+        photo_dir=photo_dir,
+        photo_url=photo_url,
+        photo_index=photo_index,
+    )
 
     log.info(f"Running pelican with {pelican_config}")
     subprocess.run(

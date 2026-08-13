@@ -18,7 +18,7 @@ import logging
 import os
 import re
 import shutil
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
@@ -41,6 +41,9 @@ WIKILINK_RE = re.compile(
     """,
     re.VERBOSE,
 )
+
+# The target of any markdown link or image: the `](...)` portion
+LINK_TARGET_RE = re.compile(r"\]\((?P<target>[^)\s]+)\)")
 
 # Standard markdown links: [text](url)
 MD_LINK_RE = re.compile(
@@ -116,6 +119,8 @@ def copy_vault(vault: Path, export_dir: Path) -> None:
     for src_path in vault.rglob("*"):
         if any(part.startswith(".") for part in src_path.parts):
             continue
+        if src_path.is_symlink():
+            continue  # e.g. the photo gallery: linked for Obsidian, not published here
 
         rel_path = src_path.relative_to(vault)
         dest_path = export_dir / rel_path
@@ -309,6 +314,73 @@ def format_md_image(alt: str, src: str) -> str:
     return f"![{alt}]({src})"
 
 
+# ─── photo path conversion ────────────────────────────────────────────
+
+
+def photo_src_to_url(src: str, photo_dir: str, photo_url: str) -> str | None:
+    """Map a vault-relative photo path to its hosted URL, or None if not one.
+
+    The vault holds a symlink (photo_dir) to the photo gallery so that
+    Obsidian renders embeds locally; published pages need the hosted URL.
+
+    >>> URL = "https://goatee.net/photo/gallery"
+    >>> photo_src_to_url("../photo/2026/08/train.jpg", "photo", URL)
+    'https://goatee.net/photo/gallery/2026/08/train.jpg'
+    >>> photo_src_to_url("photo/2026/08/train.jpg", "photo", URL)
+    'https://goatee.net/photo/gallery/2026/08/train.jpg'
+    >>> photo_src_to_url("https://example.com/train.jpg", "photo", URL) is None
+    True
+    >>> photo_src_to_url("../attachments/diagram.png", "photo", URL) is None
+    True
+    """
+    if urlparse(src).scheme:
+        return None
+    parts = [part for part in PurePosixPath(src).parts if part not in ("..", ".", "/")]
+    if len(parts) < 2 or parts[0] != photo_dir:
+        return None
+    return f"{photo_url.rstrip('/')}/{'/'.join(parts[1:])}"
+
+
+def build_photo_index(photo_root: Path, photo_dir: str) -> dict[str, str]:
+    """Map image filenames to vault paths, so `![[photo.jpg]]` embeds resolve.
+
+    Obsidian's picker inserts an embed by filename alone ("shortest"
+    link format). Resolving to a vault path lets convert_photo_paths do
+    the URL rewriting for both syntaxes. Thumbnails are skipped so a name
+    shared with its thumb resolves to the full-size image.
+    """
+    index: dict[str, str] = {}
+    for path in photo_root.rglob("*"):
+        if "thumbs" in path.parts or not is_image_file(path.name):
+            continue
+        rel = path.relative_to(photo_root).as_posix()
+        index[path.name.lower()] = f"{photo_dir}/{rel}"
+    log.info(f"Indexed {len(index)} photos under {photo_root}")
+    return index
+
+
+def convert_photo_paths(content: str, photo_dir: str, photo_url: str) -> str:
+    """Rewrite vault-relative photo paths to hosted URLs.
+
+    Applies to both image sources and link targets, so an image wrapped
+    in a link to its gallery works. Anything else is left alone.
+
+    >>> URL = "https://goatee.net/photo/gallery"
+    >>> convert_photo_paths("![train](../photo/2026/08/t.jpg)", "photo", URL)
+    '![train](https://goatee.net/photo/gallery/2026/08/t.jpg)'
+    >>> convert_photo_paths("[gallery](../photo/2026/index.html)", "photo", URL)
+    '[gallery](https://goatee.net/photo/gallery/2026/index.html)'
+    >>> convert_photo_paths("![x](https://elsewhere.net/x.jpg)", "photo", URL)
+    '![x](https://elsewhere.net/x.jpg)'
+    """
+
+    def replace_target(match: re.Match) -> str:
+        url = photo_src_to_url(match.group("target"), photo_dir, photo_url)
+        return f"]({url})" if url else match.group(0)
+
+    return LINK_TARGET_RE.sub(replace_target, content)
+
+
 # ─── wikilink conversion ──────────────────────────────────────────────
 
 
@@ -318,8 +390,14 @@ def convert_wikilinks(
     export_dir: Path,
     note_index: dict[str, Path],
     base_url: str,
+    *,
+    photo_index: dict[str, str] | None = None,
 ) -> str:
-    """Convert Obsidian wikilinks to absolute-URL markdown links (for blogs)."""
+    """Convert Obsidian wikilinks to absolute-URL markdown links (for blogs).
+
+    A photo_index resolves image embeds inserted by filename alone to a
+    vault path; convert_photo_paths then makes it a URL.
+    """
 
     def replace_wikilink(match: re.Match) -> str:
         embed, target, display = match.groups()
@@ -327,7 +405,8 @@ def convert_wikilinks(
 
         if embed == "!":
             if is_image_file(target):
-                return format_md_image(display, target)
+                path = (photo_index or {}).get(target.lower())
+                return format_md_image(display, path if path else target)
             url = resolve_wikilink(
                 target, source_file, export_dir, note_index, base_url
             )
@@ -428,9 +507,20 @@ def convert_relative_links(
 
 
 def process_blog_files(
-    export_dir: Path, base_url: str, note_index: dict[str, Path]
+    export_dir: Path,
+    base_url: str,
+    note_index: dict[str, Path],
+    *,
+    photo_dir: str | None = None,
+    photo_url: str | None = None,
+    photo_index: dict[str, str] | None = None,
 ) -> int:
-    """Process all markdown files for blogs: wikilinks to absolute URLs."""
+    """Process all markdown files for blogs: wikilinks to absolute URLs.
+
+    When photo_dir and photo_url are given, vault-relative photo paths
+    are also rewritten to hosted URLs, as are `![[photo.jpg]]` embeds
+    found in photo_index.
+    """
     log.info(f"Processing blog files with base URL {base_url}")
     modified_count = 0
 
@@ -441,8 +531,12 @@ def process_blog_files(
         content = md_file.read_text(encoding="utf-8")
         original = content
 
-        content = convert_wikilinks(content, md_file, export_dir, note_index, base_url)
+        content = convert_wikilinks(
+            content, md_file, export_dir, note_index, base_url, photo_index=photo_index
+        )
         content = convert_relative_links(content, base_url, md_file, export_dir)
+        if photo_dir and photo_url:
+            content = convert_photo_paths(content, photo_dir, photo_url)
 
         if content != original:
             md_file.write_text(content, encoding="utf-8")
