@@ -432,14 +432,10 @@ def convert_wikilinks_relative(
         if embed == "!":
             if is_image_file(target):
                 return format_md_image(display, target)
-            url = resolve_wikilink_relative(
-                target, source_file, note_index
-            )
+            url = resolve_wikilink_relative(target, source_file, note_index)
             return format_md_link(display, url) if url else match.group(0)
 
-        url = resolve_wikilink_relative(
-            target, source_file, note_index
-        )
+        url = resolve_wikilink_relative(target, source_file, note_index)
         return format_md_link(display, url) if url else match.group(0)
 
     return WIKILINK_RE.sub(replace_wikilink, content)

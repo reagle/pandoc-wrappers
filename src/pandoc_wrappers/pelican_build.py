@@ -81,7 +81,9 @@ def build_blog(config: dict[str, Path | str], *, force: bool = False) -> bool:
     note_index = build_note_index(export_dir)
     photo_dir = str(config["photo_dir"]) if "photo_dir" in config else None
     photo_url = str(config["photo_url"]) if "photo_url" in config else None
-    photo_index = build_photo_index(source / photo_dir, photo_dir) if photo_dir else None
+    photo_index = (
+        build_photo_index(source / photo_dir, photo_dir) if photo_dir else None
+    )
     process_blog_files(
         export_dir,
         base_url,

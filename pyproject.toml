@@ -57,6 +57,7 @@ lint.select = [
 "RUF", # Ruff-specific        https://tinyurl.com/ruff-rules#ruff-specific-rules-ruf
 "SIM", # Flake8-simplify      https://tinyurl.com/ruff-rules#flake8-simplify-sim
 "UP", # Pyupgrade             https://tinyurl.com/ruff-rules#pyupgrade-up
+"W505", # Doc line too long   https://tinyurl.com/ruff-rules#pycodestyle-e-w
 "YTT", # Flake8-2020          https://tinyurl.com/ruff-rules#flake8-2020-ytt
 ]
 
@@ -65,7 +66,7 @@ lint.ignore = [
 "D203", # one-blank-line-before-class
 "D213", # multi-line-summary-second-line
 "D107", # Missing docstring in __init__
-"E501", # doctests need long lines
+"E501", # long DATA lines (prompts, embedded HTML/JS, URLs); prose is W505 below
 "PLR0912", # Too many branches in function or method
 "PLR0915", # Too many statements in function or method
 "PLR0913", # Too many arguments to function call
@@ -105,6 +106,12 @@ exclude = [
     "venv",
     "_old",
 ]
+
+# E501 (physical lines) stays ignored, because it cannot tell a doctest or an LLM
+# prompt from a comment. W505 does that job instead: it checks only "doc" lines --
+# comments AND docstrings -- so prose is held to 88 while data strings are left alone.
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 88
 
 [tool.ruff.lint.mccabe] # enabled via "C90" above
 max-complexity = 10

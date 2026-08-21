@@ -68,7 +68,7 @@ def check_environment() -> list[str]:
                         capture_output=True,
                         text=True,
                     )
-            except (OSError, IndexError):
+            except OSError, IndexError:
                 pass
 
         if result.returncode != 0:

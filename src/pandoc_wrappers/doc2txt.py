@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Create plain text versions of documents using other tools such as text-based browsers and pandoc."""
+"""Create plain text versions of documents via text-based browsers and pandoc."""
 
 __author__ = "Joseph Reagle"
 __copyright__ = "Copyright (C) 2009-2025 Joseph Reagle"
@@ -27,7 +27,7 @@ if not all([HOME, VISUAL, PANDOC_BIN]):
 def rotate_files(file_path: Path | str, max_rot: int = 5) -> None:
     """Create at most {max_rot} rotating files.
 
-    >>> rotate_files(Path("/tmp/test.txt"), 3)  # Creates /tmp/test1.txt if test.txt exists
+    >>> rotate_files(Path("/tmp/test.txt"), 3)  # creates /tmp/test1.txt
     """
     path = Path(file_path)
     bare = path.parent / path.stem
