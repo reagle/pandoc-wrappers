@@ -481,7 +481,7 @@ def pre_pandoc_processing(
     fn_result = base_fn.with_suffix(target_sufix)
     cleanup_tmp_fns = [fn_tmp_1, fn_tmp_2, fn_tmp_3]
     pandoc_opts.extend(["-o", fn_result])
-    pandoc_opts.extend(["--mathjax"])
+    pandoc_opts.extend(["--math-method=mathjax"])  # --mathjax deprecated in pandoc 3.11
     if args.style_csl:
         if args.bibtex:
             bib_fn = HOME / "joseph/readings.bib"
