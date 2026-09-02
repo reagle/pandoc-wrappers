@@ -65,6 +65,7 @@ def build_blog(config: dict[str, Path | str], *, force: bool = False) -> bool:
     output = Path(config["output"])
     export_dir = Path(config["export_dir"])
     pelican_config = Path(config["pelican_config"])
+    cache_path = Path(config["cache_path"])
     base_url = str(config["base_url"])
 
     if not force and not needs_build(source, output):
@@ -93,9 +94,19 @@ def build_blog(config: dict[str, Path | str], *, force: bool = False) -> bool:
         photo_index=photo_index,
     )
 
+    # Pass path and cache explicitly so a config that has drifted (e.g. a
+    # stale PATH pointing at the vault instead of the export dir, which
+    # silently publishes unrewritten photo paths) can't override us.
     log.info(f"Running pelican with {pelican_config}")
     subprocess.run(
-        ["pelican", "-s", str(pelican_config), str(export_dir)],
+        [
+            "pelican",
+            "-s",
+            str(pelican_config),
+            "--cache-path",
+            str(cache_path),
+            str(export_dir),
+        ],
         text=True,
         check=True,
     )
