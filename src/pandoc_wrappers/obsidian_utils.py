@@ -50,7 +50,7 @@ MD_LINK_RE = re.compile(
     r"""
     \[              # Literal opening bracket '['
     (               # Group 1: Link text
-      [^\]]+        #   Match 1+ characters that are NOT ']'
+      [^\]]*        #   Match 0+ characters that are NOT ']' (empty image alt)
     )
     \]              # Literal closing bracket ']'
     \(              # Literal opening parenthesis '('
@@ -470,6 +470,31 @@ def is_internal_md_link(path: str) -> bool:
     return bool(path) and not path.startswith("/") and path.endswith(".md")
 
 
+def asset_url(
+    path_str: str, source_file: Path, export_dir: Path, base_url: str
+) -> str | None:
+    """Return the absolute URL of a relative asset in the export, or None.
+
+    >>> import tempfile
+    >>> root = Path(tempfile.mkdtemp())
+    >>> (root / "2026/media").mkdir(parents=True)
+    >>> _ = (root / "2026/media/quiz.webp").write_bytes(b"")
+    >>> note = root / "2026/post.md"
+    >>> asset_url("media/quiz.webp", note, root, "https://ex.com/blog")
+    'https://ex.com/blog/2026/media/quiz.webp'
+    >>> asset_url("media/missing.webp", note, root, "https://ex.com/blog") is None
+    True
+    >>> asset_url("/media/quiz.webp", note, root, "https://ex.com/blog") is None
+    True
+    """
+    if not path_str or path_str.startswith(("/", "{", "#")):
+        return None  # site-absolute, Pelican {static}, or in-page anchor
+    relative_path = resolve_link(path_str, source_file, export_dir)
+    if not relative_path or not (export_dir / relative_path).is_file():
+        return None
+    return f"{base_url}/{relative_path.as_posix()}"
+
+
 def convert_relative_links(
     content: str, base_url: str, source_file: Path, export_dir: Path
 ) -> str:
@@ -487,12 +512,17 @@ def convert_relative_links(
             path_part = parsed.path
 
         if not is_internal_md_link(path_part):
+            # Images and attachments: relative paths break on pages (index,
+            # tags) rendered at a different depth, so make them absolute.
+            if parsed.scheme or not (
+                url := asset_url(path_part, source_file, export_dir, base_url)
+            ):
+                return match.group(0)
+        elif relative_path := resolve_link(path_part, source_file, export_dir):
+            url = note_path_to_url(relative_path, base_url)
+        else:
             return match.group(0)
 
-        if not (relative_path := resolve_link(path_part, source_file, export_dir)):
-            return match.group(0)
-
-        url = note_path_to_url(relative_path, base_url)
         anchor = "#" + parsed.fragment if parsed.fragment else ""
         return format_md_link(text, url + anchor)
 
